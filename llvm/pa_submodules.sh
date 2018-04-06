@@ -23,6 +23,11 @@ add_submodule() {
     local repo_dir=$(basename ${path})
     local repo=${submodules[$module]}
 
+    if [[ -e ${path} ]]; then
+        echo "Skipping ${path}, already exists"
+        return;
+    fi
+
     mkdir -p ${cont_dir}
     pushd ${cont_dir}
     git clone -b ${VERSION} $repo $repo_dir
