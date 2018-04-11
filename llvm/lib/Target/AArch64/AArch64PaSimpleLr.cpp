@@ -39,6 +39,9 @@ namespace {
         bool doInitialization(Module &M) override;
         bool runOnMachineFunction(MachineFunction &F) override;
 
+        void insertEpiloguePac(MachineBasicBlock &BB);
+        void insertReturnPac(MachineBasicBlock &BB);
+
         /* void getAnalysisUsage(AnalysisUsage &AU) const override { */
         /*   MachineFunctionPass::getAnalysisUsage(AU); */
         /*   AU.addRequired<MachineModuleInfo>(); */
@@ -47,11 +50,10 @@ namespace {
 
     private:
         /* MachineModuleInfo *MMI; */
-        /* const TargetMachine *TM; */
         /* bool Is64Bit; */
-        /* const AArch64Subtarget *STI; */
-
-        bool m_init_done;
+        const TargetMachine *TM;
+        const AArch64Subtarget *STI;
+        const AArch64InstrInfo *TII;
     };
 } // end anonymous namespace
 
@@ -62,15 +64,48 @@ FunctionPass *llvm::createAArch64PaSimpleLrPass() {
 char PaSimpleLr::ID = 0;
 
 bool PaSimpleLr::doInitialization(Module &M) {
-    m_init_done = false;
     return false;
 }
 
 bool PaSimpleLr::runOnMachineFunction(MachineFunction &MF) {
     DEBUG(dbgs() << getPassName() << '\n');
 
-    std::cerr << "Hello World, compiling a function\n";
+    TM = &MF.getTarget();;
+    STI = &MF.getSubtarget<AArch64Subtarget>();
+    TII = STI->getInstrInfo();
+
+    std::cerr << "compiling " << MF.getName().str() << " \n";
+    bool first = true;
+
+    /* for (const MachineBasicBlock &BB : MF) { */
+    for (const auto &BB : MF) {
+        std::cerr << "block: " << BB.getName().str() << "\n";
+
+        if (first) {
+            std::cerr << "found first block\n";
+            first = false;
+        }
+
+        if (BB.isReturnBlock()) {
+            std::cerr << "found return block\n";
+        }
+
+    }
 
     return true;
 }
 
+void PaSimpleLr::insertEpiloguePac(MachineBasicBlock &BB)
+{
+    /* auto first = BB.begin(); */
+
+    /* BuildMI(BB, first, DeubLogic(), */ 
+    /*         TTI.get(TargetOpcode:: */
+
+    std::cerr << __FUNCTION__ << "\n";
+}
+
+void PaSimpleLr::insertReturnPac(MachineBasicBlock &BB)
+{
+    std::cerr << __FUNCTION__ << "\n";
+}
