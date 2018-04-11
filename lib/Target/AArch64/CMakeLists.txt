@@ -54,6 +54,7 @@ add_llvm_target(AArch64CodeGen
   AArch64TargetObjectFile.cpp
   AArch64TargetTransformInfo.cpp
   AArch64SIMDInstrOpt.cpp
+  AArch64PaSimpleLr.cpp
 
   DEPENDS
   intrinsics_gen
