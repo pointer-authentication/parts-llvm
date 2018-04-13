@@ -74,22 +74,15 @@ bool PaSimpleLr::runOnMachineFunction(MachineFunction &MF) {
     STI = &MF.getSubtarget<AArch64Subtarget>();
     TII = STI->getInstrInfo();
 
-    std::cerr << "compiling " << MF.getName().str() << " \n";
-    bool first = true;
+    std::cerr << "compiling " << MF.getName().str() << " \n"; // TODO: remove
 
-    /* for (const MachineBasicBlock &BB : MF) { */
-    for (const auto &BB : MF) {
-        std::cerr << "block: " << BB.getName().str() << "\n";
+    insertEpiloguePac(MF.front());
 
-        if (first) {
-            std::cerr << "found first block\n";
-            first = false;
-        }
-
+    for (auto &BB : MF) {
         if (BB.isReturnBlock()) {
-            std::cerr << "found return block\n";
+            std::cerr << "found return block\n"; // TODO: remove
+            insertReturnPac(BB);
         }
-
     }
 
     return true;
@@ -97,15 +90,18 @@ bool PaSimpleLr::runOnMachineFunction(MachineFunction &MF) {
 
 void PaSimpleLr::insertEpiloguePac(MachineBasicBlock &BB)
 {
-    /* auto first = BB.begin(); */
+    std::cerr << __FUNCTION__ << "\n"; // TODO: remove
 
-    /* BuildMI(BB, first, DeubLogic(), */ 
-    /*         TTI.get(TargetOpcode:: */
-
-    std::cerr << __FUNCTION__ << "\n";
+    auto first = BB.begin();
+    BuildMI(BB, first, DebugLoc(), TII->get(AArch64::PACIASP));
 }
 
 void PaSimpleLr::insertReturnPac(MachineBasicBlock &BB)
 {
-    std::cerr << __FUNCTION__ << "\n";
+    std::cerr << __FUNCTION__ << "\n"; // TODO: remove
+
+    auto retLoc = --(BB.end());
+
+    // TODO: Do a check to make sure retLoc acutally contains a ret
+    BuildMI(BB, retLoc, DebugLoc(), TII->get(AArch64::AUTIASP));
 }
