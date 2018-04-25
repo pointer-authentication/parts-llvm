@@ -1,9 +1,21 @@
 #!/bin/bash
 
-# Install will be done to ${INSTALL_DIR}/llvm${REL_NAME}
-# modify as needed
-INSTALL_DIR=$HOME/opt/llvm
-REL_NAME=-rel60_debug
+#######################################################################
+# Where to install
+#######################################################################
+
+# Install will be done to ${install_dir}/llvm${release_name}
+install_dir=$HOME/opt/llvm
+release_name=-rel60_debug
+
+# Or, you can directly modify install_prefix and ocaml_install_path
+declare -r llvm_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+declare -r install_prefix=${install_dir}/llvm${release_name}
+declare -r ocaml_install_path=${install_dir}/ocaml${release_name}
+
+#######################################################################
+# Tools and tool configuration
+#######################################################################
 
 # Set the compiler+tools to use, or uncomment for default
 # build_tool=Ninja
@@ -12,54 +24,87 @@ build_tool="Unix Makefiles"
 # CXX_COMPILER=clang++
 C_COMPILER=gcc
 CXX_COMPILER=g++
+enable_cache=On # (On/Off)
 
 # Define this to set CMAKE_ASM_COMPILRE (maybe not needed)
 asm_compiler=as
 
-# Define this if you need custom swig
-# swig_executable=${HOME}/opt/swig/bin/swig
-
-# Set to limit parallel workloads
+# Set to limit parallel workloads (ninja might otherwise overdo it)
 # PARALLEL_LINK_JOBS=3
 # PARALLEL_COMPILE_JOBS=3
+
+#######################################################################
+# What to build?
+#######################################################################
+
+# Set to Release for non-debug build
+build_type="Debug"
 
 # Modify this to change target platforms
 BUILD_TARGETS="X86;AArch64"
 
-# Use the gold linker
-use_gold=1
+build_tests=Off # (default Off)
+build_docs=Off # (default Off)
+build_examples=Off # (default Off)
+include_examples=Off # (default Off)
 
-# Set to Release for non-debug build
-build_type="Debug"
+#######################################################################
+# Potential fixes for missing/custom stuff
+#######################################################################
+
+# Define this if you need custom swig
+# swig_executable=${HOME}/opt/swig/bin/swig
 
 # Set to define LLVM_BINUTILS_INCDIR, NOTE: gcc version
 # (not sure anymore what this fixes?)
 # binutils_incdir=/usr/lib/gcc/x86_64-linux-gnu/6/plugin/include/
 
-# These are automatically generated based on INSTALL_DIR and REL_NAME
-declare -r llvm_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-declare -r install_prefix=${INSTALL_DIR}/llvm${REL_NAME}
-declare -r ocaml_install_path=${INSTALL_DIR}/ocaml${REL_NAME}
+#######################################################################
+# Tweaks/Fixes?
+#######################################################################
+
+# Doxygen (this seems incrediby slow, maybe leave off) 
+enable_doxygen=Off
+
+# Use the gold linker (We probably want this for LTO)
+use_linker=gold
+
+# Link time optimization will probably need gold linker
+enable_lto=Off
+
+# Enable Runtime Type Information (default off)
+enable_rtti=On
+
+# Use C++11/C++14/etc features
+enable_cxx1y=On
+
+
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+# Code blow, should not need editing
+#######################################################################
 
 args="
     -DCMAKE_INSTALL_PREFIX=${install_prefix}
     -DLLVM_OCAML_INSTALL_PATH=${ocaml_install_path}
     -DCMAKE_BUILD_TYPE=${build_type}
     -DLLVM_TARGETS_TO_BUILD=${BUILD_TARGETS}
-    -DLLVM_ENABLE_CXX1Y=On
-    -LLVM_DENABLE_LLD=On
-    -DLLVM_CCACHE_BUILD=On
     -DLLVM_PARALLEL_LINK_JOBS=${PARALLEL_LINK_JOBS}
     -DLLVM_PARALLEL_COMPILE_JOBS=${PARALLEL_COMPILE_JOBS}
-    -DLLVM_BUILD_TESTS=On
-    -DLLVM_BUILD_EXAMPLES=Off
-    -DLLVM_INCLUDE_EXAMPLES=Off
-    -DLLVM_ENABLE_LTO=Off
-    -DLLVM_BUILD_DOCS=On
-    -DLLVM_ENABLE_DOXYGEN=Off
-    -DLLVM_ENABLE_RTTI=On
     -DLLVM_INSTALL_BINUTILS_SYMLINKS=On
     -DLLVM_INSTALL_CCTOOLS_SYMLINKS=On
+    -DLLVM_CCACHE_BUILD=${enable_cache}
+    -DLLVM_BUILD_TESTS=${build_tests}
+    -DLLVM_BUILD_EXAMPLES=${build_examples}
+    -DLLVM_BUILD_DOCS=${build_docs}
+    -DLLVM_INCLUDE_EXAMPLES=${include_examples}
+    -DLLVM_ENABLE_CXX1Y=${enable_cxx1y}
+    -DLLVM_ENABLE_LTO=${enable_lto}
+    -DLLVM_ENABLE_DOXYGEN=${enable_doxygen}
+    -DLLVM_ENABLE_RTTI=${enable_rtti}
     "
 
 if [[ -n ${swig_executable} ]]; then
@@ -94,7 +139,7 @@ if [[ -n ${binutils_incdir} ]]; then
     "
 fi
 
-if [[ -n ${use_gold} ]]; then
+if [[ -n ${use_linker} ]]; then
     args="${args}
     -DLLVM_USE_LINKER=gold
     "
