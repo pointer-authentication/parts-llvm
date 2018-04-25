@@ -1,3 +1,32 @@
+# Build instructions
+
+```
+cd REPOSORY_PATH
+# This will setup nested repositories (modify script if needed)
+./init_repos.sh
+# Create build directory for cmake
+mkdir build
+cd build
+# Run setup script to setup
+./../setup_build.sh setup
+```
+
+If something fails, modify setup_build.sh as needed, and check for potentially
+needed packages.
+
+## Potentially needed packages (on Ubuntu)
+
+If using the gold plugin (modify according to gcc version):
+`gcc-6-plugin-dev`
+
+Seems to be needed even when doxygen is disabled:
+`doxygen`
+
+If missing python packages:
+`python3-dev python3-pip python3-tk python3-lxml python3-six`
+
+
+# Original Readme by LLVM
 Low Level Virtual Machine (LLVM)
 ================================
 
