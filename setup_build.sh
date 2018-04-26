@@ -20,10 +20,10 @@ declare -r ocaml_install_path=${install_dir}/ocaml${release_name}
 # Set the compiler+tools to use, or uncomment for default
 # build_tool=Ninja
 build_tool="Unix Makefiles"
-# C_COMPILER=clang
-# CXX_COMPILER=clang++
-C_COMPILER=gcc
-CXX_COMPILER=g++
+C_COMPILER=clang
+CXX_COMPILER=clang++
+# C_COMPILER=gcc
+# CXX_COMPILER=g++
 enable_cache=On # (On/Off)
 
 # Define this to set CMAKE_ASM_COMPILRE (maybe not needed)
@@ -43,6 +43,13 @@ build_type="Debug"
 # Modify this to change target platforms
 BUILD_TARGETS="X86;AArch64"
 
+# Using shared libs should speed up intermediate development.
+build_shared_libs=On # (default Off)
+
+# Disabling the tools requires manual clang (or other tool) compilation
+# but speeds up the compilation considerably.
+build_tools=Off # (default On)
+
 build_tests=Off # (default Off)
 build_docs=Off # (default Off)
 build_examples=Off # (default Off)
@@ -53,7 +60,7 @@ include_examples=Off # (default Off)
 #######################################################################
 
 # Define this if you need custom swig
-# swig_executable=${HOME}/opt/swig/bin/swig
+swig_executable=${HOME}/opt/swig/bin/swig
 
 # Set to define LLVM_BINUTILS_INCDIR, NOTE: gcc version
 # (not sure anymore what this fixes?)
@@ -63,23 +70,20 @@ include_examples=Off # (default Off)
 # Tweaks/Fixes?
 #######################################################################
 
-# Doxygen (this seems incrediby slow, maybe leave off) 
-enable_doxygen=Off
-
 # Use the gold linker (We probably want this for LTO)
 use_linker=gold
 
 # Link time optimization will probably need gold linker
 enable_lto=Off
 
+# Doxygen (this seems incrediby slow, maybe leave off) 
+enable_doxygen=Off
+
 # Enable Runtime Type Information (default off)
-enable_rtti=On
+enable_rtti=Off
 
 # Use C++11/C++14/etc features
-enable_cxx1y=On
-
-
-
+enable_cxx1y=Off
 
 #######################################################################
 #######################################################################
@@ -97,6 +101,7 @@ args="
     -DLLVM_INSTALL_BINUTILS_SYMLINKS=On
     -DLLVM_INSTALL_CCTOOLS_SYMLINKS=On
     -DLLVM_CCACHE_BUILD=${enable_cache}
+    -DLLVM_BUILD_TOOLS=${build_tools}
     -DLLVM_BUILD_TESTS=${build_tests}
     -DLLVM_BUILD_EXAMPLES=${build_examples}
     -DLLVM_BUILD_DOCS=${build_docs}
