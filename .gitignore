@@ -75,5 +75,13 @@ docs/_build
 bindings/go/llvm/llvm_config.go
 bindings/go/llvm/workdir
 
-.idea
+#==============================================================================#
+# CLion stuff
+#==============================================================================#
+.idea/.name
+.idea/misc.xml
+.idea/modules.xml
+.idea/pa-llvm.iml
+.idea/vcs.xml
+.idea/workspace.xml
 cmake-build-debug
