@@ -1,32 +1,64 @@
 # Build instructions
 
+## Default configuration
+
+The default setup_script.sh uses clang, the gold linker and creates shared
+libraries. It does NOT include documentation, tests, and examples. Tools (e.g.,
+clang) are not included in the default make target, but are compilable and
+installable with (e.g., `make install-clang`).
+
+## Prerequisites on Ubuntu 16.04
+
+A freshly installed and upgraded amd64 Ubuntu 16.04 requires the following packages:
+
+```
+sudo apt install git cmake clang ccache python-dev libncurses5-dev swig libedit-dev
+```
+
+## Modifying
+
+The defaults should work on Ubuntu 16.04 but you can:
+
+1) modify `init_repos.sh` to change included tools/projects.
+2) modify `setup_script.sh` to modify cmake/build configuration.
+
+## To install
+
 ```
 cd REPOSORY_PATH
-# This will setup nested repositories (modify script if needed)
+# Brigng in sub tools/projects (including clang)
 ./init_repos.sh
-# Create build directory for cmake
-mkdir build
-cd build
-# Run setup script to setup
+# Create and enter build directory
+mkdir build && cd build
+# Run setup script to do setup
 ./../setup_build.sh setup
+# Compile the base
+make
+# Compile clang
+make clang
+# Install
+make install
+make install-clang
 ```
 
-If something fails, modify setup_build.sh as needed, and check for potentially
-needed packages.
-
-## Potentially needed packages (on Ubuntu)
-
-If using the gold plugin (modify according to gcc version):
-`gcc-6-plugin-dev`
-
-Seems to be needed even when doxygen is disabled:
-`doxygen`
-
-If missing python packages:
-`python3-dev python3-pip python3-tk python3-lxml python3-six`
+## Applying changes
 
 
-# Original Readme by LLVM
+# Original LLVM README.md below
+
+At least in our simple test so far backend changes can be compiled and applied
+with:
+
+```
+make install-LLVMAArch64CodeGen
+```
+
+Optimization passes, or other changes, might require more re-compilation.
+Ideally the build system should detect needed recompilation and keep it to
+a minimum even if just doing a plain `make` but I have not confirmed this at
+this point.
+
+
 Low Level Virtual Machine (LLVM)
 ================================
 

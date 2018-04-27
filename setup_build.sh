@@ -60,7 +60,7 @@ include_examples=Off # (default Off)
 #######################################################################
 
 # Define this if you need custom swig
-swig_executable=${HOME}/opt/swig/bin/swig
+# swig_executable=${HOME}/opt/swig/bin/swig
 
 # Set to define LLVM_BINUTILS_INCDIR, NOTE: gcc version
 # (not sure anymore what this fixes?)
