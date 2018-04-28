@@ -34,26 +34,20 @@ namespace {
 
         PaSimpleLr() : MachineFunctionPass(ID) {}
 
-        StringRef getPassName() const override { return "Stupid tester by Hans"; }
+        StringRef getPassName() const override { return "pa-simplelr"; }
 
         bool doInitialization(Module &M) override;
-        bool runOnMachineFunction(MachineFunction &F) override;
+        bool runOnMachineFunction(MachineFunction &) override;
 
-        void insertEpiloguePac(MachineBasicBlock &BB);
+        void insertProloguePac(MachineBasicBlock &BB);
         void insertReturnPac(MachineBasicBlock &BB);
-
-        /* void getAnalysisUsage(AnalysisUsage &AU) const override { */
-        /*   MachineFunctionPass::getAnalysisUsage(AU); */
-        /*   AU.addRequired<MachineModuleInfo>(); */
-        /*   AU.addPreserved<MachineModuleInfo>(); */
-        /* } */
 
     private:
         /* MachineModuleInfo *MMI; */
         /* bool Is64Bit; */
-        const TargetMachine *TM;
-        const AArch64Subtarget *STI;
-        const AArch64InstrInfo *TII;
+        const TargetMachine *TM = nullptr;
+        const AArch64Subtarget *STI = nullptr;
+        const AArch64InstrInfo *TII = nullptr;
     };
 } // end anonymous namespace
 
@@ -74,13 +68,10 @@ bool PaSimpleLr::runOnMachineFunction(MachineFunction &MF) {
     STI = &MF.getSubtarget<AArch64Subtarget>();
     TII = STI->getInstrInfo();
 
-    std::cerr << "compiling " << MF.getName().str() << " \n"; // TODO: remove
-
-    insertEpiloguePac(MF.front());
+    insertProloguePac(MF.front());
 
     for (auto &BB : MF) {
         if (BB.isReturnBlock()) {
-            std::cerr << "found return block\n"; // TODO: remove
             insertReturnPac(BB);
         }
     }
@@ -88,20 +79,23 @@ bool PaSimpleLr::runOnMachineFunction(MachineFunction &MF) {
     return true;
 }
 
-void PaSimpleLr::insertEpiloguePac(MachineBasicBlock &BB)
+void PaSimpleLr::insertProloguePac(MachineBasicBlock &BB)
 {
-    std::cerr << __FUNCTION__ << "\n"; // TODO: remove
-
     auto first = BB.begin();
     BuildMI(BB, first, DebugLoc(), TII->get(AArch64::PACIASP));
 }
 
 void PaSimpleLr::insertReturnPac(MachineBasicBlock &BB)
 {
-    std::cerr << __FUNCTION__ << "\n"; // TODO: remove
+    auto pos = BB.end();
 
-    auto retLoc = --(BB.end());
+    if (!pos->isReturn()) {
+        DEBUG(dbgs() << "Failed to locate return instruction, trying to recover\n");
+        // FIXME: Try scrolling back until return is found?
+    }
 
-    // TODO: Do a check to make sure retLoc acutally contains a ret
-    BuildMI(BB, retLoc, DebugLoc(), TII->get(AArch64::AUTIASP));
+    assert(pos->isReturn() && "Failed to locate return instruction");
+
+    pos--; // move to before the return
+    BuildMI(BB, pos, DebugLoc(), TII->get(AArch64::AUTIASP));
 }
