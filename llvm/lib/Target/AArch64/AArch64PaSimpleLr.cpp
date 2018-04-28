@@ -87,7 +87,7 @@ void PaSimpleLr::insertProloguePac(MachineBasicBlock &BB)
 
 void PaSimpleLr::insertReturnPac(MachineBasicBlock &BB)
 {
-    auto pos = BB.end();
+    auto pos = --(BB.end());
 
     if (!pos->isReturn()) {
         DEBUG(dbgs() << "Failed to locate return instruction, trying to recover\n");
@@ -95,7 +95,5 @@ void PaSimpleLr::insertReturnPac(MachineBasicBlock &BB)
     }
 
     assert(pos->isReturn() && "Failed to locate return instruction");
-
-    pos--; // move to before the return
     BuildMI(BB, pos, DebugLoc(), TII->get(AArch64::AUTIASP));
 }
