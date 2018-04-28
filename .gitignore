@@ -79,9 +79,12 @@ bindings/go/llvm/workdir
 # CLion stuff
 #==============================================================================#
 .idea/.name
+.idea/llvm.iml
 .idea/misc.xml
 .idea/modules.xml
 .idea/pa-llvm.iml
 .idea/vcs.xml
 .idea/workspace.xml
 cmake-build-debug
+
+
