@@ -1,36 +1,56 @@
 #!/bin/bash
 
-declare -r scriptname=$(basename "$0")
 declare -r llvm_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-declare -Ag submodules
+declare -r scriptname=$(basename "$0")
+declare -r default_system_llvm="5.0"
+declare -r default_system_gcc="5"
+declare -r default_build_tool="Unix Makefiles"
+declare -r usage="
+${scriptname} COMMAND
 
-# Version of LLVM (this must match the sub repository git branch names)
+Helper script to setup LLVM repository and cmake build.
+
+COMMANDs:
+    pkgs    - check dependencies
+    cmake   - create cmake build in CWD ($(pwd))
+    args    - dump cmake args
+    repos   - install repositories
+
+The script can be further customized with the environment variables:
+    system_llvm=x.0   - system LLVM version to use (default: ${default_system_llvm})
+    system_gcc=x      - system GCC version to use (default: ${default_system_gcc})
+    build_tool=name   - the generator cmake should use (default: ${default_build_tool})
+
+For further customization, please edit the script directly...
+"
+
+# Version (git branc) of LLVM
+# Note that the main LLVM repository should be based on same branch. The pa-*
+# branches are at the time of this writing all based on release_60.
 declare -r llvm_release=release_60
 
-# System llvm version (this is used to set compilers and check packages)
-if [[ -n ${LLVM_V} ]]; then
-    declare -r system_llvm="${LLVM_V}"
-else
-    declare -r system_llvm="5.0"
-fi
+# Set some variables used to check and setup system configuration. Defaults are
+# okay for Ubuntu 16.04, you can call the script with these variables set in to
+# avoid chaning this file directly.
+[[ -n ${system_llvm} ]] || system_llvm=${default_system_llvm}
+[[ -n ${system_gcc} ]] || system_gcc=${default_system_gcc}
 
-if [[ -n ${GCC_V} ]]; then
-    declare -r system_gcc="${GCC_V}"
-else
-    declare -r system_gcc="5"
-fi
+# Which build tool to use (Ninja should be faster, but had some issues on Ubuntu
+# 16.04))
+[[ -n ${build_tool} ]] || build_tool=${default_build_tool}
 
-if [[ -n ${BUILD_TOOL} ]]; then
-    declare -r build_tool=${BUILD_TOOL}
-else 
-    declare -r build_tool="Unix Makefiles"
-fi
-
-# Projects and tools to include
+# Projects and tools to include when initializing the LLVM sub-repos with
+# `$scriptname repos`. The format is:
+# submodule[SUBDIRECTORY_TO_CLONE_INTO]=GIT_REPOSITORY
+declare -Ag submodules
 submodules["tools/clang"]="https://github.com/llvm-mirror/clang.git"
 submodules["tools/lld"]="https://github.com/llvm-mirror/lld.git"
 submodules["tools/clang/extra"]="https://github.com/llvm-mirror/clang-tools-extra.git"
 submodules["tools/lldb"]="https://github.com/llvm-mirror/lldb.git"
+
+#######################################################################
+# Package dependencies
+#######################################################################
 
 # Modify this list accordingly if you change some other stuff
 declare -a pkg_dependencies=(
@@ -87,7 +107,7 @@ build_shared_libs=On # (default Off)
 
 build_tools=On # (default On)
 
-build_tests=Off # (default Off)
+build_tests=On # (default Off)
 build_docs=Off # (default Off)
 build_examples=Off # (default Off)
 include_examples=Off # (default Off)
@@ -117,7 +137,7 @@ enable_doxygen=Off
 enable_rtti=Off
 
 # Use C++11/C++14/etc features
-enable_cxx1y=Off
+enable_cxx1y=On
 
 #######################################################################
 #######################################################################
@@ -280,11 +300,5 @@ elif [[ $1 = cmake ]]; then
 elif [[ $1 = pkgs ]]; then
     check_packages
 else
-    echo "$(basename "$0") COMMAND"
-    echo ""
-    echo "COMMANDs:"
-    echo "  pkgs    - check dependencies"
-    echo "  cmake   - create cmake build in CWD ($(pwd))"
-    echo "  args    - dump cmake args"
-    echo "  repos   - install repositories"
+    echo "${usage}"
 fi
