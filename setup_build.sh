@@ -4,7 +4,8 @@ declare -r llvm_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 declare -r scriptname=$(basename "$0")
 declare -r default_system_llvm="5.0"
 declare -r default_system_gcc="5"
-declare -r default_build_tool="Unix Makefiles"
+# declare -r default_build_tool="Unix Makefiles"
+declare -r default_build_tool="Ninja"
 declare -r usage="
 ${scriptname} COMMAND
 
@@ -52,10 +53,19 @@ submodules["tools/lldb"]="https://github.com/llvm-mirror/lldb.git"
 # Package dependencies
 #######################################################################
 
+if [[ ${build_tool} = "Unix Makefiles" ]];then
+    build_tool_dependency="make"
+elif [[ ${build_tool} = "Ninja" ]]; then
+    build_tool_dependency="ninja-build"
+else 
+    echo "unrecognized build tool '${build_tool}'"
+fi
+
 # Modify this list accordingly if you change some other stuff
 declare -a pkg_dependencies=(
 git cmake ccache python-dev libncurses5-dev swig libedit-dev
-gcc-${system_gcc}-plugin-dev
+build-essential gcc-${system_gcc}-plugin-dev
+${build_tool_dependency}
 clang-${system_llvm} libclang-${system_llvm}-dev lld-${system_llvm}
 )
 
@@ -175,7 +185,7 @@ check_packages() {
     done
 
     if [[ -n ${missing} ]]; then
-        echo "missing packages: ${missing}"
+        echo "${missing}"
         return 1
     fi
     return 0
