@@ -1,44 +1,54 @@
 # Build instructions
 
-The default setup uses mostly the system LLVM toolchain to build the compiler.
-It should mostly include sane defaults, but at this stage I might of course be
-missing some stuff. Feel free to modify the setup script as needed.
+The default setup uses the system LLVM toolchain to build the compiler. The
+build configuration should be adequate for now and is relatively fast, in
+particular, the LLVM build uses shared libraries which allow for quick partial
+recompiles during development.
 
-## Ubuntu 18.04
+Setup is done by `setup_build.sh`, which is tested on clean Ubuntu 16.04 and
+18.04 installations. To see usage just run it without arguments. Options are
+pretty limited, but it does allow some shell variables to modify the behavior
+(e.g., `build_tool="Unix Makefiles"` switches from `ninja` to `make`. 
 
-The `setup_build.sh` script should have defaults workable on a clean Ubuntu
-16.04 installation (or with minor modification 18.04, see below).
+Bigger changes require manual editing of the script. For instance, to add more
+LLVM sub-repos edit `setup_build.sh` and add/remove entries as needed. These
+"sub-repos" are essentially various tools and projects for LLVM (e.g., clang
+itself is a tool).
 
-To check for dependencies run:
+**Note that the setup script is locatoin dependent, always keep the script in
+the LLVM root directory.**
+
+## Ubuntu 16.04 (for 18.04, see next section)
+
+Clone and checkout [**pa-simplelr**
+branch](https://version.aalto.fi/gitlab/platsec/pointer-authentication/pa-llvm/tree/pa-simplelr)
+from our PA LLVM repository (or a mainline LLVM **release_60** and manually
+copy in `setup_build.sh`).
+
+Check and install dependencies:
 
 ```
-./setup_build.sh pkgs
+./setup_build.sh pkgs | xargs sudo apt-get -y install
 ```
 
-On a clean Ubuntu 16.04 this should show *cmake clang ccache python-dev
-libncurses5-dev swig libedit-dev gcc-5-plugin-dev clang-5.0 libclang-5.0-dev
-lld-5.0*
-
-The base LLVM repository needs to be ammended with addtional tools and/or
-projects, these are setup in subdirectories (e.g., `tools` and `projects`).
-To automatically setup these run:
+The base LLVM repository needs to be amended with additional tools and/or
+projects, these are setup in subdirectories (e.g., `./tools/*` and
+`./projects/*`). To automatically setup these run:
 
 ```
 ./setup_build.sh repos
 ```
 
-To modify the installed sub-repos modify `setup_build.sh` and add remove
-`submodules` entries. In case there are any failures you might need to manually
-fix the directory structure (you can find more details in the [llvm
+In case there are any failures you might need to manually fix the directory
+structure (you can find more details in the [LLVM
 docs](https://llvm.org/docs/GettingStarted.html#git-mirror)).
 
 To start the actual build process and installation run:
 
 ```
-cd LLVM_REPOSITORY_ROOT
 mkdir build; cd build
 ../setup_build.sh cmake
-make && make install
+ninja && ninja install
 ```
 
 You should end up with a LLVM installation under
@@ -48,21 +58,27 @@ repository is already setup to use this path for immediate testing.
 
 ## Ubuntu 18.04
 
-You should be able to repeat the same steps as above on Ubuntu 18.04 by setting
-some configuration variables. The LLVM/clang version can be set with
-`LLVM_V=x.0`, the GCC version with `GCC_V=x`, and finally the build system with
-`BUILD_TOOL=A_cmake_generator`. The following configuration worked on a clean
-18.04 installation:
+Setup the following environmental variables to use newer and available compiler
+versions:
 
 ```
-cd LLVM_REPO_ROOT
-LLVM_V=6.0 GCC_V=7 BUILD_TOOL=Ninja ./setup_build.sh pkgs
-# Install missing stuff...
-LLVM_V=6.0 GCC_V=7 BUILD_TOOL=Ninja ./setup_build.sh repos
-mkdir build; cd build
-LLVM_V=6.0 GCC_V=7 BUILD_TOOL=Ninja ../setup_build.sh repos
-ninja && ninja install
+export system_llvm=6.0
+export system_gcc=7
 ```
+
+Then just follow the 16.04 instructions above.
+
+## cmake options (e.g., for CLion use)
+
+You can get the cmake variables that are set by running:
+
+```
+# Set env variables as needed (e.g., system_llvm or system_gcc).
+./setup_build.sh args
+```
+
+You can use this output to setup the CLion IDE, for instance. Or perhaps just
+to troubleshoot.
 
 
 # Original LLVM README.txt
