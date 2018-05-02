@@ -50,6 +50,8 @@ submodules["tools/clang/extra"]="https://github.com/llvm-mirror/clang-tools-extr
 submodules["tools/lldb"]="https://github.com/llvm-mirror/lldb.git"
 submodules["projects/libcxx"]="https://github.com/llvm-mirror/libcxx.git"
 submodules["projects/libcxxabi"]="https://github.com/llvm-mirror/libcxxabi.git"
+submodules["projects/compiler-rt"]="https://github.com/llvm-mirror/compiler-rt.git"
+submodules["runtimes/libunwind"]="https://github.com/llvm-mirror/libunwind.git"
 
 #######################################################################
 # Package dependencies
