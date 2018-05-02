@@ -48,6 +48,8 @@ submodules["tools/clang"]="https://github.com/llvm-mirror/clang.git"
 submodules["tools/lld"]="https://github.com/llvm-mirror/lld.git"
 submodules["tools/clang/extra"]="https://github.com/llvm-mirror/clang-tools-extra.git"
 submodules["tools/lldb"]="https://github.com/llvm-mirror/lldb.git"
+submodules["projects/libcxx"]="https://github.com/llvm-mirror/libcxx.git"
+submodules["projects/libcxxabi"]="https://github.com/llvm-mirror/libcxxabi.git"
 
 #######################################################################
 # Package dependencies
