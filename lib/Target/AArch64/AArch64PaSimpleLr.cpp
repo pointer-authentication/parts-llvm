@@ -39,8 +39,8 @@ namespace {
         bool doInitialization(Module &M) override;
         bool runOnMachineFunction(MachineFunction &) override;
 
-        void insertProloguePac(MachineBasicBlock &BB);
-        void insertReturnPac(MachineBasicBlock &BB);
+        void insertProloguePac(MachineBasicBlock &MBB);
+        void insertReturnPac(MachineBasicBlock &MBB);
 
     private:
         /* MachineModuleInfo *MMI; */
@@ -70,24 +70,24 @@ bool PaSimpleLr::runOnMachineFunction(MachineFunction &MF) {
 
     insertProloguePac(MF.front());
 
-    for (auto &BB : MF) {
-        if (BB.isReturnBlock()) {
-            insertReturnPac(BB);
+    for (auto &MBB : MF) {
+        if (MBB.isReturnBlock()) {
+            insertReturnPac(MBB);
         }
     }
 
     return true;
 }
 
-void PaSimpleLr::insertProloguePac(MachineBasicBlock &BB)
+void PaSimpleLr::insertProloguePac(MachineBasicBlock &MBB)
 {
-    auto first = BB.begin();
-    BuildMI(BB, first, DebugLoc(), TII->get(AArch64::PACIASP));
+    auto first = MBB.begin();
+    BuildMI(MBB, first, DebugLoc(), TII->get(AArch64::PACIASP));
 }
 
-void PaSimpleLr::insertReturnPac(MachineBasicBlock &BB)
+void PaSimpleLr::insertReturnPac(MachineBasicBlock &MBB)
 {
-    auto pos = --(BB.end());
+    auto pos = --(MBB.end());
 
     if (!pos->isReturn()) {
         DEBUG(dbgs() << "Failed to locate return instruction, trying to recover\n");
@@ -95,5 +95,9 @@ void PaSimpleLr::insertReturnPac(MachineBasicBlock &BB)
     }
 
     assert(pos->isReturn() && "Failed to locate return instruction");
-    BuildMI(BB, pos, DebugLoc(), TII->get(AArch64::AUTIASP));
+    /* Insert retaa instruction */
+    /* BuildMI(BB, pos, DebugLoc(), TII->get(AArch64::AUTIASP)); */
+    BuildMI(MBB, pos, DebugLoc(), TII->get(AArch64::RETAA));
+    /* Remove the ret instruction */
+    MBB.erase(pos);
 }
