@@ -525,4 +525,5 @@ void AArch64PassConfig::addPreEmitPass() {
     addPass(createAArch64CollectLOHPass());
 
   addPass(createAArch64PaSimpleLrPass());
+  addPass(createAArch64PaForwardCfiPass());
 }
