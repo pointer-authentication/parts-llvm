@@ -96,7 +96,6 @@ void PaSimpleLr::insertReturnPac(MachineBasicBlock &MBB)
 
     assert(pos->isReturn() && "Failed to locate return instruction");
     /* Insert retaa instruction */
-    /* BuildMI(BB, pos, DebugLoc(), TII->get(AArch64::AUTIASP)); */
     BuildMI(MBB, pos, DebugLoc(), TII->get(AArch64::RETAA));
     /* Remove the ret instruction */
     MBB.erase(pos);
