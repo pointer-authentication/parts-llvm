@@ -2136,9 +2136,15 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
   // Create the base instruction, then add the operands.
   const MCInstrDesc &II = TII.get(Opc);
   SrcReg = constrainOperandRegClass(II, SrcReg, II.getNumDefs());
+
+  auto &C = FuncInfo.Fn->getContext();
+
   MachineInstrBuilder MIB =
       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(SrcReg);
+
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOStore, ScaleFactor, MMO);
+
+  MIB.addMetadata(MDNode::get(C, MDString::get(C, "howdy")));
 
   return true;
 }

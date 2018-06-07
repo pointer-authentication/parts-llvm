@@ -32,6 +32,22 @@ namespace {
       ++HelloCounter;
       errs() << "Hello: ";
       errs().write_escaped(F.getName()) << '\n';
+
+      // Iterate through the Basic Blocks
+      for (auto &BB : F) {
+          errs() << "  Basic block: ";
+          errs().write_escaped(BB.getName()) << '\n';
+
+          // Iterate throughy the Instructions
+          for (auto &I : BB) {
+              errs() << "    Instruction: ";
+              I.dump();
+              auto &C = F.getContext();
+              MDNode *N = MDNode::get(C, MDString::get(C, "howdy"));
+              I.setMetadata("comment", N);
+          }
+      }
+
       return false;
     }
   };
@@ -40,26 +56,8 @@ namespace {
 char Hello::ID = 0;
 static RegisterPass<Hello> X("hello", "Hello World Pass");
 
-namespace {
-  // Hello2 - The second implementation with getAnalysisUsage implemented.
-  struct Hello2 : public FunctionPass {
-    static char ID; // Pass identification, replacement for typeid
-    Hello2() : FunctionPass(ID) {}
+/* INITIALIZE_PASS_BEGIN(Hello, "hello", "Gathering Function info",  false, false) */
+/* /1* INITIALIZE_PASS_DEPENDENCY(DominatorTree) *1/ */
+/* INITIALIZE_PASS_END(Hello, "hello", "gathering function info", false, false) */
 
-    bool runOnFunction(Function &F) override {
-      ++HelloCounter;
-      errs() << "Hello: ";
-      errs().write_escaped(F.getName()) << '\n';
-      return false;
-    }
-
-    // We don't modify the program, so we preserve all analyses.
-    void getAnalysisUsage(AnalysisUsage &AU) const override {
-      AU.setPreservesAll();
-    }
-  };
-}
-
-char Hello2::ID = 0;
-static RegisterPass<Hello2>
-Y("hello2", "Hello World Pass (with getAnalysisUsage implemented)");
+/* FunctionPass *llvm::createFunctionInfoPass() { return new Hello(); } */

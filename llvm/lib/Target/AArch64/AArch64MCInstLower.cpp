@@ -253,6 +253,8 @@ bool AArch64MCInstLower::lowerOperand(const MachineOperand &MO,
   switch (MO.getType()) {
   default:
     llvm_unreachable("unknown operand type");
+  case MachineOperand::MO_Metadata:
+    return false;
   case MachineOperand::MO_Register:
     // Ignore all implicit register operands.
     if (MO.isImplicit())
