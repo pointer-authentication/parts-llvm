@@ -97,8 +97,11 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
 
                 MI.dump();
 
-                auto op2 = MI.getOperand(2);
+                auto op_src = MI.getOperand(MI.getNumOperands()-1);
+                errs() << "\t\t op_src is ";
+                op_src.dump();
 
+                /* MI.RemoveOperand(2); */
             } else {
                 errs() << "unable to identify MemOp type\n";
             }
