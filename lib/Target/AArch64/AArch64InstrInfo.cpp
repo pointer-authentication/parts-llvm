@@ -1967,7 +1967,6 @@ AArch64InstrInfo::getMemOpBaseRegImmOfsOffsetOperand(MachineInstr &LdSt) const {
 }
 
 bool AArch64InstrInfo::getMemOpInfo(unsigned Opcode, unsigned &Scale,
-
                                     unsigned &Width, int64_t &MinOffset,
                                     int64_t &MaxOffset) const {
   switch (Opcode) {
