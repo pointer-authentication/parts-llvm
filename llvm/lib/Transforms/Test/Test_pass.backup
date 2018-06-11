@@ -1,0 +1,116 @@
+//===- Hello.cpp - Example code from "Writing an LLVM Pass" ---------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file implements two versions of the LLVM "Hello World" pass described
+// in docs/WritingAnLLVMPass.html
+//
+//===----------------------------------------------------------------------===//
+
+#include "llvm/ADT/Statistic.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/Pass.h"
+#include "llvm/Support/raw_ostream.h"
+using namespace llvm;
+
+#define DEBUG_TYPE "Test_pass"
+
+STATISTIC(HelloCounter, "Counts number of functions greeted");
+
+namespace {
+  // Hello - The first implementation, without getAnalysisUsage.
+  struct Test_pass : public FunctionPass {
+    static char ID; // Pass identification, replacement for typeid
+    Test_pass() : FunctionPass(ID) {}
+
+    bool runOnFunction(Function &F) override {
+      ++HelloCounter;
+	//if (F.getName()=="str_ptr" || F.getName()=="float_ptrs" || F.getName()=="main"){
+        errs() << "Hello: ";
+        errs().write_escaped(F.getName()) << '\n';
+        //errs()<<F.hasAddressTaken() << '\n';
+
+      for (auto &BB:F){
+
+	errs() << "Basic Block: ";
+	errs().write_escaped(F.getName()) << '\n';
+
+	for (auto &I: BB){
+		//errs() << "Instruction: ";
+		//I.dump();
+
+/*
+		if(AllocaInst *allocaInst=dyn_cast<AllocaInst>(&I)){
+   			  if(isFunctionPointerType(allocaInst->getType())){
+			     errs()<<"Funtion Pointer Type\n";
+			     allocaInst->getType()->dump();
+			     }
+			  }
+		} 
+*/		//errs() << I.getOpcode() << "\n";
+		//errs().write_escaped(I.getOpcodeName(I.getOpcode()));
+		//errs() << "\n";
+		if (I.getOpcode()==Instruction::Load){
+		errs() << "\n";
+		I.dump();
+		errs().write_escaped(I.getOpcodeName(I.getOpcode()));
+		errs() << "\n";
+		Type * Ty = I.getType();
+		if (PointerType * PT = dyn_cast<PointerType>(Ty)) {
+			Type* ty=PT->getElementType();
+			errs()<<PT->getElementType()<<"\n";
+			errs()<<PT->getElementType()->isFunctionTy()<<"\n";
+			ty->dump();
+		}
+
+/*		if (LoadInst* LI = dyn_cast<LoadInst>(&I)){
+            	    // since the argument is not a constant it must be a value loaded by
+	            // a LoadInst and LoadInst has the function getPointerOperand()
+	            Value* PO = LI->getPointerOperand();
+        	    // since we know it's a pointer Operand we can cast safely here
+	            PointerType* PT = cast<PointerType>(PO->getType());
+        	    PT->dump(); // will print i32* 
+		      }
+
+			errs()<<I.getOperand(0)<<"\n";
+			errs()<<I.getOperand(0)->getName()<<"\n";
+			errs()<<I.getOperand(0)->getType()->getPointerElementType()<<"\n";
+			//errs()<<I.getOperand(0)->getType()->getScalarType()<<"\n";
+        	        errs()<<I.getOperand(0)->getType()->isFunctionTy()<<"\n";
+			//errs() << "\n";
+*/			
+		auto &C = F.getContext();
+		MDNode *N = MDNode::get(C,MDString::get(C, "Metadata"));
+		I.setMetadata("name", N);
+		errs() << cast<MDString>(I.getMetadata("name")->getOperand(0))->getString();
+		errs()<<"\n";
+		} 
+	    }
+	 
+
+	}
+      return false;
+    }
+	bool  isFunctionPointerType(Type *type){
+      	// Check the type here
+     	if(PointerType *pointerType=dyn_cast<PointerType>(type)){
+        	return isFunctionPointerType(pointerType->getElementType());
+     	}
+        	//Exit Condition
+        else if(type->isFunctionTy()){
+        	return  true;
+        }
+       	return false;
+  	}
+  };
+}
+
+char Test_pass::ID = 0;
+static RegisterPass<Test_pass> X("test_pass", "Test Pass");
+
