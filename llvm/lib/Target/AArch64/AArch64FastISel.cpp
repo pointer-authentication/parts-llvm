@@ -15,6 +15,7 @@
 
 #include "AArch64.h"
 #include "AArch64CallingConvention.h"
+#include "AArch64Pa.h"
 #include "AArch64RegisterInfo.h"
 #include "AArch64Subtarget.h"
 #include "MCTargetDesc/AArch64AddressingModes.h"
@@ -228,7 +229,7 @@ private:
   unsigned emitLoad(MVT VT, MVT ResultVT, Address Addr, bool WantZExt = true,
                     MachineMemOperand *MMO = nullptr);
   bool emitStore(MVT VT, unsigned SrcReg, Address Addr,
-                 MachineMemOperand *MMO = nullptr);
+                 MachineMemOperand *MMO = nullptr, MDNode *PAData = nullptr);
   bool emitStoreRelease(MVT VT, unsigned SrcReg, unsigned AddrReg,
                         MachineMemOperand *MMO = nullptr);
   unsigned emitIntExt(MVT SrcVT, unsigned SrcReg, MVT DestVT, bool isZExt);
@@ -2076,7 +2077,8 @@ bool AArch64FastISel::emitStoreRelease(MVT VT, unsigned SrcReg,
 }
 
 bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
-                                MachineMemOperand *MMO) {
+                                MachineMemOperand *MMO,
+                                MDNode *PAData) {
   if (!TLI.allowsMisalignedMemoryAccesses(VT))
     return false;
 
@@ -2137,14 +2139,18 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
   const MCInstrDesc &II = TII.get(Opc);
   SrcReg = constrainOperandRegClass(II, SrcReg, II.getNumDefs());
 
-  auto &C = FuncInfo.Fn->getContext();
-
   MachineInstrBuilder MIB =
       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(SrcReg);
 
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOStore, ScaleFactor, MMO);
 
-  MIB.addMetadata(MDNode::get(C, MDString::get(C, "howdy")));
+  if (PAData != nullptr) {
+      errs() << "**************moving metadata from store to emitted STR\n";
+      auto &C = FuncInfo.Fn->getContext();
+      MIB.addMetadata(MDNode::get(C, PAData));
+  } else {
+      errs() << "**************no metadata when emitting STR\n";
+  }
 
   return true;
 }
@@ -2211,7 +2217,10 @@ bool AArch64FastISel::selectStore(const Instruction *I) {
   if (!computeAddress(PtrV, Addr, Op0->getType()))
     return false;
 
-  if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I)))
+  auto PAData = I->getMetadata(PAMetaDataKind);
+  errs() << "************** calling emitStore" <<
+      (PAData != nullptr ? " with PDData" : " without PAData") << "\n";
+  if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I), PAData))
     return false;
   return true;
 }
