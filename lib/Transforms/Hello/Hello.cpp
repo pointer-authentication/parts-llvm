@@ -16,6 +16,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
+#include "../../Target/AArch64/AArch64Pa.h"
 using namespace llvm;
 
 #define DEBUG_TYPE "hello"
@@ -44,7 +45,8 @@ namespace {
               I.dump();
               auto &C = F.getContext();
               MDNode *N = MDNode::get(C, MDString::get(C, "howdy"));
-              I.setMetadata("comment", N);
+              I.setMetadata(PAMetaDataKind, N);
+              errs() << "**************adding metadata to store\n";
           }
       }
 

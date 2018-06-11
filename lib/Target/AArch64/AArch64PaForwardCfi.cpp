@@ -99,6 +99,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
 
                 auto op_src = MI.getOperand(MI.getNumOperands()-1);
                 errs() << "\t\t op_src is ";
+                errs() << (op_src.isMetadata() ? "(metadata) " : "(non-metadata) ");
                 op_src.dump();
 
                 /* MI.RemoveOperand(2); */
