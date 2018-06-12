@@ -19,7 +19,6 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include "../../Target/AArch64/PointerAuthentication.h"
 using namespace llvm;
 
 #define DEBUG_TYPE "PtrTypeMDPass"
@@ -50,17 +49,17 @@ namespace {
                                Type* ty=PT->getElementType();
                                //errs()<<PT->getElementType()<<"\n";
                                bool fty= PT->getElementType()->isFunctionTy();
-                               errs()<<fty<<"\n";
-                               errs()<<"Pointer Type:"<<"\n";
+			       errs()<<fty<<"\n";
+			       errs()<<"Pointer Type:"<<"\n";
                                ty->dump();
-                               std::string type_str;
+			       std::string type_str;
                                llvm::raw_string_ostream rso(type_str);
                                ty->print(rso);
-                               auto &C = F.getContext();
-                               Metadata* vals[2]={MDString::get(C, rso.str()), MDString::get(C, std::string (std::to_string(fty)))};
+                  	       auto &C = F.getContext();
+			       Metadata* vals[2]={MDString::get(C, rso.str()), MDString::get(C, std::string (std::to_string(fty)))};
                                MDNode *N = MDNode::get(C,vals);
                                I.setMetadata("PAData", N);
-                               errs() << "Metadata:"<<"\n";
+			       errs() << "Metadata:"<<"\n";
                                errs() << cast<MDString>(I.getMetadata("PAData")->getOperand(0))->getString()<<"\n";
                                errs() << cast<MDString>(I.getMetadata("PAData")->getOperand(1))->getString()<<"\n";
                                errs()<<"\n";  
