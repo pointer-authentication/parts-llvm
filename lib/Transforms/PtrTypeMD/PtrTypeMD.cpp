@@ -36,56 +36,37 @@ namespace {
           for (auto &I: BB){
                    //errs() << "Instruction: ";
                    //I.dump();
-               if (I.getOpcode()==Instruction::Load){
+               if (I.getOpcode()==Instruction::Load || I.getOpcode()==Instruction::Store ){
                   errs() << "\n";
-                  I.dump();
-                  errs().write_escaped(I.getOpcodeName(I.getOpcode()));
-                  errs() << "\n";
-                  Type * Ty = I.getType();
-                  if(Ty->isPointerTy()){
-                         if (PointerType * PT = dyn_cast<PointerType>(Ty)) {
-                                  Type* ty=PT->getElementType();
-                                  //errs()<<PT->getElementType()<<"\n";
-                                  errs()<<PT->getElementType()->isFunctionTy()<<"\n";
-                                  //ty->dump();
-				  std::string type_str;
-                                  llvm::raw_string_ostream rso(type_str);
-                                  ty->print(rso);
-                  		  auto &C = F.getContext();
-		                  MDNode *N = MDNode::get(C,MDString::get(C,rso.str()));
-                		  I.setMetadata("a", N);
-		                  errs() << cast<MDString>(I.getMetadata("a")->getOperand(0))->getString();
-                		  errs()<<"\n";
-                         }
-                  }
-
-               }
-              else if (I.getOpcode()==Instruction::Store){
-                  errs() << "\n";
+                  errs() << "Instruction: ";
                   I.dump();
                   errs().write_escaped(I.getOpcodeName(I.getOpcode()));
                   errs() << "\n";
                   Type * Ty = I.getOperand(0)->getType();
                   if(Ty->isPointerTy()){
                          if (PointerType * PT = dyn_cast<PointerType>(Ty)) {
-                                 Type* ty=PT->getElementType();
-                                 //errs()<<PT->getElementType()<<"\n";
-                                 errs()<<PT->getElementType()->isFunctionTy()<<"\n";
-                                 //ty->dump();
-				 std::string type_str;
-                                 llvm::raw_string_ostream rso(type_str);
-                                 ty->print(rso);
-                  		 auto &C = F.getContext();
-		                 MDNode *N = MDNode::get(C,MDString::get(C,rso.str()));
-                		 I.setMetadata("a", N);
-		                 errs() << cast<MDString>(I.getMetadata("a")->getOperand(0))->getString();
-                		 errs()<<"\n";
+                               Type* ty=PT->getElementType();
+                               //errs()<<PT->getElementType()<<"\n";
+                               bool fty= PT->getElementType()->isFunctionTy();
+			       errs()<<fty<<"\n";
+			       errs()<<"Pointer Type:"<<"\n";
+                               ty->dump();
+			       std::string type_str;
+                               llvm::raw_string_ostream rso(type_str);
+                               ty->print(rso);
+                  	       auto &C = F.getContext();
+			       Metadata* vals[2]={MDString::get(C, rso.str()), MDString::get(C, std::string (std::to_string(fty)))};
+                               MDNode *N = MDNode::get(C,vals);
+                               I.setMetadata("PAData", N);
+			       errs() << "Metadata:"<<"\n";
+                               errs() << cast<MDString>(I.getMetadata("PAData")->getOperand(0))->getString()<<"\n";
+                               errs() << cast<MDString>(I.getMetadata("PAData")->getOperand(1))->getString()<<"\n";
+                               errs()<<"\n";  
                          }
-                  }
-
-                }
-             }
- 	}
+                      }
+                   }
+                 }
+ 	    }
       return true;
     }
   };
