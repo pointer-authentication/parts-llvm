@@ -18,6 +18,3 @@ add_llvm_loadable_module( LLVMHello
   PLUGIN_TOOL
   opt
   )
-
-
-
