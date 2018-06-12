@@ -18,6 +18,3 @@ add_llvm_library( LLVMHello MODULE BUILDTREE_ONLY
   PLUGIN_TOOL
   opt
   )
-
-
-
