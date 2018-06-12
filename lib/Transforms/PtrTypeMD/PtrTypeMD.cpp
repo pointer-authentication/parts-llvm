@@ -47,14 +47,18 @@ namespace {
                                   Type* ty=PT->getElementType();
                                   //errs()<<PT->getElementType()<<"\n";
                                   errs()<<PT->getElementType()->isFunctionTy()<<"\n";
-                                  ty->dump();
+                                  //ty->dump();
+				  std::string type_str;
+                                  llvm::raw_string_ostream rso(type_str);
+                                  ty->print(rso);
+                  		  auto &C = F.getContext();
+		                  MDNode *N = MDNode::get(C,MDString::get(C,rso.str()));
+                		  I.setMetadata("a", N);
+		                  errs() << cast<MDString>(I.getMetadata("a")->getOperand(0))->getString();
+                		  errs()<<"\n";
                          }
                   }
-                  auto &C = F.getContext();
-                  MDNode *N = MDNode::get(C,MDString::get(C,"Metadata"));
-                  I.setMetadata("a", N);
-                  //errs() << cast<MDString>(I.getMetadata("a")->getOperand(0))->getString();
-                  //errs()<<"\n";
+
                }
               else if (I.getOpcode()==Instruction::Store){
                   errs() << "\n";
@@ -67,14 +71,18 @@ namespace {
                                  Type* ty=PT->getElementType();
                                  //errs()<<PT->getElementType()<<"\n";
                                  errs()<<PT->getElementType()->isFunctionTy()<<"\n";
-                                 ty->dump();
+                                 //ty->dump();
+				 std::string type_str;
+                                 llvm::raw_string_ostream rso(type_str);
+                                 ty->print(rso);
+                  		 auto &C = F.getContext();
+		                 MDNode *N = MDNode::get(C,MDString::get(C,rso.str()));
+                		 I.setMetadata("a", N);
+		                 errs() << cast<MDString>(I.getMetadata("a")->getOperand(0))->getString();
+                		 errs()<<"\n";
                          }
                   }
-                  auto &C = F.getContext();
-                  MDNode *N = MDNode::get(C,MDString::get(C,"Metadata"));
-                  I.setMetadata("a", N);
-                  //errs() << cast<MDString>(I.getMetadata("a")->getOperand(0))->getString();
-                  //errs()<<"\n";
+
                 }
              }
  	}
