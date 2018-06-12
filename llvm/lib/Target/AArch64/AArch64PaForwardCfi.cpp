@@ -36,6 +36,8 @@ namespace {
 
         StringRef getPassName() const override { return "pa-forwardcfi"; }
 
+        const MDNode *getPAData(MachineInstr &MI);
+
         bool doInitialization(Module &M) override;
         bool runOnMachineFunction(MachineFunction &) override;
 
@@ -61,6 +63,17 @@ bool PaForwardCfi::doInitialization(Module &M) {
     return false;
 }
 
+const MDNode *PaForwardCfi::getPAData(MachineInstr &MI) {
+    // FIXME: Don't just check the last operand
+    // FIXME: Verify the found data is correct type
+    auto op = MI.getOperand(MI.getNumOperands()-1);
+
+    if (op.isMetadata()) {
+        return op.getMetadata();
+    }
+    return nullptr;
+}
+
 bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
     DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
     errs() << "function " << MF.getName() << '\n';
@@ -80,31 +93,29 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
             if (!MI.mayLoadOrStore())
                 continue;
 
-            if (!TII->getMemOpInfo(MI.getOpcode(), scale, width, min_offset, max_offset)) 
+            if (!TII->getMemOpInfo(MI.getOpcode(), scale, width, min_offset, max_offset))
                 continue;
 
-            if (isLoad(MI)) {
-                errs() << "found " << TII->getName(MI.getOpcode()) << "\n";
-            } else if (isStore(MI)) {
-
-                /* auto &C = MF.getFunction().getContext(); */
-                /* MDNode *N = MDNode::get(C, MDString::get(C, "my md string content")); */
-                /* MI.setMetadata(N); */
-
+            if (isLoad(MI) || isStore(MI)) {
                 errs() << "found " << TII->getName(MI.getOpcode())
                     << ", with " << MI.getNumOperands() << " operands"
                     << "\n";
-
                 MI.dump();
 
-                auto op_src = MI.getOperand(MI.getNumOperands()-1);
-                errs() << "\t\t op_src is ";
-                errs() << (op_src.isMetadata() ? "(metadata) " : "(non-metadata) ");
-                op_src.dump();
+                MDNode *paData = getPAData(MI);
 
-                /* MI.RemoveOperand(2); */
-            } else {
-                errs() << "unable to identify MemOp type\n";
+                if (paData == nullptr)
+                    continue;
+
+                errs() << "Found PAData!\n";
+
+                /* paData */
+
+                if (isLoad(MI)) {
+                    // check PAC
+                } else {
+                    // set PAC
+                }
             }
         }
     }
