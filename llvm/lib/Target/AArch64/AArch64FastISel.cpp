@@ -15,7 +15,6 @@
 
 #include "AArch64.h"
 #include "AArch64CallingConvention.h"
-#include "AArch64Pa.h"
 #include "AArch64RegisterInfo.h"
 #include "AArch64Subtarget.h"
 #include "MCTargetDesc/AArch64AddressingModes.h"
@@ -68,6 +67,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MachineValueType.h"
 #include "llvm/Support/MathExtras.h"
+#include "PointerAuthentication.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -2217,7 +2217,7 @@ bool AArch64FastISel::selectStore(const Instruction *I) {
   if (!computeAddress(PtrV, Addr, Op0->getType()))
     return false;
 
-  auto PAData = I->getMetadata(PAMetaDataKind);
+  auto PAData = I->getMetadata(PA::MDKind);
   errs() << "************** calling emitStore" <<
       (PAData != nullptr ? " with PDData" : " without PAData") << "\n";
   if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I), PAData))
