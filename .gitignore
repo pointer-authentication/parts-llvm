@@ -87,4 +87,4 @@ bindings/go/llvm/workdir
 .idea/workspace.xml
 cmake-build-debug
 
-
+tags.lst
