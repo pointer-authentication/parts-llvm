@@ -21,6 +21,7 @@ namespace llvm {
         bool isLoad(MachineInstr &MI);
         bool isStore(MachineInstr &MI);
         const MDNode *getPAData(MachineInstr &MI);
+        bool isInstrPointer(const MDNode *paData);
     }
 }
 
