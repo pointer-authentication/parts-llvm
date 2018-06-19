@@ -20,6 +20,9 @@ const MDNode *llvm::PA::getPAData(MachineInstr &MI) {
     return nullptr;
 }
 
+bool llvm::PA::isInstrPointer(const MDNode *paData) {
+    return cast<MDString>(paData->getOperand(1))->getString().equals("1");
+}
 
 bool llvm::PA::isStore(MachineInstr &MI) {
     switch(MI.getOpcode()) {

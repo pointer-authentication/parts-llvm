@@ -9,7 +9,9 @@
 
 #include <iostream>
 #include "PointerAuthentication.h"
+#include "AArch64.h"
 #include "AArch64Subtarget.h"
+#include "AArch64RegisterInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
@@ -39,8 +41,6 @@ namespace {
         bool runOnMachineFunction(MachineFunction &) override;
 
     private:
-        /* MachineModuleInfo *MMI; */
-        /* bool Is64Bit; */
         const TargetMachine *TM = nullptr;
         const AArch64Subtarget *STI = nullptr;
         const AArch64InstrInfo *TII = nullptr;
@@ -72,32 +72,55 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
 
     for (auto &MBB : MF) {
         for (auto &MI : MBB) {
+            errs() << "\tfound " << TII->getName(MI.getOpcode())
+                << ", with " << MI.getNumOperands() << " operands"
+                << "\n\t\t";
+            MI.dump();
+
             if (!MI.mayLoadOrStore())
                 continue;
 
             if (!TII->getMemOpInfo(MI.getOpcode(), scale, width, min_offset, max_offset))
                 continue;
 
-            if (PA::isLoad(MI) || PA::isStore(MI)) {
-                errs() << "found " << TII->getName(MI.getOpcode())
-                    << ", with " << MI.getNumOperands() << " operands"
-                    << "\n";
-                MI.dump();
+            if (!(PA::isLoad(MI) || PA::isStore(MI)))
+                continue;
 
-                const MDNode *paData = PA::getPAData(MI);
+            const MDNode *paData = PA::getPAData(MI);
 
-                if (paData == nullptr)
-                    continue;
+            if (paData == nullptr)
+                continue;
 
-                errs() << "Found PAData!\n";
+            errs() << "\t\t****Found PAData: ";
 
-                /* paData */
+            /* auto tmpReg = MRI->createVirtualRegister(AArch64::GPR64RegClass); */
+            // FIXME: Ugly hack, should get proper tmp register
+            /* auto tmpReg = TII->get(AArch64::X23); */
+            auto tmpReg = AArch64::X23;
 
-                if (PA::isLoad(MI)) {
-                    // check PAC
-                } else {
-                    // set PAC
-                }
+            if (PA::isLoad(MI)) {
+                errs() << "\t\t\tAdding AUTIA instruction\n";
+
+                auto iter = MI.getIterator();
+                iter++;
+
+                BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::MOVZWi))
+                    .addReg(tmpReg)
+                    .addImm(0)
+                    .addImm(0);
+                BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::AUTIA))
+                    .addReg(MI.getOperand(0).getReg())
+                    .addReg(tmpReg);
+            } else {
+                errs() << "\t\t\tAdding PACIA instruction\n";
+
+                BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi))
+                    .addReg(tmpReg)
+                    .addImm(0)
+                    .addImm(0);
+                BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::PACIA))
+                    .addReg(MI.getOperand(0).getReg())
+                    .addReg(tmpReg);
             }
         }
     }

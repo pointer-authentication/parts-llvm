@@ -227,7 +227,7 @@ private:
   bool emitICmp_ri(MVT RetVT, unsigned LHSReg, bool LHSIsKill, uint64_t Imm);
   bool emitFCmp(MVT RetVT, const Value *LHS, const Value *RHS);
   unsigned emitLoad(MVT VT, MVT ResultVT, Address Addr, bool WantZExt = true,
-                    MachineMemOperand *MMO = nullptr);
+                    MachineMemOperand *MMO = nullptr, MDNode *PAData = nullptr);
   bool emitStore(MVT VT, unsigned SrcReg, Address Addr,
                  MachineMemOperand *MMO = nullptr, MDNode *PAData = nullptr);
   bool emitStoreRelease(MVT VT, unsigned SrcReg, unsigned AddrReg,
@@ -1751,7 +1751,8 @@ unsigned AArch64FastISel::emitAnd_ri(MVT RetVT, unsigned LHSReg, bool LHSIsKill,
 }
 
 unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
-                                   bool WantZExt, MachineMemOperand *MMO) {
+                                   bool WantZExt, MachineMemOperand *MMO,
+                                   MDNode *PAData) {
   if (!TLI.allowsMisalignedMemoryAccesses(VT))
     return 0;
 
@@ -1865,6 +1866,14 @@ unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
   MachineInstrBuilder MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc,
                                     TII.get(Opc), ResultReg);
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOLoad, ScaleFactor, MMO);
+
+  if (PAData != nullptr) {
+      errs() << "**************moving metadata from store to emitted STR\n";
+      auto &C = FuncInfo.Fn->getContext();
+      MIB.addMetadata(MDNode::get(C, PAData));
+  } else {
+      errs() << "**************no metadata when emitting STR\n";
+  }
 
   // Loading an i1 requires special handling.
   if (VT == MVT::i1) {
@@ -1990,8 +1999,12 @@ bool AArch64FastISel::selectLoad(const Instruction *I) {
     }
   }
 
+  auto PAData = I->getMetadata(PA::MDKind);
+  errs() << "************** calling emitLoad" <<
+      (PAData != nullptr ? " with PDData" : " without PAData") << "\n";
+
   unsigned ResultReg =
-      emitLoad(VT, RetVT, Addr, WantZExt, createMachineMemOperandFor(I));
+      emitLoad(VT, RetVT, Addr, WantZExt, createMachineMemOperandFor(I), PAData);
   if (!ResultReg)
     return false;
 
