@@ -91,7 +91,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
             if (paData == nullptr)
                 continue;
 
-            errs() << "\t\t****Found PAData: ";
+            errs() << "\t\t****Found PAData:\n";
 
             /* auto tmpReg = MRI->createVirtualRegister(AArch64::GPR64RegClass); */
             // FIXME: Ugly hack, should get proper tmp register
@@ -99,7 +99,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
             auto tmpReg = AArch64::X23;
 
             if (PA::isLoad(MI)) {
-                errs() << "\t\t\tAdding AUTIA instruction\n";
+                errs() << "\t\t#################Adding AUTIA instruction\n";
 
                 auto iter = MI.getIterator();
                 iter++;
@@ -112,7 +112,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
                     .addReg(MI.getOperand(0).getReg())
                     .addReg(tmpReg);
             } else {
-                errs() << "\t\t\tAdding PACIA instruction\n";
+                errs() << "\t\t#################Adding PACIA instruction\n";
 
                 BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi))
                     .addReg(tmpReg)
