@@ -22,6 +22,10 @@ namespace llvm {
         bool isStore(MachineInstr &MI);
         const MDNode *getPAData(MachineInstr &MI);
         bool isInstrPointer(const MDNode *paData);
+
+        void buildPAC(const TargetInstrInfo &TII,
+                      MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
+                      const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg);
     }
 }
 

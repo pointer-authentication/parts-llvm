@@ -5,6 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
+#include <llvm/CodeGen/MachineInstrBuilder.h>
 #include "PointerAuthentication.h"
 
 using namespace llvm;
@@ -104,3 +105,16 @@ bool llvm::PA::isLoad(MachineInstr &MI) {
     }
 }
 
+void llvm::PA::buildPAC(const TargetInstrInfo &TII,
+                        MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
+                        const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg) {
+    errs() << "\t\t#################Adding PACIA instruction\n";
+
+    BuildMI(MBB, iter, DebugLoc(), TII.get(AArch64::MOVZWi))
+            .addReg(ctxReg)
+            .addImm(0)
+            .addImm(0);
+    BuildMI(MBB, iter, DebugLoc(), TII.get(AArch64::PACIA))
+            .addReg(ptrReg)
+            .addReg(ctxReg);
+}
