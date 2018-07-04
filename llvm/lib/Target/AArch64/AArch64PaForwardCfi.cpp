@@ -86,6 +86,8 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
             if (!(PA::isLoad(MI) || PA::isStore(MI)))
                 continue;
 
+            errs() << "\t\t****Found a load or store:\n";
+
             const MDNode *paData = PA::getPAData(MI);
 
             if (paData == nullptr)

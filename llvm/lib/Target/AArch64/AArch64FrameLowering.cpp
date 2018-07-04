@@ -130,6 +130,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "PointerAuthentication.h"
 #include <cassert>
 #include <cstdint>
 #include <iterator>
@@ -1826,10 +1827,14 @@ bool AArch64FrameLowering::spillCalleeSavedRegisters(
       std::swap(Reg1, Reg2);
       std::swap(FrameIdxReg1, FrameIdxReg2);
     }
+    if (Reg1 != AArch64::LR)
+      PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg1);
     MachineInstrBuilder MIB = BuildMI(MBB, MI, DL, TII.get(StrOpc));
     if (!MRI.isReserved(Reg1))
       MBB.addLiveIn(Reg1);
     if (RPI.isPaired()) {
+      if (Reg2 != AArch64::FP)
+        PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg2);
       if (!MRI.isReserved(Reg2))
         MBB.addLiveIn(Reg2);
       MIB.addReg(Reg2, getPrologueDeath(MF, Reg2));
