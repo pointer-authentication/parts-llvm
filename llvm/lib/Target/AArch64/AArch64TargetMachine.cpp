@@ -590,6 +590,5 @@ void AArch64PassConfig::addPreEmitPass() {
       TM->getTargetTriple().isOSBinFormatMachO())
     addPass(createAArch64CollectLOHPass());
 
-  addPass(createAArch64PaSimpleLrPass());
   addPass(createAArch64PaForwardCfiPass());
 }

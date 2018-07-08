@@ -95,6 +95,8 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
 
             errs() << "\t\t****Found PAData:\n";
 
+            continue;
+
             /* auto tmpReg = MRI->createVirtualRegister(AArch64::GPR64RegClass); */
             // FIXME: Ugly hack, should get proper tmp register
             /* auto tmpReg = TII->get(AArch64::X23); */
