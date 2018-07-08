@@ -104,6 +104,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "../../Target/AArch64/PointerAuthentication.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -1593,6 +1594,10 @@ void FastISel::removeDeadLocalValueCode(MachineInstr *SavedLastLocalValue)
 }
 
 bool FastISel::selectInstruction(const Instruction *I) {
+  errs() << KRED << "FastISel::selectInstruction for            ";
+  I->dump();
+  errs() << KNRM;
+
   MachineInstr *SavedLastLocalValue = getLastLocalValue();
   // Just before the terminator instruction, insert instructions to
   // feed PHI nodes in successor blocks.
@@ -1649,6 +1654,7 @@ bool FastISel::selectInstruction(const Instruction *I) {
   }
   // Next, try calling the target to attempt to handle the instruction.
   if (fastSelectInstruction(I)) {
+    errs() << KRED << "\t*used fastSelectInstruction\n" << KNRM;
     ++NumFastIselSuccessTarget;
     DbgLoc = DebugLoc();
     return true;

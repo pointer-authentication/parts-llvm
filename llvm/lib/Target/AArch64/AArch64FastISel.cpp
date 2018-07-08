@@ -2070,6 +2070,7 @@ bool AArch64FastISel::selectLoad(const Instruction *I) {
 bool AArch64FastISel::emitStoreRelease(MVT VT, unsigned SrcReg,
                                        unsigned AddrReg,
                                        MachineMemOperand *MMO) {
+  errs() << KGRN << "emitStoreRelease\n" << KNRM;
   unsigned Opc;
   switch (VT.SimpleTy) {
   default: return false;
@@ -2092,6 +2093,8 @@ bool AArch64FastISel::emitStoreRelease(MVT VT, unsigned SrcReg,
 bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
                                 MachineMemOperand *MMO,
                                 MDNode *PAData) {
+  errs() << KGRN << "emitStore\n" << KNRM;
+
   if (!TLI.allowsMisalignedMemoryAccesses(VT))
     return false;
 
@@ -2158,17 +2161,18 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOStore, ScaleFactor, MMO);
 
   if (PAData != nullptr) {
-      errs() << "**************moving metadata from store to emitted STR\n";
+      errs() << "************** moving metadata from store to emitted STR\n";
       auto &C = FuncInfo.Fn->getContext();
       MIB.addMetadata(MDNode::get(C, PAData));
   } else {
-      errs() << "**************no metadata when emitting STR\n";
+      errs() << "************** no metadata when emitting STR\n";
   }
 
   return true;
 }
 
 bool AArch64FastISel::selectStore(const Instruction *I) {
+  errs() << KGRN << "selectStore\n" << KNRM;
   MVT VT;
   const Value *Op0 = I->getOperand(0);
   // Verify we have a legal type before going any further.  Currently, we handle
@@ -5124,6 +5128,9 @@ bool AArch64FastISel::selectAtomicCmpXchg(const AtomicCmpXchgInst *I) {
 }
 
 bool AArch64FastISel::fastSelectInstruction(const Instruction *I) {
+  errs() << KRED << "AArch64FastISel::fastSelectInstruction for ";
+  I->dump();
+  errs() << KNRM;
   switch (I->getOpcode()) {
   default:
     break;

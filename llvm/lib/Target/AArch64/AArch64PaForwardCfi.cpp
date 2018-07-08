@@ -29,105 +29,108 @@
 using namespace llvm;
 
 namespace {
-    class PaForwardCfi : public MachineFunctionPass {
-    public:
-        static char ID;
+ class PaForwardCfi : public MachineFunctionPass {
+ public:
+   static char ID;
 
-        PaForwardCfi() : MachineFunctionPass(ID) {}
+   PaForwardCfi() : MachineFunctionPass(ID) {}
 
-        StringRef getPassName() const override { return "pa-forwardcfi"; }
+   StringRef getPassName() const override { return "pa-forwardcfi"; }
 
-        bool doInitialization(Module &M) override;
-        bool runOnMachineFunction(MachineFunction &) override;
+   bool doInitialization(Module &M) override;
+   bool runOnMachineFunction(MachineFunction &) override;
 
-    private:
-        const TargetMachine *TM = nullptr;
-        const AArch64Subtarget *STI = nullptr;
-        const AArch64InstrInfo *TII = nullptr;
-    };
+ private:
+   const TargetMachine *TM = nullptr;
+   const AArch64Subtarget *STI = nullptr;
+   const AArch64InstrInfo *TII = nullptr;
+ };
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PaForwardCfiPass() {
-    return new PaForwardCfi();
+  return new PaForwardCfi();
 }
 
 char PaForwardCfi::ID = 0;
 
 bool PaForwardCfi::doInitialization(Module &M) {
-    return false;
+  return false;
 }
 
 bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
-    DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
-    errs() << "function " << MF.getName() << '\n';
+  DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
+  errs() << KBLU << "function " << MF.getName() << '\n' << KNRM;
 
-    TM = &MF.getTarget();;
-    STI = &MF.getSubtarget<AArch64Subtarget>();
-    TII = STI->getInstrInfo();
+  TM = &MF.getTarget();;
+  STI = &MF.getSubtarget<AArch64Subtarget>();
+  TII = STI->getInstrInfo();
 
-    unsigned scale;
-    unsigned width;
-    int64_t min_offset;
-    int64_t max_offset;
+  unsigned scale;
+  unsigned width;
+  int64_t min_offset;
+  int64_t max_offset;
 
-    for (auto &MBB : MF) {
-        for (auto &MI : MBB) {
-            errs() << "\tfound " << TII->getName(MI.getOpcode())
-                << ", with " << MI.getNumOperands() << " operands"
-                << "\n\t\t";
-            MI.dump();
+  for (auto &MBB : MF) {
+    for (auto &MI : MBB) {
+      /*
+      errs() << "\tfound " << TII->getName(MI.getOpcode())
+          << ", with " << MI.getNumOperands() << " operands"
+          << "\n\t\t";
+      MI.dump();
+       */
 
-            if (!MI.mayLoadOrStore())
-                continue;
+      if (!MI.mayLoadOrStore())
+        continue;
 
-            if (!TII->getMemOpInfo(MI.getOpcode(), scale, width, min_offset, max_offset))
-                continue;
+      if (!TII->getMemOpInfo(MI.getOpcode(), scale, width, min_offset, max_offset))
+        continue;
 
-            if (!(PA::isLoad(MI) || PA::isStore(MI)))
-                continue;
+      if (!(PA::isLoad(MI) || PA::isStore(MI)))
+        continue;
 
-            errs() << "\t\t****Found a load or store:\n";
+      errs() << KBLU << "\tBlock";
+      errs().write_escaped(MBB.getName()) << KNRM << "\n";
 
-            const MDNode *paData = PA::getPAData(MI);
+      errs() << KBLU << "\t\t****Found a load or store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM;
 
-            if (paData == nullptr)
-                continue;
+      const MDNode *paData = PA::getPAData(MI);
 
-            errs() << "\t\t****Found PAData:\n";
+      if (paData == nullptr)
+        continue;
 
-            continue;
+      errs() << KRED << "\t\t****Found PAData:\n" << KNRM;
 
-            /* auto tmpReg = MRI->createVirtualRegister(AArch64::GPR64RegClass); */
-            // FIXME: Ugly hack, should get proper tmp register
-            /* auto tmpReg = TII->get(AArch64::X23); */
-            auto tmpReg = AArch64::X23;
+      /* auto tmpReg = MRI->createVirtualRegister(AArch64::GPR64RegClass); */
+      // FIXME: Ugly hack, should get proper tmp register
+      /* auto tmpReg = TII->get(AArch64::X23); */
+      auto tmpReg = AArch64::X23;
 
-            if (PA::isLoad(MI)) {
-                errs() << "\t\t#################Adding AUTIA instruction\n";
+      if (PA::isLoad(MI)) {
+        errs() << "\t\t#################Adding AUTIA instruction\n";
 
-                auto iter = MI.getIterator();
-                iter++;
+        auto iter = MI.getIterator();
+        iter++;
 
-                BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::MOVZWi))
-                    .addReg(tmpReg)
-                    .addImm(0)
-                    .addImm(0);
-                BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::AUTIA))
-                    .addReg(MI.getOperand(0).getReg())
-                    .addReg(tmpReg);
-            } else {
-                errs() << "\t\t#################Adding PACIA instruction\n";
+        BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::MOVZWi))
+                .addReg(tmpReg)
+                .addImm(0)
+                .addImm(0);
+        BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::AUTIA))
+                .addReg(MI.getOperand(0).getReg())
+                .addReg(tmpReg);
+      } else {
+        errs() << "\t\t#################Adding PACIA instruction\n";
 
-                BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi))
-                    .addReg(tmpReg)
-                    .addImm(0)
-                    .addImm(0);
-                BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::PACIA))
-                    .addReg(MI.getOperand(0).getReg())
-                    .addReg(tmpReg);
-            }
-        }
+        BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi))
+                .addReg(tmpReg)
+                .addImm(0)
+                .addImm(0);
+        BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::PACIA))
+                .addReg(MI.getOperand(0).getReg())
+                .addReg(tmpReg);
+      }
     }
+  }
 
-    return true;
+  return true;
 }

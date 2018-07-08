@@ -7,6 +7,7 @@
 
 #include <llvm/CodeGen/MachineInstrBuilder.h>
 #include "PointerAuthentication.h"
+#include "AArch64Subtarget.h"
 
 using namespace llvm;
 
