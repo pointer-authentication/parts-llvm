@@ -524,6 +524,9 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
+  // Insert PAuth for LR
+  BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
+
   bool IsWin64 =
       Subtarget.isCallingConvWin64(MF.getFunction().getCallingConv());
   unsigned FixedObject = IsWin64 ? alignTo(AFI->getVarArgsGPRSize(), 16) : 0;
@@ -830,6 +833,15 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
   if (!CombineSPBump && PrologueSaveSize != 0)
     convertCalleeSaveRestoreToSPPrePostIncDec(
         MBB, std::prev(MBB.getFirstTerminator()), DL, TII, PrologueSaveSize);
+
+  // Insert PAuth instruction to authenticate LR
+  if (!IsTailCallReturn) {
+    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::RETAA));
+    MBB.erase(MBBI);
+  } else {
+    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::AUTIASP));
+    // TODO:
+  }
 
   // Move past the restores of the callee-saved registers.
   MachineBasicBlock::iterator LastPopI = MBB.getFirstTerminator();
