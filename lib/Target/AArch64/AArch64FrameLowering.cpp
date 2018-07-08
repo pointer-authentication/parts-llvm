@@ -1136,14 +1136,14 @@ bool AArch64FrameLowering::spillCalleeSavedRegisters(
             dbgs() << ", " << RPI.FrameIdx+1;
           dbgs() << ")\n");
 
-    if (Reg1 != AArch64::LR)
-      PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg1);
+    //if (Reg1 != AArch64::LR)
+      //PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg1);
     MachineInstrBuilder MIB = BuildMI(MBB, MI, DL, TII.get(StrOpc));
     if (!MRI.isReserved(Reg1))
       MBB.addLiveIn(Reg1);
     if (RPI.isPaired()) {
-      if (Reg2 != AArch64::FP)
-        PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg2);
+      //if (Reg2 != AArch64::FP)
+        //PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg2);
       if (!MRI.isReserved(Reg2))
         MBB.addLiveIn(Reg2);
       MIB.addReg(Reg2, getPrologueDeath(MF, Reg2));
