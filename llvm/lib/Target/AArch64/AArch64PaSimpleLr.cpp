@@ -68,11 +68,11 @@ bool PaSimpleLr::runOnMachineFunction(MachineFunction &MF) {
     STI = &MF.getSubtarget<AArch64Subtarget>();
     TII = STI->getInstrInfo();
 
-    insertProloguePac(MF.front());
+    //insertProloguePac(MF.front());
 
     for (auto &MBB : MF) {
         if (MBB.isReturnBlock()) {
-            insertReturnPac(MBB);
+            //insertReturnPac(MBB);
         }
     }
 

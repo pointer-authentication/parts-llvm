@@ -884,6 +884,9 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
+  // Insert PAuth for LR
+  BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
+
   bool IsWin64 =
       Subtarget.isCallingConvWin64(MF.getFunction().getCallingConv());
   // Var args are accounted for in the containing function, so don't
@@ -1339,6 +1342,15 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
       // pops.
       AfterCSRPopSize += PrologueSaveSize;
     }
+  }
+
+  // Insert PAuth instruction to authenticate LR
+  if (!IsTailCallReturn) {
+    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::RETAA));
+    MBB.erase(MBBI);
+  } else {
+    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::AUTIASP));
+    // TODO:
   }
 
   // Move past the restores of the callee-saved registers.
