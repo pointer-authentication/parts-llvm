@@ -34,6 +34,10 @@ namespace llvm {
         void buildPAC(const TargetInstrInfo &TII,
                       MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
                       const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg);
+
+        void instrumentEpilogue(const TargetInstrInfo *TII,
+                                MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
+                                const DebugLoc &DL, bool IsTailCallReturn);
     }
 }
 

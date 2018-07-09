@@ -884,7 +884,7 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
-  // Insert PAuth for LR
+  // Insert pauth for LR
   BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
 
   bool IsWin64 =
@@ -1374,6 +1374,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
 
   // If there is a single SP update, insert it before the ret and we're done.
   if (CombineSPBump) {
+    errs() << "emitting frame offset thingy\n";
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     NumBytes + AfterCSRPopSize, TII, MachineInstr::FrameDestroy,
                     false, NeedsWinCFI);
@@ -1381,6 +1382,9 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
       BuildMI(MBB, MBB.getFirstTerminator(), DL,
               TII->get(AArch64::SEH_EpilogEnd))
           .setMIFlag(MachineInstr::FrameDestroy);
+
+    // Insert pauth instruction to authenticate LR
+    PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
     return;
   }
 
@@ -1415,6 +1419,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
         BuildMI(MBB, MBB.getFirstTerminator(), DL,
                 TII->get(AArch64::SEH_EpilogEnd))
             .setMIFlag(MachineInstr::FrameDestroy);
+      PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
       return;
     }
 
@@ -1458,6 +1463,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
   if (NeedsWinCFI)
     BuildMI(MBB, MBB.getFirstTerminator(), DL, TII->get(AArch64::SEH_EpilogEnd))
         .setMIFlag(MachineInstr::FrameDestroy);
+  PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for
@@ -1839,12 +1845,14 @@ bool AArch64FrameLowering::spillCalleeSavedRegisters(
       std::swap(Reg1, Reg2);
       std::swap(FrameIdxReg1, FrameIdxReg2);
     }
+    // pauth: ..
     //if (Reg1 != AArch64::LR)
       //PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg1);
     MachineInstrBuilder MIB = BuildMI(MBB, MI, DL, TII.get(StrOpc));
     if (!MRI.isReserved(Reg1))
       MBB.addLiveIn(Reg1);
     if (RPI.isPaired()) {
+      // pauth: ..
       //if (Reg2 != AArch64::FP)
         //PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg2);
       if (!MRI.isReserved(Reg2))
