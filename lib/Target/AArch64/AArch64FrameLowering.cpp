@@ -524,7 +524,7 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
-  // Insert PAuth for LR
+  // Insert pauth for LR
   BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
 
   bool IsWin64 =
@@ -834,15 +834,6 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     convertCalleeSaveRestoreToSPPrePostIncDec(
         MBB, std::prev(MBB.getFirstTerminator()), DL, TII, PrologueSaveSize);
 
-  // Insert PAuth instruction to authenticate LR
-  if (!IsTailCallReturn) {
-    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::RETAA));
-    MBB.erase(MBBI);
-  } else {
-    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::AUTIASP));
-    // TODO:
-  }
-
   // Move past the restores of the callee-saved registers.
   MachineBasicBlock::iterator LastPopI = MBB.getFirstTerminator();
   MachineBasicBlock::iterator Begin = MBB.begin();
@@ -857,9 +848,13 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
 
   // If there is a single SP update, insert it before the ret and we're done.
   if (CombineSPBump) {
+    errs() << "emitting frame offset thingy\n";
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     NumBytes + ArgumentPopSize, TII,
                     MachineInstr::FrameDestroy);
+
+    // Insert pauth instruction to authenticate LR
+    PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
     return;
   }
 
@@ -881,8 +876,10 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
                     StackRestoreBytes, TII, MachineInstr::FrameDestroy);
     // If we were able to combine the local stack pop with the argument pop,
     // then we're done.
-    if (NoCalleeSaveRestore || ArgumentPopSize == 0)
+    if (NoCalleeSaveRestore || ArgumentPopSize == 0) {
+      PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
       return;
+    }
     NumBytes = 0;
   }
 
@@ -904,6 +901,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
   if (ArgumentPopSize)
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     ArgumentPopSize, TII, MachineInstr::FrameDestroy);
+  PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for
@@ -1136,12 +1134,14 @@ bool AArch64FrameLowering::spillCalleeSavedRegisters(
             dbgs() << ", " << RPI.FrameIdx+1;
           dbgs() << ")\n");
 
+    // pauth: ..
     //if (Reg1 != AArch64::LR)
       //PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg1);
     MachineInstrBuilder MIB = BuildMI(MBB, MI, DL, TII.get(StrOpc));
     if (!MRI.isReserved(Reg1))
       MBB.addLiveIn(Reg1);
     if (RPI.isPaired()) {
+      // pauth: ..
       //if (Reg2 != AArch64::FP)
         //PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg2);
       if (!MRI.isReserved(Reg2))
