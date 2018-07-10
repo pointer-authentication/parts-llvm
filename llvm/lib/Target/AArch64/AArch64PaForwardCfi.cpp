@@ -115,7 +115,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
                 .addReg(tmpReg)
                 .addImm(0)
                 .addImm(0);
-        BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::AUTIA))
+        BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::AUTDA))
                 .addReg(MI.getOperand(0).getReg())
                 .addReg(tmpReg);
       } else {
@@ -125,7 +125,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
                 .addReg(tmpReg)
                 .addImm(0)
                 .addImm(0);
-        BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::PACIA))
+        BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::PACDA))
                 .addReg(MI.getOperand(0).getReg())
                 .addReg(tmpReg);
       }
