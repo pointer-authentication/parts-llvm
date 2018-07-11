@@ -1868,11 +1868,11 @@ unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOLoad, ScaleFactor, MMO);
 
   if (PAData != nullptr) {
-      errs() << "**************moving metadata from store to emitted STR\n";
+      errs() << "************** moving metadata from store to emitted STR\n";
       auto &C = FuncInfo.Fn->getContext();
       MIB.addMetadata(MDNode::get(C, PAData));
   } else {
-      errs() << "**************no metadata when emitting STR\n";
+      errs() << "************** no metadata when emitting STR\n";
   }
 
   // Loading an i1 requires special handling.
