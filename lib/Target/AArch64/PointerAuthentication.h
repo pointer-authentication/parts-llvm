@@ -21,24 +21,30 @@
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
 
+#define DEBUG_PA_OPT(x) do { \
+  errs() << KGRN; \
+  x;\
+  errs() << KNRM; \
+} while(0);
+
 namespace llvm {
-    namespace PA {
+  namespace PA {
 
-        const std::string MDKind = "PAData";
+    const std::string MDKind = "PAData";
 
-        bool isLoad(MachineInstr &MI);
-        bool isStore(MachineInstr &MI);
-        const MDNode *getPAData(MachineInstr &MI);
-        bool isInstrPointer(const MDNode *paData);
+    bool isLoad(MachineInstr &MI);
+    bool isStore(MachineInstr &MI);
+    const MDNode *getPAData(MachineInstr &MI);
+    bool isInstrPointer(const MDNode *paData);
 
-        void buildPAC(const TargetInstrInfo &TII,
-                      MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
-                      const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg);
+    void buildPAC(const TargetInstrInfo &TII,
+                  MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
+                  const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg);
 
-        void instrumentEpilogue(const TargetInstrInfo *TII,
-                                MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                                const DebugLoc &DL, bool IsTailCallReturn);
-    }
+    void instrumentEpilogue(const TargetInstrInfo *TII,
+                            MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
+                            const DebugLoc &DL, bool IsTailCallReturn);
+  }
 }
 
 #endif /* !POINTERAUTHENTICATION_H */
