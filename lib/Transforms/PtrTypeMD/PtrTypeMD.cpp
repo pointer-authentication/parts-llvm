@@ -116,7 +116,13 @@ bool PtrTypeMDPass::doInitialization(Module &M)
   FunctionType* signature = FunctionType::get(result, params, false);
   funcFixMain = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_main_args", &M);
 
-  errs() << "Created new function with " << signature->getNumParams() << " params\n";
+  DEBUG_PA_MAINFIX(errs() << "Created new function with " << signature->getNumParams() << " params\n");
+
+  // Automatically annotate pointer globals
+  for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
+    if (GI->getOperand(0)->getType()->isPointerTy() && !GI->hasSection())
+      GI->setSection(".data_pauth");
+  }
 
   return true;
 }
@@ -128,42 +134,36 @@ bool PtrTypeMDPass::doFinalization(Module &M) {
 void PtrTypeMDPass::pacMainArgs(Function &F) {
   assert(F.getName().equals("main"));
 
-  errs() << "Function arguments start\n";
-  for (auto arg = F.arg_begin(); arg != F.arg_end(); arg++) {
+  DEBUG_PA_MAINFIX(errs() << "Function arguments start\n");
+  DEBUG_PA_MAINFIX(for (auto arg = F.arg_begin(); arg != F.arg_end(); arg++) {
     arg->dump();
-  }
-  errs() << "Function arguments end\n";
+  })
+  DEBUG_PA_MAINFIX(errs() << "Function arguments end\n");
 
   auto AI = F.arg_begin();
-  if (AI == F.arg_end() || AI->getType()->getTypeID() != Type::IntegerTyID) {
-    errs() << "first argument not an integer\n";
-    return;
+  if (AI == F.arg_end()) {
+    DEBUG_PA_MAINFIX(errs() << "no args for main, skipping" << __FUNCTION__ << "\n");
   }
+
+  if (AI->getType()->getTypeID() != Type::IntegerTyID)
+    llvm_unreachable("first argument to main is not an integer!?!");
+
   auto &argc = *AI++;
-  if (AI == F.arg_end() || AI->getType()->getTypeID() != Type::PointerTyID) {
-    errs() << "second argument not a char **\n";
-    return;
-  }
+  if (AI == F.arg_end() || AI->getType()->getTypeID() != Type::PointerTyID)
+    llvm_unreachable("second argument to main not a char **ptr!?!\n");
+
   auto &argv = *AI++;
-  if (AI != F.arg_end()) {
-    errs() << "unexpected arguments";
-    return;
-  }
+  if (AI != F.arg_end())
+    llvm_unreachable("unexpected arguments to main!?!\n");
 
   auto &B = F.getEntryBlock();
   auto &I = *B.begin();
-
-  /*
-  (void)argc;
-  (void)argv;
-  (void)I;
-   */
 
   std::vector<Value*> args(0);
   args.push_back(&argc);
   args.push_back(&argv);
 
-  errs() << "Inserting call with " << args.size() << " params\n";
+  DEBUG_PA_MAINFIX(errs() << "Inserting call with " << args.size() << " params\n");
 
   IRBuilder<> Builder(&I);
   Builder.CreateCall(funcFixMain, args);

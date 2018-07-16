@@ -848,7 +848,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
 
   // If there is a single SP update, insert it before the ret and we're done.
   if (CombineSPBump) {
-    errs() << "emitting frame offset thingy\n";
+    DEBUG_PA_LOW(errs() << "emitting frame offset thingy\n");
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     NumBytes + ArgumentPopSize, TII,
                     MachineInstr::FrameDestroy);
@@ -877,7 +877,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     // If we were able to combine the local stack pop with the argument pop,
     // then we're done.
     if (NoCalleeSaveRestore || ArgumentPopSize == 0) {
-      PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+      //PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
       return;
     }
     NumBytes = 0;
