@@ -1594,9 +1594,8 @@ void FastISel::removeDeadLocalValueCode(MachineInstr *SavedLastLocalValue)
 }
 
 bool FastISel::selectInstruction(const Instruction *I) {
-  errs() << KRED << "FastISel::selectInstruction for            ";
-  I->dump();
-  errs() << KNRM;
+  DEBUG_PA_LOW(errs() << KRED << "FastISel::selectInstruction for            ";
+  DEBUG_PA_LOW(I->dump()));
 
   MachineInstr *SavedLastLocalValue = getLastLocalValue();
   // Just before the terminator instruction, insert instructions to
@@ -1654,7 +1653,7 @@ bool FastISel::selectInstruction(const Instruction *I) {
   }
   // Next, try calling the target to attempt to handle the instruction.
   if (fastSelectInstruction(I)) {
-    errs() << KRED << "\t*used fastSelectInstruction\n" << KNRM;
+    DEBUG_PA_LOW(errs() << KRED << "\t*used fastSelectInstruction\n" << KNRM);
     ++NumFastIselSuccessTarget;
     DbgLoc = DebugLoc();
     return true;

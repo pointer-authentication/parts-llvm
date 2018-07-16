@@ -1374,7 +1374,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
 
   // If there is a single SP update, insert it before the ret and we're done.
   if (CombineSPBump) {
-    errs() << "emitting frame offset thingy\n";
+    DEBUG_PA_LOW(errs() << "emitting frame offset thingy\n");
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     NumBytes + AfterCSRPopSize, TII, MachineInstr::FrameDestroy,
                     false, NeedsWinCFI);
@@ -1419,7 +1419,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
         BuildMI(MBB, MBB.getFirstTerminator(), DL,
                 TII->get(AArch64::SEH_EpilogEnd))
             .setMIFlag(MachineInstr::FrameDestroy);
-      PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+      //PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
       return;
     }
 

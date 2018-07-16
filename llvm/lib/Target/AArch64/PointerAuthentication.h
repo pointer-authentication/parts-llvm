@@ -26,6 +26,29 @@
   x;\
   errs() << KNRM; \
 } while(0);
+#define DEBUG_PA_MAINFIX(x) do { \
+  x;\
+  errs() << KNRM; \
+} while(0);
+#define DEBUG_PA_MIR(x) do { \
+  x;\
+  errs() << KNRM; \
+} while(0);
+#define DEBUG_PA_LOW(x) do { \
+  x;\
+  errs() << KNRM; \
+} while(0);
+
+#ifndef asdfafd
+#undef DEBUG_PA_OPT
+#define DEBUG_PA_OPT(x)
+#undef DEBUG_PA_MAINFIX
+#define DEBUG_PA_MAINFIX(x)
+#undef DEBUG_PA_MIR
+#define DEBUG_PA_MIR(x)
+#undef DEBUG_PA_LOW
+#define DEBUG_PA_LOW(x)
+#endif
 
 namespace llvm {
   namespace PA {

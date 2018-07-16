@@ -59,7 +59,7 @@ bool PaForwardCfi::doInitialization(Module &M) {
 
 bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
-  errs() << KBLU << "function " << MF.getName() << '\n' << KNRM;
+  DEBUG_PA_MIR(errs() << KBLU << "function " << MF.getName() << '\n' << KNRM);
 
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
@@ -88,17 +88,17 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
       if (!(PA::isLoad(MI) || PA::isStore(MI)))
         continue;
 
-      errs() << KBLU << "\tBlock";
-      errs().write_escaped(MBB.getName()) << KNRM << "\n";
+      DEBUG_PA_MIR(errs() << KBLU << "\tBlock");
+      DEBUG_PA_MIR(errs().write_escaped(MBB.getName()) << KNRM << "\n");
 
-      errs() << KBLU << "\t\t****Found a load or store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM;
+      DEBUG_PA_MIR(errs() << KBLU << "\t\t****Found a load or store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
 
       const MDNode *paData = PA::getPAData(MI);
 
       if (paData == nullptr)
         continue;
 
-      errs() << KRED << "\t\t****Found PAData:\n" << KNRM;
+      DEBUG_PA_MIR(errs() << KRED << "\t\t****Found PAData:\n" << KNRM);
 
       /* auto tmpReg = MRI->createVirtualRegister(AArch64::GPR64RegClass); */
       // FIXME: Ugly hack, should get proper tmp register
@@ -106,7 +106,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
       auto tmpReg = AArch64::X23;
 
       if (PA::isLoad(MI)) {
-        errs() << "\t\t#################Adding AUTIA instruction\n";
+        DEBUG_PA_MIR(errs() << "\t\t#################Adding AUTIA instruction\n");
 
         auto iter = MI.getIterator();
         iter++;
@@ -119,7 +119,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
                 .addReg(MI.getOperand(0).getReg())
                 .addReg(tmpReg);
       } else {
-        errs() << "\t\t#################Adding PACIA instruction\n";
+        DEBUG_PA_MIR(errs() << "\t\t#################Adding PACIA instruction\n");
 
         BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi))
                 .addReg(tmpReg)
