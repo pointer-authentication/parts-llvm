@@ -38,6 +38,13 @@
   x;\
   errs() << KNRM; \
 } while(0);
+#define DEBUG_PA_FUNC(MF, name, x) do { \
+  if ((MF).getName() == (name)) { \
+    errs() << KBLU; \
+    x; \
+    errs() << KNRM; \
+  } \
+} while(0);
 
 #ifndef asdfafd
 #undef DEBUG_PA_OPT
@@ -49,6 +56,9 @@
 #undef DEBUG_PA_LOW
 #define DEBUG_PA_LOW(x)
 #endif
+//#undef DEBUG_PA_FUNC
+//#define DEBUG_PA_FUNC(x)
+//#endif
 
 namespace llvm {
   namespace PA {
