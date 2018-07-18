@@ -1384,7 +1384,9 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
           .setMIFlag(MachineInstr::FrameDestroy);
 
     // Insert pauth instruction to authenticate LR
-    PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+    if (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() || windowsRequiresStackProbe(MF, NumBytes)) {
+      PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+    }
     return;
   }
 
@@ -1845,16 +1847,10 @@ bool AArch64FrameLowering::spillCalleeSavedRegisters(
       std::swap(Reg1, Reg2);
       std::swap(FrameIdxReg1, FrameIdxReg2);
     }
-    // pauth: ..
-    //if (Reg1 != AArch64::LR)
-      //PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg1);
     MachineInstrBuilder MIB = BuildMI(MBB, MI, DL, TII.get(StrOpc));
     if (!MRI.isReserved(Reg1))
       MBB.addLiveIn(Reg1);
     if (RPI.isPaired()) {
-      // pauth: ..
-      //if (Reg2 != AArch64::FP)
-        //PA::buildPAC(TII, MBB, MI, DL, AArch64::X23, Reg2);
       if (!MRI.isReserved(Reg2))
         MBB.addLiveIn(Reg2);
       MIB.addReg(Reg2, getPrologueDeath(MF, Reg2));
