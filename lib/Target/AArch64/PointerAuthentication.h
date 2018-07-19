@@ -21,44 +21,87 @@
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
 
-#define DEBUG_PA_OPT(x) do { \
+//#define DISABLE_PA_DEBUG 1
+//#define DEBUG_ONLY_FUNC "check_user"
+#define DEBUG_ONLY_FUNC "DivideInternalFPF"
+#define DEBUG_PA_OPT(F,x) do { \
   errs() << KGRN; \
   x;\
   errs() << KNRM; \
 } while(0);
-#define DEBUG_PA_MAINFIX(x) do { \
+#define DEBUG_PA_MAINFIX(F,x) do { \
   x;\
   errs() << KNRM; \
 } while(0);
-#define DEBUG_PA_MIR(x) do { \
+#define DEBUG_PA_MIR(F,x) do { \
   x;\
   errs() << KNRM; \
 } while(0);
-#define DEBUG_PA_LOW(x) do { \
+#define DEBUG_PA_LOW(F,x) do { \
   x;\
   errs() << KNRM; \
 } while(0);
-#define DEBUG_PA_FUNC(MF, name, x) do { \
-  if ((MF).getName() == (name)) { \
+#define DEBUG_PA_FUNC(F, name, x) do { \
+  if (((F)->getName() == (name)) { \
     errs() << KBLU; \
     x; \
     errs() << KNRM; \
   } \
 } while(0);
 
-#ifndef asdfafd
+
+#ifdef DEBUG_ONLY_FUNC
 #undef DEBUG_PA_OPT
-#define DEBUG_PA_OPT(x)
 #undef DEBUG_PA_MAINFIX
-#define DEBUG_PA_MAINFIX(x)
 #undef DEBUG_PA_MIR
-#define DEBUG_PA_MIR(x)
 #undef DEBUG_PA_LOW
-#define DEBUG_PA_LOW(x)
+#undef DEBUG_PA_FUNC
+#define DEBUG_PA_OPT(F,x) do { \
+  if (DEBUG_ONLY_FUNC == (F)->getName()) { \
+    errs() << KGRN; \
+    x;\
+    errs() << KNRM; \
+  } \
+} while(0);
+#define DEBUG_PA_MAINFIX(F,x) do { \
+  if (DEBUG_ONLY_FUNC == (F)->getName()) { \
+    x;\
+    errs() << KNRM; \
+  } \
+} while(0);
+#define DEBUG_PA_MIR(F,x) do { \
+  if (DEBUG_ONLY_FUNC == (F)->getName()) { \
+    x;\
+    errs() << KNRM; \
+  } \
+} while(0);
+#define DEBUG_PA_LOW(F,x) do { \
+  if (DEBUG_ONLY_FUNC == (F)->getName()) { \
+    x;\
+    errs() << KNRM; \
+  } \
+} while(0);
+#define DEBUG_PA_FUNC(F, name, x) do { \
+  if ((F)->getName() == (name) && DEBUG_ONLY_FUNC == (F)->getName()) { \
+    errs() << KBLU; \
+    x; \
+    errs() << KNRM; \
+  } \
+} while(0);
 #endif
-//#undef DEBUG_PA_FUNC
-//#define DEBUG_PA_FUNC(x)
-//#endif
+
+#ifdef DISABLE_PA_DEBUG
+#undef DEBUG_PA_OPT
+#define DEBUG_PA_OPT(F,x)
+#undef DEBUG_PA_MAINFIX
+#define DEBUG_PA_MAINFIX(F,x)
+#undef DEBUG_PA_MIR
+#define DEBUG_PA_MIR(F,x)
+#undef DEBUG_PA_LOW
+#define DEBUG_PA_LOW(F,x)
+#undef DEBUG_PA_FUNC
+#define DEBUG_PA_FUNC(F,x)
+#endif
 
 namespace llvm {
   namespace PA {
