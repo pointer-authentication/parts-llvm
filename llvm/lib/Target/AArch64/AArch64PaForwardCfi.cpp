@@ -59,7 +59,7 @@ bool PaForwardCfi::doInitialization(Module &M) {
 
 bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
-  DEBUG_PA_MIR(errs() << KBLU << "function " << MF.getName() << '\n' << KNRM);
+  DEBUG_PA_MIR(&MF, errs() << KBLU << "function " << MF.getName() << '\n' << KNRM);
 
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
@@ -71,13 +71,17 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
   int64_t max_offset;
 
   for (auto &MBB : MF) {
+    DEBUG_PA_MIR(&MF, errs() << KBLU << "\tBlock ");
+    DEBUG_PA_MIR(&MF, errs().write_escaped(MBB.getName()) << KNRM << "\n");
+
     for (auto &MI : MBB) {
       /*
       errs() << "\tfound " << TII->getName(MI.getOpcode())
           << ", with " << MI.getNumOperands() << " operands"
           << "\n\t\t";
-      MI.dump();
        */
+      DEBUG_PA_MIR(&MF, errs() << "\t\t");
+      DEBUG_PA_MIR(&MF, MI.dump());
 
       if (!MI.mayLoadOrStore())
         continue;
@@ -88,17 +92,16 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
       if (!(PA::isLoad(MI) || PA::isStore(MI)))
         continue;
 
-      DEBUG_PA_MIR(errs() << KBLU << "\tBlock");
-      DEBUG_PA_MIR(errs().write_escaped(MBB.getName()) << KNRM << "\n");
-
-      DEBUG_PA_MIR(errs() << KBLU << "\t\t****Found a load or store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
+      DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t****Found a load or store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
 
       const MDNode *paData = PA::getPAData(MI);
 
-      if (paData == nullptr)
+      if (paData == nullptr) {
+        DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t****NO PAData!\n" << KNRM);
         continue;
+      }
 
-      DEBUG_PA_MIR(errs() << KRED << "\t\t****Found PAData:\n" << KNRM);
+      DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t****Found PAData.\n" << KNRM);
 
       /* auto tmpReg = MRI->createVirtualRegister(AArch64::GPR64RegClass); */
       // FIXME: Ugly hack, should get proper tmp register
@@ -106,7 +109,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
       auto tmpReg = AArch64::X23;
 
       if (PA::isLoad(MI)) {
-        DEBUG_PA_MIR(errs() << "\t\t#################Adding AUTIA instruction\n");
+        DEBUG_PA_MIR(&MF, errs() << "\t\t#################Adding AUTIA instruction\n");
 
         auto iter = MI.getIterator();
         iter++;
@@ -119,7 +122,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
                 .addReg(MI.getOperand(0).getReg())
                 .addReg(tmpReg);
       } else {
-        DEBUG_PA_MIR(errs() << "\t\t#################Adding PACIA instruction\n");
+        DEBUG_PA_MIR(&MF, errs() << "\t\t#################Adding PACIA instruction\n");
 
         BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi))
                 .addReg(tmpReg)
