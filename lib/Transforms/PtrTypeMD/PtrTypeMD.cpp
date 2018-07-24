@@ -58,22 +58,13 @@ static RegisterPass<PtrTypeMDPass> X("ptr-type-md-pass", "Pointer Type Metadata 
 
 
 bool PtrTypeMDPass::runOnFunction(Function &F) {
-  DEBUG_PA_OPT(&F, do {
-    errs() << TAG << "Function: ";
-    errs().write_escaped(F.getName()) << "\n";
-  } while(false));
+  DEBUG_PA_OPT(&F, do { errs() << TAG << "Function: "; errs().write_escaped(F.getName()) << "\n"; } while(false));
 
   for (auto &BB:F){
-    DEBUG_PA_OPT(&F, do {
-      errs() << TAG << "\tBasicBlock: ";
-      errs().write_escaped(BB.getName()) << '\n';
-    } while(false));
+    DEBUG_PA_OPT(&F, do { errs() << TAG << "\tBasicBlock: "; errs().write_escaped(BB.getName()) << '\n'; } while(false));
 
     for (auto &I: BB) {
-      DEBUG_PA_OPT(&F, do {
-        errs() << TAG << "\t\t";
-        I.dump();
-      } while(false));
+      DEBUG_PA_OPT(&F, do { errs() << TAG << "\t\t"; I.dump(); } while(false));
 
       const auto IOpcode = I.getOpcode();
 
@@ -83,8 +74,7 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
                             : I.getType()
         );
 
-        DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t*** Found a " <<
-                                (IOpcode == Instruction::Store ? "store" : "load") << "\n");
+        DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t*** Found a " << (IOpcode == Instruction::Store ? "store" : "load") << "\n");
 
         if (IType->isPointerTy()) {
           DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t*** it's a pointer!\n");
