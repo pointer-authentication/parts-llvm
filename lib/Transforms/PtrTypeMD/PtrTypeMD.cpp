@@ -26,22 +26,17 @@
 using namespace llvm;
 
 #define DEBUG_TYPE "PtrTypeMDPass"
+#define TAG KBLU DEBUG_TYPE ": "
+
 namespace {
 
 struct PtrTypeMDPass : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
 
-  Function *funcFixMain = nullptr;
-
   MDclass md=MDclass();
   PtrTypeMDPass() : FunctionPass(ID) {}
 
-  bool doInitialization(Module &M) override;
-  bool doFinalization(Module &M) override;
-
   bool runOnFunction(Function &F) override;
-
-  void pacMainArgs(Function &F);
 
   /** Function to assert the types of instruction operands to be equal */
   void assertPtrType(Instruction &I);
@@ -63,16 +58,22 @@ static RegisterPass<PtrTypeMDPass> X("ptr-type-md-pass", "Pointer Type Metadata 
 
 
 bool PtrTypeMDPass::runOnFunction(Function &F) {
-  DEBUG_PA_OPT(&F, errs() << "Function: ");
-  DEBUG_PA_OPT(&F, errs().write_escaped(F.getName()) << "\n");
+  DEBUG_PA_OPT(&F, do {
+    errs() << TAG << "Function: ";
+    errs().write_escaped(F.getName()) << "\n";
+  } while(false));
 
   for (auto &BB:F){
-    DEBUG_PA_OPT(&F, errs() << "\tBasicBlock: ");
-    DEBUG_PA_OPT(&F, errs().write_escaped(BB.getName()) << '\n' << KNRM);
+    DEBUG_PA_OPT(&F, do {
+      errs() << TAG << "\tBasicBlock: ";
+      errs().write_escaped(BB.getName()) << '\n';
+    } while(false));
 
     for (auto &I: BB) {
-      DEBUG_PA_OPT(&F, errs() << "\t\t");
-      DEBUG_PA_OPT(&F, I.dump());
+      DEBUG_PA_OPT(&F, do {
+        errs() << TAG << "\t\t";
+        I.dump();
+      } while(false));
 
       const auto IOpcode = I.getOpcode();
 
@@ -82,11 +83,11 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
                             : I.getType()
         );
 
-        DEBUG_PA_OPT(&F, errs() << "\t\t\t*** Found a " << (IOpcode == Instruction::Store ? "store" : "load") << ":");
-        DEBUG_PA_OPT(&F, I.dump());
+        DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t*** Found a " <<
+                                (IOpcode == Instruction::Store ? "store" : "load") << "\n");
 
         if (IType->isPointerTy()) {
-          DEBUG_PA_OPT(&F, errs() << "\t\t\t*** it's a pointer!\n");
+          DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t*** it's a pointer!\n");
 
           md.setFPtrType(false);
           assertPtrType(I);
@@ -98,75 +99,7 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
     }
   }
 
-  if (F.getName().equals("main"))
-    pacMainArgs(F);
-
   return true;
-}
-
-bool PtrTypeMDPass::doInitialization(Module &M)
-{
-
-  Type* types[2];
-  types[0] = Type::getInt32Ty(M.getContext());
-  types[1] = PointerType::get(Type::getInt8PtrTy(M.getContext()), 0);
-  ArrayRef<Type*> params(types, 2);
-  auto result = Type::getVoidTy(M.getContext());
-
-  FunctionType* signature = FunctionType::get(result, params, false);
-  funcFixMain = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_main_args", &M);
-
-  DEBUG_PA_MAINFIX(funcFixMain, errs() << "Created new function with " << signature->getNumParams() << " params\n");
-
-  // Automatically annotate pointer globals
-  for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
-    if (GI->getOperand(0)->getType()->isPointerTy() && !GI->hasSection())
-      GI->setSection(".data_pauth");
-  }
-
-  return true;
-}
-
-bool PtrTypeMDPass::doFinalization(Module &M) {
-  return true;
-}
-
-void PtrTypeMDPass::pacMainArgs(Function &F) {
-  assert(F.getName().equals("main"));
-
-  DEBUG_PA_MAINFIX(&F, errs() << "Function arguments start\n");
-  DEBUG_PA_MAINFIX(&F, for (auto arg = F.arg_begin(); arg != F.arg_end(); arg++) {
-    arg->dump();
-  })
-  DEBUG_PA_MAINFIX(&F, errs() << "Function arguments end\n");
-
-  auto AI = F.arg_begin();
-  if (AI == F.arg_end()) {
-    DEBUG_PA_MAINFIX(&F, errs() << "no args for main, skipping" << __FUNCTION__ << "\n");
-  }
-
-  if (AI->getType()->getTypeID() != Type::IntegerTyID)
-    llvm_unreachable("first argument to main is not an integer!?!");
-
-  auto &argc = *AI++;
-  if (AI == F.arg_end() || AI->getType()->getTypeID() != Type::PointerTyID)
-    llvm_unreachable("second argument to main not a char **ptr!?!\n");
-
-  auto &argv = *AI++;
-  if (AI != F.arg_end())
-    llvm_unreachable("unexpected arguments to main!?!\n");
-
-  auto &B = F.getEntryBlock();
-  auto &I = *B.begin();
-
-  std::vector<Value*> args(0);
-  args.push_back(&argc);
-  args.push_back(&argv);
-
-  DEBUG_PA_MAINFIX(&F, errs() << "Inserting call with " << args.size() << " params\n");
-
-  IRBuilder<> Builder(&I);
-  Builder.CreateCall(funcFixMain, args);
 }
 
 void PtrTypeMDPass::assertPtrType(Instruction &I)
@@ -203,9 +136,9 @@ void PtrTypeMDPass::md_fn(Function &F, Instruction &I, Type* ptrTy, bool fty) {
   MDNode *N = MDNode::get(C,vals);
   I.setMetadata("PAData", N);
 
-  DEBUG_PA_OPT(&F, errs() << "\t\t\tSetting metadata: ");
-  DEBUG_PA_OPT(&F, errs() << cast<MDString>(I.getMetadata("PAData")->getOperand(0))->getString() << " ");
-  DEBUG_PA_OPT(&F, errs() << cast<MDString>(I.getMetadata("PAData")->getOperand(1))->getString() << "\n");
+  DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\tSetting metadata: ");
+  DEBUG_PA_OPT(&F, errs() << TAG << cast<MDString>(I.getMetadata("PAData")->getOperand(0))->getString() << " ");
+  DEBUG_PA_OPT(&F, errs() << TAG << cast<MDString>(I.getMetadata("PAData")->getOperand(1))->getString() << "\n");
 }
 
 //Function to check if the pointer of an instruction operand points to a function instead of data
