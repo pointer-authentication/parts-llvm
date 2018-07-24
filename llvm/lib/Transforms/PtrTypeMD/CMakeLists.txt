@@ -10,14 +10,14 @@ if(WIN32 OR CYGWIN)
   set(LLVM_LINK_COMPONENTS Core Support)
 endif()
 
-add_llvm_loadable_module( LLVMPtrTypeMDPass
-  PtrTypeMD.cpp
-
-  DEPENDS
-  intrinsics_gen
-  PLUGIN_TOOL
-  opt
-  )
+add_llvm_loadable_module(LLVMPtrTypeMDPass
+    PtrTypeMD.cpp
+    PauthPacMain.cpp
+    PauthIntrinsics.cpp
+    PauthMarkGlobals.cpp
+    DEPENDS intrinsics_gen
+    PLUGIN_TOOL opt
+    )
 
 
 
