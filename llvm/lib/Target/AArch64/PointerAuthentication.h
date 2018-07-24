@@ -28,10 +28,6 @@
   x;\
   errs() << KNRM; \
 } while(0);
-#define DEBUG_PA_MAINFIX(F,x) do { \
-  x;\
-  errs() << KNRM; \
-} while(0);
 #define DEBUG_PA_MIR(F,x) do { \
   x;\
   errs() << KNRM; \
@@ -51,17 +47,10 @@
 
 #ifdef DEBUG_ONLY_FUNC
 #undef DEBUG_PA_OPT
-#undef DEBUG_PA_MAINFIX
 #undef DEBUG_PA_MIR
 #undef DEBUG_PA_LOW
 #undef DEBUG_PA_FUNC
 #define DEBUG_PA_OPT(F,x) do { \
-  if (F != nullptr && DEBUG_ONLY_FUNC == (F)->getName()) { \
-    x;\
-    errs() << KNRM; \
-  } \
-} while(0);
-#define DEBUG_PA_MAINFIX(F,x) do { \
   if (F != nullptr && DEBUG_ONLY_FUNC == (F)->getName()) { \
     x;\
     errs() << KNRM; \
@@ -80,7 +69,7 @@
   } \
 } while(0);
 #define DEBUG_PA_FUNC(F, name, x) do { \
-  if ((F)->getName() == (name) && DEBUG_ONLY_FUNC == (F)->getName()) { \
+  if (DEBUG_ONLY_FUNC == (F)->getName()) { \
     errs() << KBLU; \
     x; \
     errs() << KNRM; \
@@ -91,15 +80,13 @@
 #ifdef DISABLE_PA_DEBUG
 #undef DEBUG_PA_OPT
 #define DEBUG_PA_OPT(F,x)
-#endif
-#undef DEBUG_PA_MAINFIX
-#define DEBUG_PA_MAINFIX(F,x)
 #undef DEBUG_PA_MIR
 #define DEBUG_PA_MIR(F,x)
 #undef DEBUG_PA_LOW
 #define DEBUG_PA_LOW(F,x)
 #undef DEBUG_PA_FUNC
 #define DEBUG_PA_FUNC(F,x)
+#endif
 
 namespace llvm {
   namespace PA {

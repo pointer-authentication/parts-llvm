@@ -19,7 +19,6 @@
 using namespace llvm;
 
 #define DEBUG_TYPE "PauthPacMain"
-#define TAG KBLU DEBUG_TYPE ": "
 
 namespace {
 
@@ -53,8 +52,6 @@ bool PauthPacMain::doInitialization(Module &M)
   FunctionType* signature = FunctionType::get(result, params, false);
   funcFixMain = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_main_args", &M);
 
-  DEBUG_PA_OPT(funcFixMain, errs() << TAG << ": Created new function with " << signature->getNumParams() << " params\n");
-
   // Automatically annotate pointer globals
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
     if (GI->getOperand(0)->getType()->isPointerTy() && !GI->hasSection())
@@ -74,17 +71,9 @@ bool PauthPacMain::runOnFunction(Function &F) {
 
   assert(F.getName().equals("main"));
 
-  DEBUG_PA_OPT(&F, errs() << TAG << "Function arguments start\n");
-  DEBUG_PA_OPT(&F, for (auto arg = F.arg_begin(); arg != F.arg_end(); arg++) {
-    errs() << TAG << "\t";
-    arg->dump();
-  })
-  DEBUG_PA_OPT(&F, errs() << TAG << "Function arguments end\n");
-
   auto AI = F.arg_begin();
-  if (AI == F.arg_end()) {
-    DEBUG_PA_OPT(&F, errs() << TAG << "no args for main, skipping" << __FUNCTION__ << "\n");
-  }
+  if (AI == F.arg_end())
+    return false;
 
   if (AI->getType()->getTypeID() != Type::IntegerTyID)
     llvm_unreachable("first argument to main is not an integer!?!");
@@ -103,8 +92,6 @@ bool PauthPacMain::runOnFunction(Function &F) {
   std::vector<Value*> args(0);
   args.push_back(&argc);
   args.push_back(&argv);
-
-  DEBUG_PA_OPT(&F, errs() << TAG << "Inserting call with " << args.size() << " params\n");
 
   IRBuilder<> Builder(&I);
   Builder.CreateCall(funcFixMain, args);

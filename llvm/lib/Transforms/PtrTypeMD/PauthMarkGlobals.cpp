@@ -48,7 +48,7 @@ bool PauthMarkGlobals::runOnModule(Module &M)
     }
   }
 
-  DEBUG_PA_OPT(nullptr, errs() << TAG << ": moved " << marked << " globals to pauth section(s)\n");
+  DEBUG(errs() << getPassName() << ": moved " << marked << " globals to pauth section(s)\n");
 
   return marked > 0;
 }
