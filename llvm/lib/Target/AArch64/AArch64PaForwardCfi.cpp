@@ -35,7 +35,7 @@ namespace {
 
    PaForwardCfi() : MachineFunctionPass(ID) {}
 
-   StringRef getPassName() const override { return "pa-forwardcfi"; }
+   StringRef getPassName() const override { return "pauth-sllow"; }
 
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
@@ -58,6 +58,8 @@ bool PaForwardCfi::doInitialization(Module &M) {
 }
 
 bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
+  if (!ENABLE_PAUTH_SLLOW) return false;
+
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
   DEBUG_PA_MIR(&MF, errs() << KBLU << "function " << MF.getName() << '\n' << KNRM);
 

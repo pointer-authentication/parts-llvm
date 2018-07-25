@@ -1867,6 +1867,7 @@ unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
                                     TII.get(Opc), ResultReg);
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOLoad, ScaleFactor, MMO);
 
+#ifdef ENABLE_PAUTH_SLLOW
   if (PAData != nullptr) {
       DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** moving metadata to emitted LDR\n");
       auto &C = FuncInfo.Fn->getContext();
@@ -1874,6 +1875,7 @@ unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
   } else {
       DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** no metadata when emitting LDR\n");
   }
+#endif
 
   // Loading an i1 requires special handling.
   if (VT == MVT::i1) {
@@ -1999,9 +2001,7 @@ bool AArch64FastISel::selectLoad(const Instruction *I) {
     }
   }
 
-  auto PAData = I->getMetadata(PA::MDKind);
-  DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** calling emitLoad" <<
-      (PAData != nullptr ? " with PDData" : " without PAData") << "\n");
+  auto PAData = ENABLE_PAUTH_SLLOW ? I->getMetadata(PA::MDKind) : nullptr;
 
   unsigned ResultReg =
       emitLoad(VT, RetVT, Addr, WantZExt, createMachineMemOperandFor(I), PAData);
@@ -2160,6 +2160,7 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
 
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOStore, ScaleFactor, MMO);
 
+#ifdef ENABLE_PAUTH_SLLOW
   if (PAData != nullptr) {
       DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** moving metadata to emitted STR\n");
       auto &C = FuncInfo.Fn->getContext();
@@ -2167,6 +2168,7 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
   } else {
       DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** no metadata when emitting STR\n");
   }
+#endif
 
   return true;
 }
@@ -2234,9 +2236,8 @@ bool AArch64FastISel::selectStore(const Instruction *I) {
   if (!computeAddress(PtrV, Addr, Op0->getType()))
     return false;
 
-  auto PAData = I->getMetadata(PA::MDKind);
-  DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** calling emitStore" <<
-      (PAData != nullptr ? " with PDData" : " without PAData") << "\n");
+  auto PAData = ENABLE_PAUTH_SLLOW ? I->getMetadata(PA::MDKind) : nullptr;
+
   if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I), PAData))
     return false;
   return true;

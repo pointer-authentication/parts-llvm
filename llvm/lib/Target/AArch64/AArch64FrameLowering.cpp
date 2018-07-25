@@ -149,6 +149,11 @@ static cl::opt<bool>
                          cl::desc("reverse the CSR restore sequence"),
                          cl::init(false), cl::Hidden);
 
+static cl::opt<bool> EnablePauthBECFI("aarch64-pauth-becfi", cl::Hidden,
+                                      cl::desc("Enable Pointer Authentication for"
+                                               "backward edge CFI."),
+                                      cl::init(false));
+
 STATISTIC(NumRedZoneFunctions, "Number of functions using red zone");
 
 /// This is the biggest offset to the stack pointer we can encode in aarch64
@@ -884,8 +889,8 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
-  // Insert pauth for LR
-  BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
+  if (EnablePauthBECFI) // Insert pauth for LR
+    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
 
   bool IsWin64 =
       Subtarget.isCallingConvWin64(MF.getFunction().getCallingConv());
@@ -1384,7 +1389,8 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
           .setMIFlag(MachineInstr::FrameDestroy);
 
     // Insert pauth instruction to authenticate LR
-    if (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() || windowsRequiresStackProbe(MF, NumBytes)) {
+    if (EnablePauthBECFI && (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() ||
+                               windowsRequiresStackProbe(MF, NumBytes))) {
       PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
     }
     return;
@@ -1421,7 +1427,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
         BuildMI(MBB, MBB.getFirstTerminator(), DL,
                 TII->get(AArch64::SEH_EpilogEnd))
             .setMIFlag(MachineInstr::FrameDestroy);
-      //PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+      // if (EnablePauthBECFI) PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
       return;
     }
 
@@ -1465,7 +1471,8 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
   if (NeedsWinCFI)
     BuildMI(MBB, MBB.getFirstTerminator(), DL, TII->get(AArch64::SEH_EpilogEnd))
         .setMIFlag(MachineInstr::FrameDestroy);
-  PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+  if (EnablePauthBECFI)
+    PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for

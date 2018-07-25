@@ -151,6 +151,12 @@ static cl::opt<bool>
                         cl::desc("Enable the AAcrh64 branch target pass"),
                         cl::init(true));
 
+static cl::opt<bool> EnablePauthSLLOW("aarch64-pauth-sllow", cl::Hidden,
+                                      cl::desc("Enable Pointer Authentication Store/Load "
+                                               "MachineIR instrumentation."),
+                                      cl::init(false));
+
+
 extern "C" void LLVMInitializeAArch64Target() {
   // Register the target.
   RegisterTargetMachine<AArch64leTargetMachine> X(getTheAArch64leTarget());
@@ -590,5 +596,6 @@ void AArch64PassConfig::addPreEmitPass() {
       TM->getTargetTriple().isOSBinFormatMachO())
     addPass(createAArch64CollectLOHPass());
 
-  addPass(createAArch64PaForwardCfiPass());
+  if (EnablePauthSLLOW)
+    addPass(createAArch64PaForwardCfiPass());
 }
