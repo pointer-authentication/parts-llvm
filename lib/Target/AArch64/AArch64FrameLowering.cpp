@@ -141,6 +141,11 @@ static cl::opt<bool> EnableRedZone("aarch64-redzone",
                                    cl::desc("enable use of redzone on AArch64"),
                                    cl::init(false), cl::Hidden);
 
+static cl::opt<bool> EnablePauthBECFI("aarch64-pauth-becfi", cl::Hidden,
+                                      cl::desc("Enable Pointer Authentication for"
+                                               "backward edge CFI."),
+                                      cl::init(false));
+
 STATISTIC(NumRedZoneFunctions, "Number of functions using red zone");
 
 /// Look at each instruction that references stack frames and return the stack
@@ -524,8 +529,8 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
-  // Insert pauth for LR
-  BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
+  if (EnablePauthBECFI) // Insert pauth for LR
+    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
 
   bool IsWin64 =
       Subtarget.isCallingConvWin64(MF.getFunction().getCallingConv());
@@ -854,7 +859,8 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
                     MachineInstr::FrameDestroy);
 
     // Insert pauth instruction to authenticate LR
-    if (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() || windowsRequiresStackProbe(MF, NumBytes)) {
+    if (EnablePauthBECFI && (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() ||
+                               windowsRequiresStackProbe(MF, NumBytes))) {
       PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
     }
     return;
@@ -879,7 +885,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     // If we were able to combine the local stack pop with the argument pop,
     // then we're done.
     if (NoCalleeSaveRestore || ArgumentPopSize == 0) {
-      //PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+      // if (EnablePauthBECFI) PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
       return;
     }
     NumBytes = 0;
@@ -903,7 +909,9 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
   if (ArgumentPopSize)
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     ArgumentPopSize, TII, MachineInstr::FrameDestroy);
-  PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+
+  if (EnablePauthBECFI)
+    PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for
