@@ -27,6 +27,7 @@
 #define DEBUG_TYPE "aarch64-pa-forwardcfi"
 
 using namespace llvm;
+using namespace llvm::PA;
 
 namespace {
  class PaForwardCfi : public MachineFunctionPass {
@@ -67,73 +68,63 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
 
-  unsigned scale;
-  unsigned width;
-  int64_t min_offset;
-  int64_t max_offset;
-
   for (auto &MBB : MF) {
     DEBUG_PA_MIR(&MF, errs() << KBLU << "\tBlock ");
     DEBUG_PA_MIR(&MF, errs().write_escaped(MBB.getName()) << KNRM << "\n");
 
     for (auto &MI : MBB) {
-      /*
-      errs() << "\tfound " << TII->getName(MI.getOpcode())
-          << ", with " << MI.getNumOperands() << " operands"
-          << "\n\t\t";
-       */
       DEBUG_PA_MIR(&MF, errs() << "\t\t");
       DEBUG_PA_MIR(&MF, MI.dump());
 
-      if (!MI.mayLoadOrStore())
-        continue;
+      if (PA::isLoad(MI) || PA::isStore(MI)) {
+        DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a load/store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
 
-      if (!TII->getMemOpInfo(MI.getOpcode(), scale, width, min_offset, max_offset))
-        continue;
+        auto PAMDNode = getPAData(MI);
 
-      if (!(PA::isLoad(MI) || PA::isStore(MI)))
-        continue;
+        if (PAMDNode == nullptr) {
+          // Type is unknown, we will need to figure out what to do by looking around!
+          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tno PAData!\n" << KNRM);
+          // TODO: check if possible pointer!
+          // TODO: traverse iterator to find use-case with metadata
 
-      DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t****Found a load or store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
+          continue;
+        }
 
-      const MDNode *paData = PA::getPAData(MI);
+        const auto type_id = getPauthType(getPAData(MI));
 
-      if (paData == nullptr) {
-        DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t****NO PAData!\n" << KNRM);
+        if (! isPointer(type_id)) {
+          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tnot a pointer!\n" << KNRM);
+          continue;
+        }
+
+        if (isInstruction(type_id)) {
+          DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tis a instruction pointer!\n" << KNRM);
+          // We will eventually skip these and assume they are always PACed!
+        }
+
+        if (PA::isLoad(MI)) {
+          auto PAOpcode = isInstruction(type_id) ? AArch64::AUTIA : AArch64::AUTDA;
+          DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tadding " << TII->getName(PAOpcode) << " instruction\n");
+
+          auto iter = MI.getIterator();
+          iter++;
+
+          auto tmpReg = AArch64::X23;
+          BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::MOVZWi)).addReg(tmpReg).addImm(0).addImm(0);
+          BuildMI(MBB, iter, DebugLoc(), TII->get(PAOpcode)).addReg(MI.getOperand(0).getReg()).addReg(tmpReg);
+        } else {
+          auto PAOpcode = isInstruction(type_id) ? AArch64::PACIA : AArch64::PACDA;
+          DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tadding " << TII->getName(PAOpcode) << " instruction\n");
+
+          auto tmpReg = AArch64::X23;
+          BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi)).addReg(tmpReg).addImm(0) .addImm(0);
+          BuildMI(MBB, MI, DebugLoc(), TII->get(PAOpcode)).addReg(MI.getOperand(0).getReg()).addReg(tmpReg);
+        }
+
         continue;
       }
 
-      DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t****Found PAData.\n" << KNRM);
-
-      /* auto tmpReg = MRI->createVirtualRegister(AArch64::GPR64RegClass); */
-      // FIXME: Ugly hack, should get proper tmp register
-      /* auto tmpReg = TII->get(AArch64::X23); */
-      auto tmpReg = AArch64::X23;
-
-      if (PA::isLoad(MI)) {
-        DEBUG_PA_MIR(&MF, errs() << "\t\t#################Adding AUTIA instruction\n");
-
-        auto iter = MI.getIterator();
-        iter++;
-
-        BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::MOVZWi))
-                .addReg(tmpReg)
-                .addImm(0)
-                .addImm(0);
-        BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::AUTDA))
-                .addReg(MI.getOperand(0).getReg())
-                .addReg(tmpReg);
-      } else {
-        DEBUG_PA_MIR(&MF, errs() << "\t\t#################Adding PACIA instruction\n");
-
-        BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi))
-                .addReg(tmpReg)
-                .addImm(0)
-                .addImm(0);
-        BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::PACDA))
-                .addReg(MI.getOperand(0).getReg())
-                .addReg(tmpReg);
-      }
+      // TODO: handle other stuff...
     }
   }
 

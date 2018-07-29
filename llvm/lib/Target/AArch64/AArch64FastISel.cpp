@@ -2001,7 +2001,7 @@ bool AArch64FastISel::selectLoad(const Instruction *I) {
     }
   }
 
-  auto PAData = ENABLE_PAUTH_SLLOW ? I->getMetadata(PA::MDKind) : nullptr;
+  auto PAData = ENABLE_PAUTH_SLLOW ? I->getMetadata(PA::Pauth_MDKind) : nullptr;
 
   unsigned ResultReg =
       emitLoad(VT, RetVT, Addr, WantZExt, createMachineMemOperandFor(I), PAData);
@@ -2236,7 +2236,7 @@ bool AArch64FastISel::selectStore(const Instruction *I) {
   if (!computeAddress(PtrV, Addr, Op0->getType()))
     return false;
 
-  auto PAData = ENABLE_PAUTH_SLLOW ? I->getMetadata(PA::MDKind) : nullptr;
+  auto PAData = ENABLE_PAUTH_SLLOW ? I->getMetadata(PA::Pauth_MDKind) : nullptr;
 
   if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I), PAData))
     return false;

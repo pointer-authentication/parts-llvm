@@ -18,12 +18,14 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Constant.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "MDclass.h"
 #include "../../Target/AArch64/PointerAuthentication.h"
 
 using namespace llvm;
+using namespace llvm::PA;
 
 #define DEBUG_TYPE "PtrTypeMDPass"
 #define TAG KBLU DEBUG_TYPE ": "
@@ -37,6 +39,9 @@ struct PtrTypeMDPass : public FunctionPass {
   PtrTypeMDPass() : FunctionPass(ID) {}
 
   bool runOnFunction(Function &F) override;
+
+  void addToStore(Function &F, Instruction &I);
+  void addToLoad(Function &F, Instruction &I);
 
   /** Function to assert the types of instruction operands to be equal */
   void assertPtrType(Instruction &I);
@@ -60,6 +65,8 @@ static RegisterPass<PtrTypeMDPass> X("ptr-type-md-pass", "Pointer Type Metadata 
 bool PtrTypeMDPass::runOnFunction(Function &F) {
   DEBUG_PA_OPT(&F, do { errs() << TAG << "Function: "; errs().write_escaped(F.getName()) << "\n"; } while(false));
 
+  auto &C = F.getContext();
+
   for (auto &BB:F){
     DEBUG_PA_OPT(&F, do { errs() << TAG << "\tBasicBlock: "; errs().write_escaped(BB.getName()) << '\n'; } while(false));
 
@@ -68,23 +75,24 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
 
       const auto IOpcode = I.getOpcode();
 
-      if (IOpcode == Instruction::Load || IOpcode == Instruction::Store) {
-        const auto *IType = (IOpcode == Instruction::Store
-                            ? I.getOperand(0)->getType()
-                            : I.getType()
-        );
+      MDNode *MD = nullptr;
 
-        DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t*** Found a " << (IOpcode == Instruction::Store ? "store" : "load") << "\n");
+      switch(IOpcode) {
+        default:
+          break;
+        case Instruction::Store:
+          MD = getPauthMDNode(C, I.getOperand(0)->getType());
+          break;
+        case Instruction::Load:
+          MD = getPauthMDNode(C, I.getType());
+          break;
+      }
 
-        if (IType->isPointerTy()) {
-          DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t*** it's a pointer!\n");
-
-          md.setFPtrType(false);
-          assertPtrType(I);
-
-          bool fty=md.getFPtrType();
-          md_fn(F,I,md.getPtrType(),fty);
-        }
+      if (MD != nullptr) {
+        I.setMetadata(Pauth_MDKind, MD);
+        DEBUG_PA_OPT(&F, do { errs() << TAG << "\t\t\t adding metadata "; I.getMetadata(Pauth_MDKind)->dump(); } while(0));
+      } else {
+        DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t skipping\n");
       }
     }
   }

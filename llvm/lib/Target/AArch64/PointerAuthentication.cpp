@@ -6,30 +6,33 @@
  */
 
 #include <llvm/CodeGen/MachineInstrBuilder.h>
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Metadata.h>
 #include "PointerAuthentication.h"
 #include "AArch64Subtarget.h"
 
 using namespace llvm;
+using namespace llvm::PA;
 
 const MDNode *llvm::PA::getPAData(MachineInstr &MI) {
-    // FIXME: Don't just check the last operand
-    // FIXME: Verify the found data is correct type
-    auto op = MI.getOperand(MI.getNumOperands()-1);
+  // FIXME: Don't just check the last operand
+  // FIXME: Verify the found data is correct type
+  auto op = MI.getOperand(MI.getNumOperands()-1);
 
-    if (op.isMetadata()) {
-        return op.getMetadata();
-    }
-    return nullptr;
+  if (op.isMetadata()) {
+    return op.getMetadata();
+  }
+  return nullptr;
 }
 
 bool llvm::PA::isInstrPointer(const MDNode *paData) {
-    return cast<MDString>(paData->getOperand(1))->getString().equals("1");
+  return cast<MDString>(paData->getOperand(1))->getString().equals("1");
 }
 
 bool llvm::PA::isStore(MachineInstr &MI) {
-    switch(MI.getOpcode()) {
+  switch(MI.getOpcode()) {
     default:
-        return false;
+      return false;
     case AArch64::STRWpost:
     case AArch64::STURQi:
     case AArch64::STURXi:
@@ -59,14 +62,14 @@ bool llvm::PA::isStore(MachineInstr &MI) {
     case AArch64::STRHHui:
     case AArch64::STRBui:
     case AArch64::STRBBui:
-        return true;
-    }
+      return true;
+  }
 }
 
 bool llvm::PA::isLoad(MachineInstr &MI) {
-    switch(MI.getOpcode()) {
+  switch(MI.getOpcode()) {
     default:
-        return false;
+      return false;
     case AArch64::LDPXi:
     case AArch64::LDPDi:
     case AArch64::LDRWpost:
@@ -102,34 +105,78 @@ bool llvm::PA::isLoad(MachineInstr &MI) {
     case AArch64::LDRHHui:
     case AArch64::LDRBui:
     case AArch64::LDRBBui:
-        return true;
-    }
+      return true;
+  }
 }
 
 void llvm::PA::buildPAC(const TargetInstrInfo &TII,
                         MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
                         const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg) {
-    errs() << "\t\t#################Adding PACIA instruction\n";
+  errs() << "\t\t#################Adding PACIA instruction\n";
 
-    BuildMI(MBB, iter, DebugLoc(), TII.get(AArch64::MOVZWi))
-            .addReg(ctxReg)
-            .addImm(0)
-            .addImm(0);
-    BuildMI(MBB, iter, DebugLoc(), TII.get(AArch64::PACIA))
-            .addReg(ptrReg)
-            .addReg(ctxReg);
+  BuildMI(MBB, iter, DebugLoc(), TII.get(AArch64::MOVZWi))
+      .addReg(ctxReg)
+      .addImm(0)
+      .addImm(0);
+  BuildMI(MBB, iter, DebugLoc(), TII.get(AArch64::PACIA))
+      .addReg(ptrReg)
+      .addReg(ctxReg);
 }
 
 void llvm::PA::instrumentEpilogue(const TargetInstrInfo *TII,
                                   MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                                   const DebugLoc &DL, const bool IsTailCallReturn) {
-    if (!IsTailCallReturn) {
-        assert(MBBI != MBB.end());
-        BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::RETAA));
-        MBB.erase(MBBI);
-    } else {
-        BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::AUTIASP));
-    }
+  if (!IsTailCallReturn) {
+    assert(MBBI != MBB.end());
+    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::RETAA));
+    MBB.erase(MBBI);
+  } else {
+    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::AUTIASP));
+  }
+}
+
+pauth_type_id PA::getPauthType(const Type *Ty)
+{
+  if (!Ty->isPointerTy())
+    return 0;
+
+  pauth_type_id type_id = type_id_mask_ptr;
+
+  if (Ty->getPointerElementType()->isFunctionTy()) {
+    type_id = type_id | type_id_mask_instr;
+  }
+
+  return type_id;
+}
+
+pauth_type_id PA::getPauthType(const Constant *C)
+{
+  return (uint32_t) C->getUniqueInteger().getLimitedValue(1U << 31);
+}
+
+pauth_type_id PA::getPauthType(const MDNode *PAMDNode)
+{
+  return getPauthType(getPauthTypeConstant(PAMDNode));
+}
+
+Constant *PA::getPauthTypeConstant(const MDNode *PAMDNode)
+{
+  assert(PAMDNode->getNumOperands() == 1);
+  assert(isa<MDNode>(PAMDNode->getOperand(0)));
+
+  const auto *MDN = dyn_cast<MDNode>(PAMDNode->getOperand(0));
+
+  assert(MDN->getNumOperands() == 1);
+  assert(isa<ConstantAsMetadata>(MDN->getOperand(0)));
+
+  return dyn_cast<ConstantAsMetadata>(MDN->getOperand(0))->getValue();
 }
 
 
+MDNode *PA::getPauthMDNode(LLVMContext &C, const Type *Ty)
+{
+  const pauth_type_id type_id = getPauthType(Ty);
+
+  Metadata* vals[1] = { ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32, type_id))) };
+  return MDNode::get(C, vals);
+}
