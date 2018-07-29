@@ -25,7 +25,7 @@
 
 //#define DISABLE_PA_DEBUG 1
 //#define DEBUG_ONLY_FUNC "check_user"
-#define DEBUG_ONLY_FUNC "DivideInternalFPF"
+//#define DEBUG_ONLY_FUNC "DivideInternalFPF"
 #define DEBUG_PA_OPT(F,x) do { \
   x;\
   errs() << KNRM; \
@@ -91,23 +91,40 @@
 #endif
 
 namespace llvm {
-  namespace PA {
+namespace PA {
 
-    const std::string MDKind = "PAData";
+typedef uint32_t pauth_type_id;
 
-    bool isLoad(MachineInstr &MI);
-    bool isStore(MachineInstr &MI);
-    const MDNode *getPAData(MachineInstr &MI);
-    bool isInstrPointer(const MDNode *paData);
+const std::string Pauth_MDKind = "PAData";
 
-    void buildPAC(const TargetInstrInfo &TII,
-                  MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
-                  const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg);
+static constexpr uint32_t type_id_mask_ptr = 1U; /* is this a pointer (zero for nope)*/
+static constexpr uint32_t type_id_mask_instr = 2U; /* is this a instruction pointer */
 
-    void instrumentEpilogue(const TargetInstrInfo *TII,
-                            MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                            const DebugLoc &DL, bool IsTailCallReturn);
-  }
+bool isLoad(MachineInstr &MI);
+bool isStore(MachineInstr &MI);
+const MDNode *getPAData(MachineInstr &MI);
+bool isInstrPointer(const MDNode *paData);
+
+void buildPAC(const TargetInstrInfo &TII,
+              MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
+              const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg);
+
+void instrumentEpilogue(const TargetInstrInfo *TII,
+                        MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
+                        const DebugLoc &DL, bool IsTailCallReturn);
+
+pauth_type_id getPauthType(const Type *Ty);
+pauth_type_id getPauthType(const MDNode *PAMDNode);
+pauth_type_id getPauthType(const Constant *C);
+Constant *getPauthTypeConstant(const MDNode *MDNode);
+
+MDNode *getPauthMDNode(LLVMContext &C, const Type *Ty);
+
+inline bool isPointer(const pauth_type_id &id) { return id != 0; }
+inline bool isInstruction(const pauth_type_id &id) { return (id ^ type_id_mask_instr) == 1; }
+inline bool isData(const pauth_type_id &id) { return (id ^ type_id_mask_instr) == 0; }
+
+}
 }
 
 #endif /* !POINTERAUTHENTICATION_H */
