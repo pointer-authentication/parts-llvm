@@ -38,17 +38,29 @@ static RegisterPass<PauthMarkGlobals> X("pauth-markglobals", "PAC argv for main 
 
 bool PauthMarkGlobals::runOnModule(Module &M)
 {
-  int marked = 0;
+  int marked_data_pointers = 0;
+  int marked_code_pointers = 0;
 
   // Automatically annotate pointer globals
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
-    if (GI->getOperand(0)->getType()->isPointerTy() && !GI->hasSection()) {
-      GI->setSection(".data_pauth");
-      marked++;
+    auto Ty = GI->getOperand(0)->getType();
+
+    if (Ty->isPointerTy() && !GI->hasSection()) {
+      auto type_id = PA::createPauthTypeId(Ty);
+
+      if (PA::isInstruction(type_id)) {
+        marked_code_pointers++;
+        GI->setSection(".data_pauth");
+      } else {
+        marked_data_pointers++;
+        GI->setSection(".data_pauth");
+      }
+      // TODO: add the type_id
     }
   }
 
-  DEBUG(errs() << getPassName() << ": moved " << marked << " globals to pauth section(s)\n");
+  DEBUG(errs() << getPassName() << ": moved " << marked_data_pointers << "+" << marked_code_pointers <<
+               " globals to pauth data/code section(s)\n");
 
-  return marked > 0;
+  return (marked_code_pointers+marked_code_pointers) > 0;
 }

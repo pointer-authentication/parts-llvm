@@ -53,6 +53,8 @@ namespace {
    inline bool registerFitsPointer(unsigned reg);
    inline bool checkIfRegInstrumentable(unsigned reg);
 
+   bool emitPAModAndInstr(MachineBasicBlock &MBB, MachineInstr &MI, unsigned PAOpcode, unsigned reg, pauth_type_id);
+
    const TargetMachine *TM = nullptr;
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
@@ -265,24 +267,21 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, 
 
 bool PaForwardCfi::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
 {
-  const auto  PAOpcode = AArch64::PACDA;
-
-  BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(Pauth_ModifierReg).addImm(type_id).addImm(0);
-  BuildMI(MBB, MI, DebugLoc(), TII->get(PAOpcode)).addReg(pointerReg).addReg(Pauth_ModifierReg);
-
-  return true;
+  return emitPAModAndInstr(MBB, MI, AArch64::PACDA, pointerReg, type_id);
 }
 
 bool PaForwardCfi::instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
 {
-  const auto  PAOpcode = AArch64::AUTDA;
-  auto iter = MI.getIterator();
-  iter++;
+  auto MI_iter = MI.getIterator();
+  MI_iter++;
 
-  BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(Pauth_ModifierReg).addImm(type_id).addImm(0);
-  BuildMI(MBB, iter, DebugLoc(), TII->get(PAOpcode)).addReg(pointerReg).addReg(Pauth_ModifierReg);
-
-  return true;
+  return emitPAModAndInstr(MBB, *MI_iter, AArch64::AUTDA, pointerReg, type_id);
 }
 
-
+bool PaForwardCfi::emitPAModAndInstr(MachineBasicBlock &MBB, MachineInstr &MI, unsigned PAOpcode, unsigned reg, pauth_type_id type_id)
+{
+  type_id = 0; // FIXME: currently using zero PA modifier!!!
+  BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(Pauth_ModifierReg).addImm(type_id).addImm(0);
+  BuildMI(MBB, MI, DebugLoc(), TII->get(PAOpcode)).addReg(reg).addReg(Pauth_ModifierReg);
+  return true;
+}
