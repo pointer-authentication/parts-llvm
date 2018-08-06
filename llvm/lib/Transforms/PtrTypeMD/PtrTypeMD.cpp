@@ -81,10 +81,10 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
         default:
           break;
         case Instruction::Store:
-          MD = getPauthMDNode(C, I.getOperand(0)->getType());
+          MD = createPauthMDNode(C, I.getOperand(0)->getType());
           break;
         case Instruction::Load:
-          MD = getPauthMDNode(C, I.getType());
+          MD = createPauthMDNode(C, I.getType());
           break;
       }
 

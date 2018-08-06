@@ -41,6 +41,9 @@ namespace {
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
 
+   bool instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg);
+   bool instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg);
+
  private:
    const TargetMachine *TM = nullptr;
    const AArch64Subtarget *STI = nullptr;
@@ -90,7 +93,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
           continue;
         }
 
-        const auto type_id = getPauthType(getPAData(MI));
+        const auto type_id = getPauthTypeId(getPAData(MI));
 
         if (! isPointer(type_id)) {
           DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tnot a pointer!\n" << KNRM);
@@ -98,27 +101,25 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
         }
 
         if (isInstruction(type_id)) {
-          DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tis a instruction pointer!\n" << KNRM);
           // We will eventually skip these and assume they are always PACed!
         }
 
-        if (PA::isLoad(MI)) {
-          auto PAOpcode = isInstruction(type_id) ? AArch64::AUTIA : AArch64::AUTDA;
-          DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tadding " << TII->getName(PAOpcode) << " instruction\n");
+        if (isInstruction(type_id)) {
+          DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tis a instruction pointer!\n" << KNRM);
 
-          auto iter = MI.getIterator();
-          iter++;
-
-          auto tmpReg = AArch64::X23;
-          BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::MOVZWi)).addReg(tmpReg).addImm(0).addImm(0);
-          BuildMI(MBB, iter, DebugLoc(), TII->get(PAOpcode)).addReg(MI.getOperand(0).getReg()).addReg(tmpReg);
+          if (PA::isLoad(MI) || PA::isStore(MI)) {
+            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t skipping\n");
+          }
         } else {
-          auto PAOpcode = isInstruction(type_id) ? AArch64::PACIA : AArch64::PACDA;
-          DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tadding " << TII->getName(PAOpcode) << " instruction\n");
+          DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tis a instruction pointer!\n" << KNRM);
 
-          auto tmpReg = AArch64::X23;
-          BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZWi)).addReg(tmpReg).addImm(0) .addImm(0);
-          BuildMI(MBB, MI, DebugLoc(), TII->get(PAOpcode)).addReg(MI.getOperand(0).getReg()).addReg(tmpReg);
+          if (PA::isStore(MI)) {
+            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tinstrumenting store\n");
+            instrumentDataPointerStore(MBB, MI, MI.getOperand(0).getReg());
+          } else {
+            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tinstrumenting load\n");
+            instrumentDataPointerLoad(MBB, MI, MI.getOperand(0).getReg());
+          }
         }
 
         continue;
@@ -130,3 +131,27 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
 
   return true;
 }
+
+bool PaForwardCfi::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg)
+{
+  const auto  PAOpcode = AArch64::PACDA;
+
+  BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(Pauth_ModifierReg).addImm(0).addImm(0);
+  BuildMI(MBB, MI, DebugLoc(), TII->get(PAOpcode)).addReg(pointerReg).addReg(Pauth_ModifierReg);
+
+  return true;
+}
+
+bool PaForwardCfi::instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg)
+{
+  const auto  PAOpcode = AArch64::AUTDA;
+  auto iter = MI.getIterator();
+  iter++;
+
+  BuildMI(MBB, iter, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(Pauth_ModifierReg).addImm(0).addImm(0);
+  BuildMI(MBB, iter, DebugLoc(), TII->get(PAOpcode)).addReg(pointerReg).addReg(Pauth_ModifierReg);
+
+  return true;
+}
+
+
