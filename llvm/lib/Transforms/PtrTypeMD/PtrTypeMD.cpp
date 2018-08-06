@@ -86,6 +86,18 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
         case Instruction::Load:
           MD = createPauthMDNode(C, I.getType());
           break;
+        case Instruction::Call:
+
+          if (isa<CallInst>(I)) {
+            const CallInst *CI = dyn_cast<CallInst>(&I);
+            if (CI->getCalledFunction() == nullptr) {
+              DEBUG_PA_OPT(&F, errs() << TAG << KGRN << "\t\t\t found indirect call!!!!\n");
+              MD = createPauthMDNode(C, I.getOperand(0)->getType());
+            } else {
+              MD = createPauthMDNode(C, type_id_Ignore);
+            }
+          }
+          break;
       }
 
       if (MD != nullptr) {

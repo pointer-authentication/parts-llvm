@@ -100,8 +100,12 @@ typedef uint64_t pauth_function_id;
 
 const std::string Pauth_MDKind = "PAData";
 
-static constexpr uint32_t type_id_mask_ptr = 1U; /* is this a pointer (zero for nope)*/
-static constexpr uint32_t type_id_mask_instr = 2U; /* is this a instruction pointer */
+static constexpr uint64_t type_id_mask_found = 1U; /* this is a found but ignored pointer */
+static constexpr uint64_t type_id_mask_ptr = 2U; /* is this a pointer (zero for nope)*/
+static constexpr uint64_t type_id_mask_instr = 4U; /* is this a instruction pointer */
+
+static constexpr pauth_type_id type_id_Unknown = 0;
+static constexpr pauth_type_id type_id_Ignore = type_id_mask_found;
 
 bool isLoad(MachineInstr &MI);
 bool isStore(MachineInstr &MI);
@@ -131,11 +135,35 @@ void addPauthMDNode(LLVMContext &C, MachineInstr &MI, pauth_type_id id);
 void addPauthMDNode(MachineInstr &MI, MDNode node);
 
 bool isInstrPointer(const MDNode *paData);
-inline bool isPointer(const pauth_type_id &id) { return id != 0; }
-inline bool isInstruction(const pauth_type_id &id) { return (id ^ type_id_mask_instr) == 1; }
-inline bool isData(const pauth_type_id &id) { return (id ^ type_id_mask_instr) == 0; }
+
+inline bool isUnknown(const pauth_type_id &type_id);
+inline bool isPointer(const pauth_type_id &type_id);
+inline bool isInstruction(const pauth_type_id &type_id);
+inline bool isData(const pauth_type_id &id);
 
 }
+}
+
+using namespace llvm;
+
+inline bool PA::isUnknown(const pauth_type_id &type_id)
+{
+  return (type_id & type_id_mask_found) == 0;
+}
+
+inline bool PA::isPointer(const pauth_type_id &type_id)
+{
+  return (type_id & type_id_mask_ptr) != 0;
+}
+
+inline bool PA::isInstruction(const pauth_type_id &type_id)
+{
+  return (type_id & type_id_mask_instr) != 0;
+}
+
+inline bool PA::isData(const pauth_type_id &type_id)
+{
+  return (type_id & type_id_mask_instr) == 0 && !isInstruction(type_id);
 }
 
 #endif /* !POINTERAUTHENTICATION_H */

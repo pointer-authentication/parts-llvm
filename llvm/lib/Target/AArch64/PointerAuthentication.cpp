@@ -148,7 +148,7 @@ pauth_type_id PA::createPauthTypeId(const Type *const Ty)
   if (!Ty->isPointerTy())
     return 0;
 
-  pauth_type_id type_id = type_id_mask_ptr;
+  pauth_type_id type_id = type_id_mask_ptr | type_id_mask_found;
 
   // The first bit should always indicate if this is a function pointer or not
   if (Ty->getPointerElementType()->isFunctionTy()) {
@@ -191,7 +191,7 @@ Constant *PA::getPauthTypeIdConstant(const MDNode *PAMDNode)
 
 MDNode *PA::createPauthMDNode(LLVMContext &C, const pauth_type_id type_id)
 {
-  Metadata* vals[1] = { ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt32Ty(C), APInt(64, type_id))) };
+  Metadata* vals[1] = { ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, type_id))) };
   return MDNode::get(C, vals);
 }
 
