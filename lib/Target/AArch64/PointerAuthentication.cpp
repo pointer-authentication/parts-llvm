@@ -135,7 +135,7 @@ void llvm::PA::instrumentEpilogue(const TargetInstrInfo *TII,
   }
 }
 
-pauth_type_id PA::getPauthType(const Type *Ty)
+pauth_type_id PA::createPauthTypeId(const Type *Ty)
 {
   if (!Ty->isPointerTy())
     return 0;
@@ -149,17 +149,17 @@ pauth_type_id PA::getPauthType(const Type *Ty)
   return type_id;
 }
 
-pauth_type_id PA::getPauthType(const Constant *C)
+pauth_type_id PA::getPauthTypeId(const Constant *C)
 {
-  return (uint32_t) C->getUniqueInteger().getLimitedValue(1U << 31);
+  return (pauth_type_id) C->getUniqueInteger().getLimitedValue(1UL << 63);
 }
 
-pauth_type_id PA::getPauthType(const MDNode *PAMDNode)
+pauth_type_id PA::getPauthTypeId(const MDNode *PAMDNode)
 {
-  return getPauthType(getPauthTypeConstant(PAMDNode));
+  return getPauthTypeId(getPauthTypeIdConstant(PAMDNode));
 }
 
-Constant *PA::getPauthTypeConstant(const MDNode *PAMDNode)
+Constant *PA::getPauthTypeIdConstant(const MDNode *PAMDNode)
 {
   assert(PAMDNode->getNumOperands() == 1);
   assert(isa<MDNode>(PAMDNode->getOperand(0)));
@@ -173,10 +173,10 @@ Constant *PA::getPauthTypeConstant(const MDNode *PAMDNode)
 }
 
 
-MDNode *PA::getPauthMDNode(LLVMContext &C, const Type *Ty)
+MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
 {
-  const pauth_type_id type_id = getPauthType(Ty);
+  const pauth_type_id type_id = createPauthTypeId(Ty);
 
-  Metadata* vals[1] = { ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32, type_id))) };
+  Metadata* vals[1] = { ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt32Ty(C), APInt(64, type_id))) };
   return MDNode::get(C, vals);
 }

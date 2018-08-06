@@ -90,10 +90,13 @@
 #define DEBUG_PA_FUNC(F,x)
 #endif
 
+#define Pauth_ModifierReg AArch64::X23
+
 namespace llvm {
 namespace PA {
 
-typedef uint32_t pauth_type_id;
+typedef uint64_t pauth_type_id;
+typedef uint64_t pauth_function_id;
 
 const std::string Pauth_MDKind = "PAData";
 
@@ -105,6 +108,7 @@ bool isStore(MachineInstr &MI);
 const MDNode *getPAData(MachineInstr &MI);
 bool isInstrPointer(const MDNode *paData);
 
+
 void buildPAC(const TargetInstrInfo &TII,
               MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
               const DebugLoc &DL, unsigned ctxReg, unsigned ptrReg);
@@ -113,12 +117,12 @@ void instrumentEpilogue(const TargetInstrInfo *TII,
                         MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                         const DebugLoc &DL, bool IsTailCallReturn);
 
-pauth_type_id getPauthType(const Type *Ty);
-pauth_type_id getPauthType(const MDNode *PAMDNode);
-pauth_type_id getPauthType(const Constant *C);
-Constant *getPauthTypeConstant(const MDNode *MDNode);
+pauth_type_id createPauthTypeId(const Type *Ty);
+pauth_type_id getPauthTypeId(const MDNode *PAMDNode);
+pauth_type_id getPauthTypeId(const Constant *C);
+Constant *getPauthTypeIdConstant(const MDNode *MDNode);
 
-MDNode *getPauthMDNode(LLVMContext &C, const Type *Ty);
+MDNode *createPauthMDNode(LLVMContext &C, const Type *Ty);
 
 inline bool isPointer(const pauth_type_id &id) { return id != 0; }
 inline bool isInstruction(const pauth_type_id &id) { return (id ^ type_id_mask_instr) == 1; }
