@@ -109,7 +109,7 @@ bool PauthIntrinsics::pauthStore(Function &F, Instruction &I) {
   Type *arg_types[] = { ptrType };
 
   DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\tgetting pacda declaration for args " << arg_types << "\n");
-  auto pac = Intrinsic::getDeclaration(Mptr, Intrinsic::aarch64_pacda, arg_types);
+  //auto pac = Intrinsic::getDeclaration(Mptr, Intrinsic::aarch64_pacda, arg_types);
 
   DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\tcreating pacda call with args " << ptrOp << "\n");
   IRBuilder<> Builder(&I);
