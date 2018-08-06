@@ -114,7 +114,6 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
           }
           addPauthMDNode(MF.getFunction().getContext(), MI, type_id);
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tstoring type_id in current MI\n" << KNRM);
-          MI.dump();
         }
 
         if (! isPointer(type_id)) {
@@ -184,7 +183,7 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, Ma
         if (MO.getReg() == targetReg) {
           DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tused in " << TII->getName(iter->getOpcode()) << "\n" << KNRM);
           // TODO: unimplemetned!
-          llvm_unreachable_internal("unimplemented");
+          //llvm_unreachable_internal("unimplemented");
         }
       }
     }
@@ -247,7 +246,6 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, 
           if (Op1.getReg() == reg && Op2.getImm() == imm) {
             // Found a store targeting the same location!
             DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching store, using it's type_id\n");
-            MIi->dump();
             return getPauthTypeId(*MIi);
           }
         }

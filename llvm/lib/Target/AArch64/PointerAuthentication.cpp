@@ -169,7 +169,6 @@ pauth_type_id PA::getPauthTypeId(const Constant *C)
 pauth_type_id PA::getPauthTypeId(MachineInstr &MI)
 {
   auto node = getPAData(MI);
-  node->dump();
   return node == nullptr ? 0 : getPauthTypeId(node);
 }
 
@@ -204,10 +203,7 @@ MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
 
 void PA::addPauthMDNode(LLVMContext &C, MachineInstr &MI, pauth_type_id id)
 {
-  MI.dump();
-  errs() << "adding me some metadata!!!!!!!\n";
   MI.addOperand(MachineOperand::CreateMetadata(createPauthMDNode(C, id)));
-  MI.dump();
 }
 
 void PA::addPauthMDNode(MachineInstr &MI, MDNode node)
