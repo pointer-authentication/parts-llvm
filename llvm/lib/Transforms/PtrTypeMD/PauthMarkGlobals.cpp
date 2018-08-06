@@ -49,13 +49,13 @@ bool PauthMarkGlobals::runOnModule(Module &M)
       auto type_id = PA::createPauthTypeId(Ty);
 
       if (PA::isInstruction(type_id)) {
-        marked_code_pointers++;
+        marked_code_pointers++; // This should eventually be put in .code_pauth
         GI->setSection(".data_pauth");
       } else {
         marked_data_pointers++;
         GI->setSection(".data_pauth");
       }
-      // TODO: add the type_id
+      // TODO: add the type_ids into their own sections (.data_pauth_type_id, .code_pauth_type_id)
     }
   }
 

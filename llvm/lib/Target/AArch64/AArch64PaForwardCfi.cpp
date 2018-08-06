@@ -91,7 +91,35 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
       DEBUG_PA_MIR(&MF, errs() << "\t\t");
       DEBUG_PA_MIR(&MF, MI.dump());
 
-      if (PA::isLoad(MI) || PA::isStore(MI)) {
+      if (MI.getOpcode() == AArch64::BLR || MI.getOpcode() == AArch64::BL) {
+        /* ----------------------------- BL/BLR ---------------------------------------- */
+        DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a BL/BLR (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
+
+        pauth_type_id type_id = type_id_Unknown;
+
+        auto PAMDNode = getPAData(MI); // FIXME: this doesn't work here!!!
+        if (PAMDNode != nullptr) {
+          type_id = getPauthTypeId(PAMDNode);
+        }
+
+        if (isUnknown(type_id)) {
+          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
+          errs() << MI.getDebugLoc() <<  ": type_id is unknown!\n";
+          continue;
+        }
+
+        if (!isPointer(type_id)) {
+          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
+          continue;
+        }
+
+        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t going to instrument indirect call\n");
+        DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\t UNIMPLEMENTED!!!!\n");
+        // FIXME: implement this, need to switch BL->BLA, BLR->BLRA
+        //emitPAModAndInstr(MBB, MI, AArch64::PACIA, pointerReg, type_id);
+
+      } else if (PA::isLoad(MI) || PA::isStore(MI)) {
+        /* ----------------------------- LOAD/STORE ---------------------------------------- */
         DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a load/store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
 
         auto PAMDNode = getPAData(MI);
@@ -100,6 +128,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
         if (PAMDNode != nullptr) {
           type_id = getPauthTypeId(PAMDNode);
         } else {
+          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to figure out type_id\n");
           auto Op = MI.getOperand(0);
           const auto targetReg = Op.getReg();
 
@@ -112,6 +141,8 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
               // FIXME: this only supports loads of type load reg [reg, imm]
               if (MI.getOperand(2).isImm()) {
                 type_id = inferPauthTypeIdStackBackwards(MF, MBB, MI, targetReg, MI.getOperand(1).getReg(), MI.getOperand(2).getImm());
+              } else {
+                DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tOMG! unexpected operandds, is this a pair store thingy?\n");
               }
             }
           }
@@ -120,9 +151,8 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
         }
 
         if (isUnknown(type_id)) {
-          DEBUG_PA_MIR(&MF, errs() << MI.getDebugLoc() << ": type_id is unknown!\n");
-          MI.getDebugLoc().dump();
-          errs() << MI.getDebugLoc() << ": type_id is unknown!\n";
+          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
+          errs() << MI.getDebugLoc() <<  ": type_id is unknown!\n";
           continue;
         }
 
@@ -180,7 +210,7 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, Ma
 {
   auto iter = MI.getIterator();
 
-  DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look for " << TRI->getName(targetReg) << ", " << targetReg << "\n");
+  DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look for " << TRI->getName(targetReg) << " load\n");
 
   // Look through current MBB
   while (iter != MBB.begin()) {
@@ -206,7 +236,7 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, Ma
     auto *FT = MF.getFunction().getFunctionType();
     const auto numParams = FT->getNumParams();
     if (numParams != 0) {
-      unsigned param_i = 0;
+      unsigned param_i = INT_MAX;
 
       switch(targetReg) {
         case AArch64::X0: param_i = 0; break;
@@ -222,7 +252,7 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, Ma
       if (param_i < numParams) {
         const pauth_type_id type_id = createPauthTypeId(FT->getParamType(param_i));
         // TODO: Embedd type_id into instruction
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching argument, using its type_id (" << type_id << ")\n");
+        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching operand(" << param_i << "), using its type_id (=" << type_id << ")\n");
         return type_id;
       }
     }

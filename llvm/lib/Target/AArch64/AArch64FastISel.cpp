@@ -2556,7 +2556,21 @@ bool AArch64FastISel::selectIndirectBr(const Instruction *I) {
   // Emit the indirect branch.
   const MCInstrDesc &II = TII.get(AArch64::BR);
   AddrReg = constrainOperandRegClass(II, AddrReg,  II.getNumDefs());
-  BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(AddrReg);
+
+  MachineInstrBuilder MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(AddrReg);
+
+#ifdef ENABLE_PAUTH_SLLOW
+  // prep for pauth instrumentation by transfering type_id infor to emitted BR
+  auto PAData = I->getMetadata(PA::Pauth_MDKind);
+
+  if (PAData != nullptr) {
+    DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** moving metadata to emitted BR\n");
+    auto &C = FuncInfo.Fn->getContext();
+    MIB.addMetadata(MDNode::get(C, PAData));
+  } else {
+    DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** no metadata when emitting BR\n");
+  }
+#endif /* ENABLE_PAUTH_SLLOW */
 
   // Make sure the CFG is up-to-date.
   for (auto *Succ : BI->successors())
@@ -3269,6 +3283,15 @@ bool AArch64FastISel::fastLowerCall(CallLoweringInfo &CLI) {
     else if (Addr.getReg()) {
       unsigned Reg = constrainOperandRegClass(II, Addr.getReg(), 0);
       MIB.addReg(Reg);
+
+#ifdef ENABLE_PAUTH_SLLOW
+      // prep for pauth instrumentation by transfering type_id infor to emitted BLR
+      errs() << "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n";
+      DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** preparing metadata to emitted BLR\n");
+      auto &C = FuncInfo.Fn->getContext();
+      MIB.addMetadata(MDNode::get(C, PA::createPauthMDNode(C, Callee->getType())));
+#endif /* ENABLE_PAUTH_SLLOW */
+
     } else
       return false;
   } else {
