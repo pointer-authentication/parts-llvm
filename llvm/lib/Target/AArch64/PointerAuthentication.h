@@ -105,9 +105,9 @@ static constexpr uint32_t type_id_mask_instr = 2U; /* is this a instruction poin
 
 bool isLoad(MachineInstr &MI);
 bool isStore(MachineInstr &MI);
+bool isLoad(MachineInstr *MI);
+bool isStore(MachineInstr *MI);
 const MDNode *getPAData(MachineInstr &MI);
-bool isInstrPointer(const MDNode *paData);
-
 
 void buildPAC(const TargetInstrInfo &TII,
               MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
@@ -117,13 +117,20 @@ void instrumentEpilogue(const TargetInstrInfo *TII,
                         MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                         const DebugLoc &DL, bool IsTailCallReturn);
 
-pauth_type_id createPauthTypeId(const Type *Ty);
+
+pauth_type_id createPauthTypeId(const Type *const Ty);
+pauth_type_id getPauthTypeId(MachineInstr &MI);
 pauth_type_id getPauthTypeId(const MDNode *PAMDNode);
 pauth_type_id getPauthTypeId(const Constant *C);
 Constant *getPauthTypeIdConstant(const MDNode *MDNode);
 
+MDNode *createPauthMDNode(LLVMContext &C, pauth_type_id type_id);
 MDNode *createPauthMDNode(LLVMContext &C, const Type *Ty);
 
+void addPauthMDNode(LLVMContext &C, MachineInstr &MI, pauth_type_id id);
+void addPauthMDNode(MachineInstr &MI, MDNode node);
+
+bool isInstrPointer(const MDNode *paData);
 inline bool isPointer(const pauth_type_id &id) { return id != 0; }
 inline bool isInstruction(const pauth_type_id &id) { return (id ^ type_id_mask_instr) == 1; }
 inline bool isData(const pauth_type_id &id) { return (id ^ type_id_mask_instr) == 0; }

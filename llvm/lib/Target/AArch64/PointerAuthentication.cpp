@@ -30,7 +30,11 @@ bool llvm::PA::isInstrPointer(const MDNode *paData) {
 }
 
 bool llvm::PA::isStore(MachineInstr &MI) {
-  switch(MI.getOpcode()) {
+  return isStore(&MI);
+}
+
+bool llvm::PA::isStore(MachineInstr *MI) {
+  switch(MI->getOpcode()) {
     default:
       return false;
     case AArch64::STRWpost:
@@ -67,7 +71,11 @@ bool llvm::PA::isStore(MachineInstr &MI) {
 }
 
 bool llvm::PA::isLoad(MachineInstr &MI) {
-  switch(MI.getOpcode()) {
+  return isLoad(&MI);
+}
+
+bool llvm::PA::isLoad(MachineInstr *MI) {
+  switch(MI->getOpcode()) {
     default:
       return false;
     case AArch64::LDPXi:
@@ -135,16 +143,20 @@ void llvm::PA::instrumentEpilogue(const TargetInstrInfo *TII,
   }
 }
 
-pauth_type_id PA::createPauthTypeId(const Type *Ty)
+pauth_type_id PA::createPauthTypeId(const Type *const Ty)
 {
   if (!Ty->isPointerTy())
     return 0;
 
   pauth_type_id type_id = type_id_mask_ptr;
 
+  // The first bit should always indicate if this is a function pointer or not
   if (Ty->getPointerElementType()->isFunctionTy()) {
     type_id = type_id | type_id_mask_instr;
   }
+
+  // The rest should be a SHA-3 hash of the target object type
+  // TODO: anything that produces different types ids would be okay for now...
 
   return type_id;
 }
@@ -152,6 +164,13 @@ pauth_type_id PA::createPauthTypeId(const Type *Ty)
 pauth_type_id PA::getPauthTypeId(const Constant *C)
 {
   return (pauth_type_id) C->getUniqueInteger().getLimitedValue(1UL << 63);
+}
+
+pauth_type_id PA::getPauthTypeId(MachineInstr &MI)
+{
+  auto node = getPAData(MI);
+  node->dump();
+  return node == nullptr ? 0 : getPauthTypeId(node);
 }
 
 pauth_type_id PA::getPauthTypeId(const MDNode *PAMDNode)
@@ -162,21 +181,36 @@ pauth_type_id PA::getPauthTypeId(const MDNode *PAMDNode)
 Constant *PA::getPauthTypeIdConstant(const MDNode *PAMDNode)
 {
   assert(PAMDNode->getNumOperands() == 1);
-  assert(isa<MDNode>(PAMDNode->getOperand(0)));
+  auto &op = PAMDNode->getOperand(0);
 
-  const auto *MDN = dyn_cast<MDNode>(PAMDNode->getOperand(0));
+  if (isa<MDNode>(op))
+    return getPauthTypeIdConstant(dyn_cast<MDNode>(op));
 
-  assert(MDN->getNumOperands() == 1);
-  assert(isa<ConstantAsMetadata>(MDN->getOperand(0)));
-
-  return dyn_cast<ConstantAsMetadata>(MDN->getOperand(0))->getValue();
+  assert(isa<ConstantAsMetadata>(op));
+  return dyn_cast<ConstantAsMetadata>(op)->getValue();
 }
 
+MDNode *PA::createPauthMDNode(LLVMContext &C, const pauth_type_id type_id)
+{
+  Metadata* vals[1] = { ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt32Ty(C), APInt(64, type_id))) };
+  return MDNode::get(C, vals);
+}
 
 MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
 {
   const pauth_type_id type_id = createPauthTypeId(Ty);
+  return createPauthMDNode(C, type_id);
+}
 
-  Metadata* vals[1] = { ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt32Ty(C), APInt(64, type_id))) };
-  return MDNode::get(C, vals);
+void PA::addPauthMDNode(LLVMContext &C, MachineInstr &MI, pauth_type_id id)
+{
+  MI.dump();
+  errs() << "adding me some metadata!!!!!!!\n";
+  MI.addOperand(MachineOperand::CreateMetadata(createPauthMDNode(C, id)));
+  MI.dump();
+}
+
+void PA::addPauthMDNode(MachineInstr &MI, MDNode node)
+{
+  MI.addOperand(MachineOperand::CreateMetadata(&node));
 }
