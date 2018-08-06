@@ -208,6 +208,10 @@ AArch64RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
     markSuperRegs(Reserved, AArch64::W16);
 
   assert(checkAllSuperRegsMarked(Reserved));
+
+  // pauth: Reserve register for PA modifier
+  markSuperRegs(Reserved, AArch64::W23);
+
   return Reserved;
 }
 
