@@ -92,11 +92,10 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
       DEBUG_PA_MIR(&MF, MI.dump());
 
       if (PA::isLoad(MI) || PA::isStore(MI)) {
-        DEBUG_PA_MIR(&MF,
-                     errs() << KBLU << "\t\t\tfound a load/store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
+        DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a load/store (" << TII->getName(MI.getOpcode()) << ")\n" << KNRM);
 
         auto PAMDNode = getPAData(MI);
-        pauth_type_id type_id = 0;
+        pauth_type_id type_id = type_id_Unknown;
 
         if (PAMDNode != nullptr) {
           type_id = getPauthTypeId(PAMDNode);
@@ -104,7 +103,9 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
           auto Op = MI.getOperand(0);
           const auto targetReg = Op.getReg();
 
-          if (checkIfRegInstrumentable(targetReg)) {
+          if (!checkIfRegInstrumentable(targetReg)) {
+            type_id = type_id_Ignore;
+          } else {
             if (PA::isStore(MI)) {
               type_id = inferPauthTypeIdRegBackwards(MF, MBB, MI, targetReg);
             } else {
@@ -115,10 +116,17 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
             }
           }
           addPauthMDNode(MF.getFunction().getContext(), MI, type_id);
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tstoring type_id in current MI\n" << KNRM);
+          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tstoring type_id (" << type_id << ") in current MI\n" << KNRM);
         }
 
-        if (! isPointer(type_id)) {
+        if (isUnknown(type_id)) {
+          DEBUG_PA_MIR(&MF, errs() << MI.getDebugLoc() << ": type_id is unknown!\n");
+          MI.getDebugLoc().dump();
+          errs() << MI.getDebugLoc() << ": type_id is unknown!\n";
+          continue;
+        }
+
+        if (!isPointer(type_id)) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
           continue;
         }
@@ -184,6 +192,7 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, Ma
       if (MO.isReg()) {
         if (MO.getReg() == targetReg) {
           DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tused in " << TII->getName(iter->getOpcode()) << "\n" << KNRM);
+          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tUNIMPLEMENTED!!!!\n");
           // TODO: unimplemetned!
           //llvm_unreachable_internal("unimplemented");
         }
@@ -211,18 +220,16 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, Ma
       }
 
       if (param_i < numParams) {
-        pauth_type_id type_id = createPauthTypeId(FT->getParamType(param_i));
+        const pauth_type_id type_id = createPauthTypeId(FT->getParamType(param_i));
         // TODO: Embedd type_id into instruction
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching argument, using it for type_id\n");
+        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching argument, using its type_id (" << type_id << ")\n");
         return type_id;
       }
     }
   }
 
   DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
-  MI.getDebugLoc().dump();
-  errs() << MI.getDebugLoc() << ": failed to infer pauth type_id\n";
-  return 0;
+  return type_id_Unknown;
 }
 
 pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB,
@@ -247,8 +254,9 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, 
 
           if (Op1.getReg() == reg && Op2.getImm() == imm) {
             // Found a store targeting the same location!
-            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching store, using it's type_id\n");
-            return getPauthTypeId(*MIi);
+            const pauth_type_id type_id = getPauthTypeId(*MIi);
+            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching store, using it's type_id (" << type_id << ")\n");
+            return type_id;
           }
         }
       }
@@ -260,9 +268,7 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, 
   } while (mbb != MF.begin());
 
   DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
-  MI.getDebugLoc().dump();
-  errs() << MI.getDebugLoc() << ": failed to infer pauth type_id\n";
-  return 0;
+  return type_id_Unknown;
 }
 
 bool PaForwardCfi::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
