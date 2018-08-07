@@ -98,8 +98,11 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
         pauth_type_id type_id = type_id_Unknown;
 
         auto PAMDNode = getPAData(MI); // FIXME: this doesn't work here!!!
+
         if (PAMDNode != nullptr) {
           type_id = getPauthTypeId(PAMDNode);
+        } else {
+          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to figure out type_id\n");
         }
 
         if (isUnknown(type_id)) {
@@ -268,15 +271,14 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, 
 
   DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n");
 
-  auto mbb = MBB.getIterator();
-  auto MIi = MI.getIterator();
+  auto mbb = MBB.getReverseIterator();
+  auto MIi = MI.getReverseIterator();
+  MIi++;
 
-  do {
+  while(true) {
     // FIXME: This is potentially unsafe! iterator might not match execution order!
 
-    while (MIi != mbb->instr_begin()) {
-      MIi--;
-
+    while (MIi != mbb->instr_rend()) {
       if (PA::isStore(*MIi)) {
         if (MIi->getNumOperands() >= 3) {
           auto Op1 = MIi->getOperand(1);
@@ -290,12 +292,18 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, 
           }
         }
       }
+
+      MIi++;
     }
 
-    mbb--;
-    MIi = mbb->instr_end();
+    mbb++;
 
-  } while (mbb != MF.begin());
+    if (mbb == MF.rend())
+      break;
+
+    // Do this update there, so we can start the first MBB iteration at MI
+    MIi = mbb->instr_rbegin();
+  }
 
   DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
   return type_id_Unknown;
