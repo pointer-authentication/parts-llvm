@@ -332,7 +332,7 @@ bool PaForwardCfi::instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInst
 
 bool PaForwardCfi::emitPAModAndInstr(MachineBasicBlock &MBB, MachineInstr &MI, unsigned PAOpcode, unsigned reg, pauth_type_id type_id)
 {
-  type_id = 0; // FIXME: currently using zero PA modifier!!!
+  //type_id = 0; // FIXME: currently using zero PA modifier!!!
   BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(Pauth_ModifierReg).addImm(type_id).addImm(0);
   BuildMI(MBB, MI, DebugLoc(), TII->get(PAOpcode)).addReg(reg).addReg(Pauth_ModifierReg);
   return true;
