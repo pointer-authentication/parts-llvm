@@ -29,6 +29,9 @@ struct PauthMarkGlobals: public ModulePass {
   PauthMarkGlobals() : ModulePass(ID) {}
 
   bool runOnModule(Module &F) override;
+
+private:
+  void writeTypeIds(Module &M, std::list<PA::pauth_type_id> &type_ids, const char *sectionName);
 };
 
 } // anonyous namespace
@@ -63,32 +66,31 @@ bool PauthMarkGlobals::runOnModule(Module &M)
       if (PA::isInstruction(type_id)) {
         marked_code_pointers++; // This should eventually be put in .code_pauth
         GI->setSection(".code_pauth");
-        errs() << "----adding me a code pointer\n";
         code_type_ids.push_back(type_id);
       } else {
         marked_data_pointers++;
         GI->setSection(".data_pauth");
-        errs() << "----adding me a data pointer\n";
         data_type_ids.push_back(type_id);
       }
-
-      // TODO: add the type_ids into their own sections (.data_pauth_type_id, .code_pauth_type_id)
-    } else {
-      errs() << "not a pointer\n";
     }
   }
 
-  for (auto type_id : data_type_ids) {
-    errs() << "-----------------------------------------------------------------------------------\n";
-    ConstantInt* type_id_Constant = ConstantInt::get(Type::getInt64Ty(M.getContext()), type_id);
-
-    GlobalVariable *g = new GlobalVariable(M, Type::getInt64Ty(M.getContext()), true, GlobalValue::PrivateLinkage, type_id_Constant);
-    g->setExternallyInitialized(false);
-    g->setSection(".data_type_id");
-  }
+  writeTypeIds(M, data_type_ids, ".data_type_id");
+  writeTypeIds(M, code_type_ids, ".code_type_id");
 
   DEBUG(errs() << getPassName() << ": moved " << marked_data_pointers << "+" << marked_code_pointers <<
                " globals to pauth data/code section(s)\n");
 
   return (marked_code_pointers+marked_code_pointers) > 0;
+}
+
+void PauthMarkGlobals::writeTypeIds(Module &M, std::list<PA::pauth_type_id> &type_ids, const char *sectionName)
+{
+  for (auto type_id : type_ids) {
+    ConstantInt* type_id_Constant = ConstantInt::get(Type::getInt64Ty(M.getContext()), type_id);
+
+    GlobalVariable *g = new GlobalVariable(M, Type::getInt64Ty(M.getContext()), true, GlobalValue::PrivateLinkage, type_id_Constant);
+    g->setExternallyInitialized(false);
+    g->setSection(sectionName);
+  }
 }
