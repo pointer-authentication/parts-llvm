@@ -14,15 +14,44 @@
 using namespace llvm;
 using namespace llvm::PA;
 
-const MDNode *llvm::PA::getPAData(MachineInstr &MI) {
-  // FIXME: Don't just check the last operand
-  // FIXME: Verify the found data is correct type
-  auto op = MI.getOperand(MI.getNumOperands()-1);
+const MDNode *PA::getPAData(MachineInstr &MI)
+{
+  /* Take a deep look into the operands because our metadata might be nested a bit differently depending
+   * on where it was embedded...
+   * FIXME: should probably make sure we have our metadata nodes consistently embedded?
+   */
+  const auto numOps = (int) MI.getNumOperands();
 
-  if (op.isMetadata()) {
-    return op.getMetadata();
+  for (int i = 0; i < numOps; i++) {
+    const auto op = MI.getOperand(i);
+
+    if (op.isMetadata()) {
+      const MDNode *n = getPAData(op.getMetadata());
+
+      if (n != nullptr)
+        return n;
+    }
   }
   return nullptr;
+}
+
+const MDNode *PA::getPAData(const MDNode *n)
+{
+  if (isPauthMDNode(n))
+    return n;
+
+  if (n->getNumOperands() == 1) {
+    const auto &op = n->getOperand(0);
+    if (isa<MDNode>(op))
+      return getPAData(dyn_cast<MDNode>(op));
+  }
+
+  return nullptr;
+}
+
+const MDNode *PA::getPAData(const MDNode &n)
+{
+  return getPAData(&n);
 }
 
 bool llvm::PA::isInstrPointer(const MDNode *paData) {
@@ -179,8 +208,8 @@ pauth_type_id PA::getPauthTypeId(const MDNode *PAMDNode)
 
 Constant *PA::getPauthTypeIdConstant(const MDNode *PAMDNode)
 {
-  assert(PAMDNode->getNumOperands() == 1);
-  auto &op = PAMDNode->getOperand(0);
+  assert(PAMDNode->getNumOperands() > 1);
+  auto &op = PAMDNode->getOperand(1);
 
   if (isa<MDNode>(op))
     return getPauthTypeIdConstant(dyn_cast<MDNode>(op));
@@ -191,8 +220,38 @@ Constant *PA::getPauthTypeIdConstant(const MDNode *PAMDNode)
 
 MDNode *PA::createPauthMDNode(LLVMContext &C, const pauth_type_id type_id)
 {
-  Metadata* vals[1] = { ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, type_id))) };
+  Metadata* vals[2] = {
+      MDString::get(C, Pauth_MDKind),
+      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, type_id)))
+  };
   return MDNode::get(C, vals);
+}
+
+bool PA::isPauthMDNode(const MDNode *PAMDNode)
+{
+  const unsigned numOps = PAMDNode->getNumOperands();
+
+  if (numOps > 1) {
+    const auto &op = PAMDNode->getOperand(0);
+    if (isa<MDString>(op)) {
+      errs() << "op1 is an MDString: " << dyn_cast<MDString>(op)->getString() << "\n";
+      return dyn_cast<MDString>(op)->getString() == Pauth_MDKind;
+    } else {
+      errs() << "op1 not an MDString\n";
+    }
+  } else {
+    errs() << "not enouch ops :(\n";
+  }
+  return false;
+}
+
+bool PA::isPauthMDNode(const MachineOperand &op)
+{
+  if (!op.isMetadata()) {
+    errs() << "Not a metadata op\n";
+    return false;
+  }
+  return isPauthMDNode(dyn_cast<MDNode>(op.getMetadata()));
 }
 
 MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
@@ -200,6 +259,7 @@ MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
   const pauth_type_id type_id = createPauthTypeId(Ty);
   return createPauthMDNode(C, type_id);
 }
+
 
 void PA::addPauthMDNode(LLVMContext &C, MachineInstr &MI, pauth_type_id id)
 {

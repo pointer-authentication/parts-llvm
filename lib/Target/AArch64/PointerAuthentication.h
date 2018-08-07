@@ -112,6 +112,8 @@ bool isStore(MachineInstr &MI);
 bool isLoad(MachineInstr *MI);
 bool isStore(MachineInstr *MI);
 const MDNode *getPAData(MachineInstr &MI);
+const MDNode *getPAData(const MDNode &n);
+const MDNode *getPAData(const MDNode *n);
 
 void buildPAC(const TargetInstrInfo &TII,
               MachineBasicBlock &MBB, MachineBasicBlock::iterator iter,
@@ -126,6 +128,9 @@ pauth_type_id createPauthTypeId(const Type *const Ty);
 pauth_type_id getPauthTypeId(MachineInstr &MI);
 pauth_type_id getPauthTypeId(const MDNode *PAMDNode);
 pauth_type_id getPauthTypeId(const Constant *C);
+
+bool isPauthMDNode(const MDNode *PAMDNode);
+bool isPauthMDNode(const MachineOperand &op);
 Constant *getPauthTypeIdConstant(const MDNode *MDNode);
 
 MDNode *createPauthMDNode(LLVMContext &C, pauth_type_id type_id);
