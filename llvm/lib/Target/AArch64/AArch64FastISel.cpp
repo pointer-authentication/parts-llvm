@@ -2560,16 +2560,8 @@ bool AArch64FastISel::selectIndirectBr(const Instruction *I) {
   MachineInstrBuilder MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(AddrReg);
 
 #ifdef ENABLE_PAUTH_SLLOW
-  // prep for pauth instrumentation by transfering type_id infor to emitted BR
-  auto PAData = I->getMetadata(PA::Pauth_MDKind);
-
-  if (PAData != nullptr) {
-    DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** moving metadata to emitted BR\n");
-    auto &C = FuncInfo.Fn->getContext();
-    MIB.addMetadata(MDNode::get(C, PAData));
-  } else {
-    DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** no metadata when emitting BR\n");
-  }
+  // move PA type_id for pauth CFI instrumentation
+  PA::addPAMDNodeToCall(FuncInfo.Fn->getContext(), MIB, I);
 #endif /* ENABLE_PAUTH_SLLOW */
 
   // Make sure the CFG is up-to-date.
@@ -3283,15 +3275,6 @@ bool AArch64FastISel::fastLowerCall(CallLoweringInfo &CLI) {
     else if (Addr.getReg()) {
       unsigned Reg = constrainOperandRegClass(II, Addr.getReg(), 0);
       MIB.addReg(Reg);
-
-#ifdef ENABLE_PAUTH_SLLOW
-      // prep for pauth instrumentation by transfering type_id infor to emitted BLR
-      errs() << "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n";
-      DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** preparing metadata to emitted BLR\n");
-      auto &C = FuncInfo.Fn->getContext();
-      MIB.addMetadata(MDNode::get(C, PA::createPauthMDNode(C, Callee->getType())));
-#endif /* ENABLE_PAUTH_SLLOW */
-
     } else
       return false;
   } else {
@@ -3330,6 +3313,15 @@ bool AArch64FastISel::fastLowerCall(CallLoweringInfo &CLI) {
   MIB.addRegMask(TRI.getCallPreservedMask(*FuncInfo.MF, CC));
 
   CLI.Call = MIB;
+
+#ifdef ENABLE_PAUTH_SLLOW
+  // prep for pauth instrumentation by transfering type_id infor to emitted BLR
+  if (Addr.getReg()) {
+    PA::addPAMDNodeToCall(FuncInfo.Fn->getContext(), MIB, CLI);
+  } else {
+    PA::addPAMDNodeToCall(FuncInfo.Fn->getContext(), MIB, PA::type_id_Ignore);
+  }
+#endif /* ENABLE_PAUTH_SLLOW */
 
   // Finish off the call including any return values.
   return finishCall(CLI, RetVT, NumBytes);
