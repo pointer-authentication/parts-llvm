@@ -98,6 +98,18 @@
 namespace llvm {
 namespace PA {
 
+/*
+class TypeID : public MDNode {
+public:
+  uint64_t
+
+  uint64_t type_id = 0;
+  bool unknown = true;
+  bool pointer = false;
+  bool data = false;
+};
+*/
+
 typedef uint64_t pauth_type_id;
 typedef uint64_t pauth_function_id;
 
@@ -106,6 +118,7 @@ const std::string Pauth_MDKind = "PAData";
 static constexpr uint64_t type_id_mask_found = 1U; /* this is a found but ignored pointer */
 static constexpr uint64_t type_id_mask_ptr = 2U; /* is this a pointer (zero for nope)*/
 static constexpr uint64_t type_id_mask_instr = 4U; /* is this a instruction pointer */
+static constexpr uint64_t type_id_mask_funcHasDef = 8U; /* is this a instruction pointer */
 
 static constexpr pauth_type_id type_id_Unknown = 0;
 static constexpr pauth_type_id type_id_Ignore = type_id_mask_found;
@@ -152,8 +165,8 @@ inline bool isUnknown(const pauth_type_id &type_id);
 inline bool isPointer(const pauth_type_id &type_id);
 inline bool isInstruction(const pauth_type_id &type_id);
 inline bool isIgnored(const pauth_type_id &type_id);
+inline bool isDirectFunc(const pauth_type_id &type_id);
 inline bool isData(const pauth_type_id &id);
-
 
 }
 }
@@ -183,6 +196,11 @@ inline bool PA::isInstruction(const pauth_type_id &type_id)
 inline bool PA::isData(const pauth_type_id &type_id)
 {
   return (type_id & type_id_mask_instr) == 0 && !isInstruction(type_id);
+}
+
+inline bool PA::isDirectFunc(const pauth_type_id &type_id)
+{
+  return (type_id & type_id_mask_funcHasDef) != 0;
 }
 
 #endif /* !POINTERAUTHENTICATION_H */
