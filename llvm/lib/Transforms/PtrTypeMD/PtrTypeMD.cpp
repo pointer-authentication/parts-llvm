@@ -78,9 +78,14 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
       MDNode *MD = nullptr;
 
       switch(IOpcode) {
-        default:
-          break;
         case Instruction::Store:
+          assert(isa<StoreInst>(I));
+
+          //errs() << "store op 0:\n";
+          //I.getOperand(0)->dump();
+          //errs() << "store op 1:\n";
+          //I.getOperand(1)->dump();
+
           MD = createPauthMDNode(C, I.getOperand(0)->getType());
           break;
         case Instruction::Load:
@@ -98,11 +103,13 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
             }
           }
           break;
+        default:
+          break;
       }
 
       if (MD != nullptr) {
         I.setMetadata(Pauth_MDKind, MD);
-        DEBUG_PA_OPT(&F, do { errs() << TAG << "\t\t\t adding metadata "; I.getMetadata(Pauth_MDKind)->dump(); } while(0));
+        DEBUG_PA_OPT(&F, do { errs() << TAG << KGRN << "\t\t\t adding metadata (type_id=" << getPauthTypeId(MD) << ") => "; I.getMetadata(Pauth_MDKind)->dump(); } while(0));
       } else {
         DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t skipping\n");
       }

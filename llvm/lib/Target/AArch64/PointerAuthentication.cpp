@@ -183,12 +183,15 @@ pauth_type_id PA::createPauthTypeId(const Type *const Ty)
   if (Ty->isPointerTy())
     type_id = type_id | type_id_mask_ptr;
 
-
   // We're done unless this was a pointer
   if (Ty->isPointerTy()) {
     // Mark code pointers
-    if (Ty->getPointerElementType()->isFunctionTy())
+    if (Ty->getPointerElementType()->isFunctionTy()) {
       type_id = type_id | type_id_mask_instr;
+      //errs() << "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\n";
+      //Ty->dump();
+      //errs() << "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\n";
+    }
 
 
 
@@ -242,7 +245,6 @@ MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
 {
   return createPauthMDNode(C, createPauthTypeId(Ty));
 }
-
 
 bool PA::isPauthMDNode(const MDNode *PAMDNode)
 {
