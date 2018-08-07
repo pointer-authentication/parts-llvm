@@ -174,18 +174,29 @@ void llvm::PA::instrumentEpilogue(const TargetInstrInfo *TII,
 
 pauth_type_id PA::createPauthTypeId(const Type *const Ty)
 {
-  if (!Ty->isPointerTy())
-    return 0;
+  pauth_type_id type_id = 0;
 
-  pauth_type_id type_id = type_id_mask_ptr | type_id_mask_found;
+  // Mark as found
+  type_id = type_id | type_id_mask_found;
 
-  // The first bit should always indicate if this is a function pointer or not
-  if (Ty->getPointerElementType()->isFunctionTy()) {
-    type_id = type_id | type_id_mask_instr;
+  // Mark as pointer, if pointer
+  if (Ty->isPointerTy())
+    type_id = type_id | type_id_mask_ptr;
+
+
+  // We're done unless this was a pointer
+  if (Ty->isPointerTy()) {
+    // Mark code pointers
+    if (Ty->getPointerElementType()->isFunctionTy())
+      type_id = type_id | type_id_mask_instr;
+
+
+
+
+    // The rest should be a SHA-3 hash of the target object type
+    // TODO: anything that produces different types ids would be okay for now...
+
   }
-
-  // The rest should be a SHA-3 hash of the target object type
-  // TODO: anything that produces different types ids would be okay for now...
 
   return type_id;
 }
@@ -227,6 +238,12 @@ MDNode *PA::createPauthMDNode(LLVMContext &C, const pauth_type_id type_id)
   return MDNode::get(C, vals);
 }
 
+MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
+{
+  return createPauthMDNode(C, createPauthTypeId(Ty));
+}
+
+
 bool PA::isPauthMDNode(const MDNode *PAMDNode)
 {
   const unsigned numOps = PAMDNode->getNumOperands();
@@ -234,13 +251,8 @@ bool PA::isPauthMDNode(const MDNode *PAMDNode)
   if (numOps > 1) {
     const auto &op = PAMDNode->getOperand(0);
     if (isa<MDString>(op)) {
-      errs() << "op1 is an MDString: " << dyn_cast<MDString>(op)->getString() << "\n";
       return dyn_cast<MDString>(op)->getString() == Pauth_MDKind;
-    } else {
-      errs() << "op1 not an MDString\n";
     }
-  } else {
-    errs() << "not enouch ops :(\n";
   }
   return false;
 }
@@ -248,18 +260,10 @@ bool PA::isPauthMDNode(const MDNode *PAMDNode)
 bool PA::isPauthMDNode(const MachineOperand &op)
 {
   if (!op.isMetadata()) {
-    errs() << "Not a metadata op\n";
     return false;
   }
   return isPauthMDNode(dyn_cast<MDNode>(op.getMetadata()));
 }
-
-MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
-{
-  const pauth_type_id type_id = createPauthTypeId(Ty);
-  return createPauthMDNode(C, type_id);
-}
-
 
 void PA::addPauthMDNode(LLVMContext &C, MachineInstr &MI, pauth_type_id id)
 {
@@ -269,4 +273,30 @@ void PA::addPauthMDNode(LLVMContext &C, MachineInstr &MI, pauth_type_id id)
 void PA::addPauthMDNode(MachineInstr &MI, MDNode node)
 {
   MI.addOperand(MachineOperand::CreateMetadata(&node));
+}
+
+void PA::addPAMDNodeToCall(LLVMContext &C, MachineInstrBuilder &MIB, const Instruction *I)
+{
+  auto PAData = I->getMetadata(PA::Pauth_MDKind);
+
+  if (PAData != nullptr) {
+    DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** moving metadata to emitted branch instruction\n");
+    MIB.addMetadata(MDNode::get(C, PAData));
+  } else {
+    DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** no metadata when emitting branch instruction\n");
+  }
+}
+
+void PA::addPAMDNodeToCall(LLVMContext &C, MachineInstrBuilder &MIB, llvm::FastISel::CallLoweringInfo &CLI)
+{
+  // FIXME instrument only indirect calls!
+  DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** preparing metadata to emitted branch instruction\n");
+  const Value *Callee = CLI.Callee;
+  MIB.addMetadata(MDNode::get(C, PA::createPauthMDNode(C, Callee->getType())));
+}
+
+void PA::addPAMDNodeToCall(LLVMContext &C, MachineInstrBuilder &MIB, pauth_type_id type_id)
+{
+  DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** setting ignore metadata to emitted branch instruction\n");
+  MIB.addMetadata(MDNode::get(C, PA::createPauthMDNode(C, type_id_Ignore)));;
 }

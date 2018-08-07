@@ -40,20 +40,20 @@ struct PtrTypeMDPass : public FunctionPass {
 
   bool runOnFunction(Function &F) override;
 
-  void addToStore(Function &F, Instruction &I);
-  void addToLoad(Function &F, Instruction &I);
+  //void addToStore(Function &F, Instruction &I);
+  //void addToLoad(Function &F, Instruction &I);
 
   /** Function to assert the types of instruction operands to be equal */
-  void assertPtrType(Instruction &I);
+  //void assertPtrType(Instruction &I);
 
   /** Function to set metadata on an instruction */
-  void md_fn(Function &F, Instruction &I, Type* ptrTy, bool fty);
+  //void md_fn(Function &F, Instruction &I, Type* ptrTy, bool fty);
 
   //Function to check if the pointer of an instruction operand points to a function instead of data
-  Type* isFnType(Type* Ty);
+  //Type* isFnType(Type* Ty);
 
   //Function to insert NOP instructions
-  void insertNops(Function &F, Instruction &I);
+  //void insertNops(Function &F, Instruction &I);
 };
 
 } // anonyous namespace
@@ -112,6 +112,7 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
   return true;
 }
 
+/*
 void PtrTypeMDPass::assertPtrType(Instruction &I)
 {
   int ops=I.getNumOperands();
@@ -185,3 +186,4 @@ void PtrTypeMDPass::insertNops(Function &F, Instruction &I){
   newInst->setMetadata("PAData", N);
 }
 
+*/

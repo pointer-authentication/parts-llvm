@@ -111,12 +111,17 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
           continue;
         }
 
+        if (isIgnored(type_id)) {
+          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tmarked as ignored, skipping\n" << KNRM);
+          continue;
+        }
+
         if (!isPointer(type_id)) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
           continue;
         }
 
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t going to instrument indirect call\n");
+        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t going to instrument indirect call (type_id=" << type_id << ")\n");
         DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\t UNIMPLEMENTED!!!!\n");
         // FIXME: implement this, need to switch BL->BLA, BLR->BLRA
         //emitPAModAndInstr(MBB, MI, AArch64::PACIA, pointerReg, type_id);
@@ -159,6 +164,11 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
           continue;
         }
 
+        if (isIgnored(type_id)) {
+          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tmarked as ignored, skipping\n" << KNRM);
+          continue;
+        }
+
         if (!isPointer(type_id)) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
           continue;
@@ -169,13 +179,11 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
           continue;
         }
 
-        DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tis a data pointer!\n" << KNRM);
+        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tis a data pointer, instrumenting (type_id=" << type_id << ")\n" << KNRM);
 
         if (PA::isStore(MI)) {
-          DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tinstrumenting store\n");
           instrumentDataPointerStore(MBB, MI, MI.getOperand(0).getReg(), type_id);
         } else {
-          DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tinstrumenting load\n");
           instrumentDataPointerLoad(MBB, MI, MI.getOperand(0).getReg(), type_id);
         }
 

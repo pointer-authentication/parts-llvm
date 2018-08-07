@@ -18,8 +18,11 @@
 #define KWHT  "\x1B[37m"
 
 #include <string>
-#include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/CodeGen/FastISel.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/CodeGen/TargetLowering.h"
 
 #define ENABLE_PAUTH_SLLOW true
 
@@ -141,10 +144,16 @@ void addPauthMDNode(MachineInstr &MI, MDNode node);
 
 bool isInstrPointer(const MDNode *paData);
 
+void addPAMDNodeToCall(LLVMContext &C, MachineInstrBuilder &MIB, const Instruction *F);
+void addPAMDNodeToCall(LLVMContext &C, MachineInstrBuilder &MIB, llvm::FastISel::CallLoweringInfo &CLI);
+void addPAMDNodeToCall(LLVMContext &C, MachineInstrBuilder &MIB, pauth_type_id type_id);
+
 inline bool isUnknown(const pauth_type_id &type_id);
 inline bool isPointer(const pauth_type_id &type_id);
 inline bool isInstruction(const pauth_type_id &type_id);
+inline bool isIgnored(const pauth_type_id &type_id);
 inline bool isData(const pauth_type_id &id);
+
 
 }
 }
@@ -154,6 +163,11 @@ using namespace llvm;
 inline bool PA::isUnknown(const pauth_type_id &type_id)
 {
   return (type_id & type_id_mask_found) == 0;
+}
+
+inline bool PA::isIgnored(const pauth_type_id &type_id)
+{
+  return type_id == type_id_Ignore;
 }
 
 inline bool PA::isPointer(const pauth_type_id &type_id)
