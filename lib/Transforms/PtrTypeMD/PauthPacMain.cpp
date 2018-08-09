@@ -52,12 +52,6 @@ bool PauthPacMain::doInitialization(Module &M)
   FunctionType* signature = FunctionType::get(result, params, false);
   funcFixMain = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_main_args", &M);
 
-  // Automatically annotate pointer globals
-  for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
-    if (GI->getOperand(0)->getType()->isPointerTy() && !GI->hasSection())
-      GI->setSection(".data_pauth");
-  }
-
   return true;
 }
 
