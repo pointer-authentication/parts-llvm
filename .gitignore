@@ -66,8 +66,8 @@ tools/avrlit
 # Sphinx build tree, if building in-source dir.
 docs/_build
 # VS2017 and VSCode config files.
-.vscode
-.vs
+# .vscode
+# .vs
 
 #==============================================================================#
 # Files created in tree by the Go bindings.
@@ -86,5 +86,6 @@ bindings/go/llvm/workdir
 .idea/vcs.xml
 .idea/workspace.xml
 cmake-build-debug
+build-vscode
 
 tags.lst
