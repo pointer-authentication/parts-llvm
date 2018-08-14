@@ -54,7 +54,7 @@ bool PauthMarkGlobals::runOnModule(Module &M)
     if (Ty->isPointerTy()) {
       auto type_id = PA::createPauthTypeId(Ty);
 
-      if (PA::isInstruction(type_id)) {
+      if (PA::isCodePointer(type_id)) {
         marked_code_pointers++; // This should eventually be put in .code_pauth
         GI->setSection(".code_pauth");
         code_type_ids.push_back(type_id);

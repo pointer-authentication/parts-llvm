@@ -119,9 +119,10 @@ static constexpr uint64_t type_id_mask_found = 1U; /* this is a found but ignore
 static constexpr uint64_t type_id_mask_ptr = 2U; /* is this a pointer (zero for nope)*/
 static constexpr uint64_t type_id_mask_instr = 4U; /* is this a instruction pointer */
 static constexpr uint64_t type_id_mask_funcHasDef = 8U; /* is this a instruction pointer */
+static constexpr uint64_t type_id_mask_ignore = 16U; /* this is a found but ignored pointer */
 
 static constexpr pauth_type_id type_id_Unknown = 0;
-static constexpr pauth_type_id type_id_Ignore = type_id_mask_found;
+static constexpr pauth_type_id type_id_Ignore = type_id_mask_found | type_id_mask_ignore;
 
 bool isLoad(MachineInstr &MI);
 bool isStore(MachineInstr &MI);
@@ -140,7 +141,8 @@ void instrumentEpilogue(const TargetInstrInfo *TII,
                         const DebugLoc &DL, bool IsTailCallReturn);
 
 
-pauth_type_id createPauthTypeId(const Type *const Ty);
+pauth_type_id createPauthTypeId(const Type *Ty);
+pauth_type_id createPauthTypeId(const Instruction &I, const Type *Ty);
 pauth_type_id getPauthTypeId(MachineInstr &MI);
 pauth_type_id getPauthTypeId(const MDNode *PAMDNode);
 pauth_type_id getPauthTypeId(const Constant *C);
@@ -150,6 +152,7 @@ bool isPauthMDNode(const MachineOperand &op);
 Constant *getPauthTypeIdConstant(const MDNode *MDNode);
 
 MDNode *createPauthMDNode(LLVMContext &C, pauth_type_id type_id);
+MDNode *createPauthMDNode(LLVMContext &C, const Instruction &I, const Type *Ty);
 MDNode *createPauthMDNode(LLVMContext &C, const Type *Ty);
 
 void addPauthMDNode(LLVMContext &C, MachineInstr &MI, pauth_type_id id);
@@ -163,10 +166,17 @@ void addPAMDNodeToCall(LLVMContext &C, MachineInstrBuilder &MIB, pauth_type_id t
 
 inline bool isUnknown(const pauth_type_id &type_id);
 inline bool isPointer(const pauth_type_id &type_id);
-inline bool isInstruction(const pauth_type_id &type_id);
+inline bool isCodePointer(const pauth_type_id &type_id);
+inline bool isDataPointer(const pauth_type_id &id);
 inline bool isIgnored(const pauth_type_id &type_id);
 inline bool isDirectFunc(const pauth_type_id &type_id);
-inline bool isData(const pauth_type_id &id);
+
+inline void setTypeIdFlag(pauth_type_id &type_id, pauth_type_id mask, bool val);
+inline void setIsIgnored(pauth_type_id &type_id, bool val);
+inline void setIsFound(pauth_type_id &type_id, bool val);
+inline void setIsPointer(pauth_type_id &type_id, bool val);
+inline void setIsDataPointer(pauth_type_id &type_id, bool val);
+inline void setIsCodePointer(pauth_type_id &type_id, bool val);
 
 }
 }
@@ -180,7 +190,7 @@ inline bool PA::isUnknown(const pauth_type_id &type_id)
 
 inline bool PA::isIgnored(const pauth_type_id &type_id)
 {
-  return type_id == type_id_Ignore;
+  return (type_id & type_id_mask_ignore) != 0;
 }
 
 inline bool PA::isPointer(const pauth_type_id &type_id)
@@ -188,19 +198,53 @@ inline bool PA::isPointer(const pauth_type_id &type_id)
   return (type_id & type_id_mask_ptr) != 0;
 }
 
-inline bool PA::isInstruction(const pauth_type_id &type_id)
+inline bool PA::isCodePointer(const pauth_type_id &type_id)
 {
   return (type_id & type_id_mask_instr) != 0;
 }
 
-inline bool PA::isData(const pauth_type_id &type_id)
+inline bool PA::isDataPointer(const pauth_type_id &type_id)
 {
-  return (type_id & type_id_mask_instr) == 0 && !isInstruction(type_id);
+  return (type_id & type_id_mask_instr) == 0 && !isCodePointer(type_id);
 }
 
 inline bool PA::isDirectFunc(const pauth_type_id &type_id)
 {
   return (type_id & type_id_mask_funcHasDef) != 0;
+}
+
+inline void PA::setTypeIdFlag(pauth_type_id &type_id, const pauth_type_id mask, const bool val)
+{
+  if (val) {
+    type_id = type_id | mask;
+  } else {
+    type_id = type_id & ~mask;
+  }
+}
+
+inline void PA::setIsIgnored(pauth_type_id &type_id, const bool val)
+{
+  setTypeIdFlag(type_id, type_id_mask_ignore, val);
+}
+
+inline void PA::setIsFound(pauth_type_id &type_id, const bool val)
+{
+    setTypeIdFlag(type_id, type_id_mask_found, val);
+}
+
+inline void PA::setIsPointer(pauth_type_id &type_id, const bool val)
+{
+  setTypeIdFlag(type_id, type_id_mask_ptr, val);
+}
+
+inline void PA::setIsDataPointer(pauth_type_id &type_id, const bool val)
+{
+  setTypeIdFlag(type_id, type_id_mask_instr, !val);
+}
+
+inline void PA::setIsCodePointer(pauth_type_id &type_id, const bool val)
+{
+  setTypeIdFlag(type_id, type_id_mask_instr, val);
 }
 
 #endif /* !POINTERAUTHENTICATION_H */

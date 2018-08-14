@@ -81,15 +81,10 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
         case Instruction::Store:
           assert(isa<StoreInst>(I));
 
-          //errs() << "store op 0:\n";
-          //I.getOperand(0)->dump();
-          //errs() << "store op 1:\n";
-          //I.getOperand(1)->dump();
-
-          MD = createPauthMDNode(C, I.getOperand(0)->getType());
+          MD = createPauthMDNode(C, I, I.getOperand(0)->getType());
           break;
         case Instruction::Load:
-          MD = createPauthMDNode(C, I.getType());
+          MD = createPauthMDNode(C, I, I.getType());
           break;
         case Instruction::Call:
 
