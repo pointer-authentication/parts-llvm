@@ -56,6 +56,7 @@ add_llvm_library(LLVMCore
   Value.cpp
   ValueSymbolTable.cpp
   Verifier.cpp
+  PartsTypeMetadata.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/IR
