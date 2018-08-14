@@ -172,33 +172,37 @@ void llvm::PA::instrumentEpilogue(const TargetInstrInfo *TII,
   }
 }
 
+pauth_type_id PA::createPauthTypeId(const Instruction &I, const Type *const Ty)
+{
+  auto type_id = createPauthTypeId(Ty);
+
+  if (isCodePointer(type_id)) {
+    if (isa<StoreInst>(I)) {
+      setIsIgnored(type_id, !isa<Constant>(I.getOperand(0)));
+    } else if (isa<LoadInst>(I)) {
+      setIsIgnored(type_id, true);
+    }
+  }
+  return type_id;
+}
+
 pauth_type_id PA::createPauthTypeId(const Type *const Ty)
 {
   pauth_type_id type_id = 0;
 
   // Mark as found
-  type_id = type_id | type_id_mask_found;
+  setIsFound(type_id, true);
 
   // Mark as pointer, if pointer
-  if (Ty->isPointerTy())
-    type_id = type_id | type_id_mask_ptr;
+  setIsPointer(type_id, Ty->isPointerTy());
 
   // We're done unless this was a pointer
-  if (Ty->isPointerTy()) {
+  if (isPointer(type_id)) {
     // Mark code pointers
-    if (Ty->getPointerElementType()->isFunctionTy()) {
-      type_id = type_id | type_id_mask_instr;
-      //errs() << "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\n";
-      //Ty->dump();
-      //errs() << "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\n";
-    }
-
-
-
+    setIsCodePointer(type_id, Ty->getPointerElementType()->isFunctionTy());
 
     // The rest should be a SHA-3 hash of the target object type
     // TODO: anything that produces different types ids would be okay for now...
-
   }
 
   return type_id;
@@ -239,6 +243,11 @@ MDNode *PA::createPauthMDNode(LLVMContext &C, const pauth_type_id type_id)
       ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, type_id)))
   };
   return MDNode::get(C, vals);
+}
+
+MDNode *PA::createPauthMDNode(LLVMContext &C, const Instruction &I, const Type *Ty)
+{
+  return createPauthMDNode(C, createPauthTypeId(I, Ty));
 }
 
 MDNode *PA::createPauthMDNode(LLVMContext &C, const Type *Ty)
