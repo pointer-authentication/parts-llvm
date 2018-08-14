@@ -50,18 +50,9 @@ bool PauthMarkGlobals::runOnModule(Module &M)
   // Automatically annotate pointer globals
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
     auto Ty = GI->getOperand(0)->getType();
-    errs() << "----checking";
-    GI->dump();
-    errs() << "hasSection " << GI->hasSection() << " -> " << GI->getSection() << "\n";
-    //if (Ty->isPointerTy() && !GI->hasSection()) {
 
-    //GI->getSection()
-
-    //if (Ty->isPointerTy() && !GI->hasSection()) {
     if (Ty->isPointerTy()) {
       auto type_id = PA::createPauthTypeId(Ty);
-
-      errs() << "seems to be a pointer " << type_id << "\n";
 
       if (PA::isInstruction(type_id)) {
         marked_code_pointers++; // This should eventually be put in .code_pauth
