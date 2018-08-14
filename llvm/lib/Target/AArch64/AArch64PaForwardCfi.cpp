@@ -132,8 +132,10 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
         BMI.addReg(Pauth_ModifierReg);
 
         // Remove the old instruction!
-        //MBB.remove(&(*MIi));
-
+        auto &MI = *MIi;
+        MIi--;
+        MI.removeFromParent();
+        //MIi->removeFromParent();
       } else if (PA::isLoad(*MIi) || PA::isStore(*MIi)) {
         /* ----------------------------- LOAD/STORE ---------------------------------------- */
         DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a load/store (" << TII->getName(MIOpcode) << ")\n" << KNRM);
