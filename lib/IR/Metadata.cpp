@@ -57,6 +57,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include "llvm/IR/PartsTypeMetadata.h"
 
 using namespace llvm;
 
