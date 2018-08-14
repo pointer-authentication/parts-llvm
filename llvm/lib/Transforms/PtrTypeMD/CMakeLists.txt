@@ -13,7 +13,6 @@ endif()
 add_llvm_loadable_module(LLVMPtrTypeMDPass
     PtrTypeMD.cpp
     PauthPacMain.cpp
-    PauthIntrinsics.cpp
     PauthMarkGlobals.cpp
     DEPENDS intrinsics_gen
     PLUGIN_TOOL opt
