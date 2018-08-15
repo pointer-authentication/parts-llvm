@@ -13,7 +13,6 @@ endif()
 add_llvm_loadable_module(LLVMTestPass
     TestPass.cpp
     PauthPacMain.cpp
-    PauthIntrinsics.cpp
     PauthMarkGlobals.cpp
 	sha3.c
 	keccak.c
