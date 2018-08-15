@@ -124,8 +124,8 @@ int mbedtls_sha3_starts( mbedtls_sha3_context *ctx, mbedtls_sha3_type_t type )
                                                        512U * 2U, 0x02U, 2U );
             break;
 
-        default:
-            return( MBEDTLS_ERR_SHA3_BAD_INPUT_DATA );
+        //default:
+            //return( MBEDTLS_ERR_SHA3_BAD_INPUT_DATA );
     }
 
     return( mbedtls_convert_sponge_result( sponge_ret ) );

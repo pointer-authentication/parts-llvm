@@ -25,6 +25,7 @@
 #include "../../Target/AArch64/PointerAuthentication.h"
 
 #include <iomanip>
+#include <sstream>
 
 extern "C"{
 #include "include/sha3.h"
