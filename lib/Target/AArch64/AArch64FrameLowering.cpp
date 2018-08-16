@@ -127,6 +127,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "PartsFrameLowering.h"
 #include "PointerAuthentication.h"
 #include <cassert>
 #include <cstdint>
@@ -530,7 +531,7 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   if (EnablePauthBECFI) // Insert pauth for LR
-    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
+    PARTS->instrumentPrologue(TII, MBB, MBBI, DebugLoc());
 
   bool IsWin64 =
       Subtarget.isCallingConvWin64(MF.getFunction().getCallingConv());
@@ -861,7 +862,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     // Insert pauth instruction to authenticate LR
     if (EnablePauthBECFI && (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() ||
                                windowsRequiresStackProbe(MF, NumBytes))) {
-      PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+      PARTS->instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
     }
     return;
   }
@@ -911,7 +912,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
                     ArgumentPopSize, TII, MachineInstr::FrameDestroy);
 
   if (EnablePauthBECFI)
-    PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+    PARTS->instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for
