@@ -402,6 +402,7 @@ public:
 
 class ConstantAsMetadata : public ValueAsMetadata {
   friend class ValueAsMetadata;
+  friend class PartsTypeMetadata;
 
   ConstantAsMetadata(Constant *C)
       : ValueAsMetadata(ConstantAsMetadataKind, C) {}
