@@ -8,6 +8,7 @@
 
 
 #include <iostream>
+#include <llvm/IR/PartsTypeMetadata.h>
 #include "PointerAuthentication.h"
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
@@ -41,9 +42,9 @@ namespace {
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
 
-   pauth_type_id inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
+   PartsTypeMetadata_ptr inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
                                               unsigned targetReg);
-   pauth_type_id inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
+   PartsTypeMetadata_ptr inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
                                                 unsigned targetReg, unsigned reg, int64_t imm);
 
    bool instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id);
@@ -83,6 +84,8 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
 
+  auto &C = MF.getFunction().getContext();
+
   for (auto &MBB : MF) {
     DEBUG_PA_MIR(&MF, do { errs() << KBLU << "\tBlock "; errs().write_escaped(MBB.getName()); } while(0));
 
@@ -90,41 +93,44 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
       DEBUG_PA_OPT(&MF, do { errs() << "\t\t"; MIi->dump(); } while(false));
 
       const auto MIOpcode = MIi->getOpcode();
-      const auto PAMDNode = getPAData(*MIi);
-      pauth_type_id type_id = type_id_Unknown;
+      auto partsType = PartsTypeMetadata::retrieve(*MIi);
 
       if (MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL) {
         /* ----------------------------- BL/BLR ---------------------------------------- */
         DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a BL/BLR (" << TII->getName(MIOpcode) << ")\n");
 
-        if (PAMDNode != nullptr) {
-          type_id = getPauthTypeId(PAMDNode);
-        } else {
+        if (partsType == nullptr) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to figure out type_id\n");
+          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tUNIMPLEMENTED!!!\n");
+
+          partsType = PartsTypeMetadata::getUnknown();
         }
 
-        if (isUnknown(type_id)) {
+        if (!partsType->isKnown()) {
           DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
           errs() << MIi->getDebugLoc() <<  ": type_id is unknown!\n";
           continue;
         }
 
-        if (isIgnored(type_id)) {
+        if (partsType->isIgnored()) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tmarked as ignored, skipping\n" << KNRM);
           continue;
         }
 
-        if (!isPointer(type_id)) {
+        if (!partsType->isPointer()) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
           continue;
         }
 
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t going to instrument indirect call (type_id=" << type_id << ")\n");
+        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t going to instrument indirect call (type_id=" << partsType->getTypeId() << ")\n");
 
-        assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonnay happen. I guess?");
+        assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
 
         // Create the PAC modifier
-        BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(Pauth_ModifierReg).addImm(type_id).addImm(0);
+        BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi))
+            .addReg(Pauth_ModifierReg)
+            .addImm(partsType->getTypeId())
+            .addImm(0);
 
         // Swap out the branch to a auth+branch variant
         auto BMI = BuildMI(MBB, *MIi, MIi->getDebugLoc(), TII->get(AArch64::BLRAA));
@@ -140,57 +146,60 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
         /* ----------------------------- LOAD/STORE ---------------------------------------- */
         DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a load/store (" << TII->getName(MIOpcode) << ")\n" << KNRM);
 
-        if (PAMDNode != nullptr) {
-          type_id = getPauthTypeId(PAMDNode);
-        } else {
+        if (partsType == nullptr) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to figure out type_id\n");
           auto Op = MIi->getOperand(0);
           const auto targetReg = Op.getReg();
 
           if (!checkIfRegInstrumentable(targetReg)) {
-            type_id = type_id_Ignore;
+            partsType = PartsTypeMetadata::getIgnored();
           } else {
             if (PA::isStore(*MIi)) {
-              type_id = inferPauthTypeIdRegBackwards(MF, MBB, *MIi, targetReg);
+              partsType = inferPauthTypeIdRegBackwards(MF, MBB, *MIi, targetReg);
             } else {
               // FIXME: this only supports loads of type load reg [reg, imm]
               if (MIi->getOperand(2).isImm()) {
-                type_id = inferPauthTypeIdStackBackwards(MF, MBB, *MIi, targetReg, MIi->getOperand(1).getReg(), MIi->getOperand(2).getImm());
+                partsType = inferPauthTypeIdStackBackwards(MF, MBB, *MIi, targetReg, MIi->getOperand(1).getReg(), MIi->getOperand(2).getImm());
               } else {
                 DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tOMG! unexpected operands, is this a pair store thingy?\n");
+                partsType = PartsTypeMetadata::getUnknown();
               }
             }
           }
-          addPauthMDNode(MF.getFunction().getContext(), *MIi, type_id);
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tstoring type_id (" << type_id << ") in current MI\n" << KNRM);
+          addPauthMDNode(MF.getFunction().getContext(), *MIi, partsType->getTypeId());
+
+          MIi->addOperand(MachineOperand::CreateMetadata(partsType->getMDNode(C)));
+          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tstoring type_id (" << partsType->getTypeId() << ") in current MI\n" << KNRM);
         }
 
-        if (isUnknown(type_id)) {
+        if (!partsType->isKnown()) {
           DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
           errs() << MIi->getDebugLoc() <<  ": type_id is unknown!\n";
           continue;
         }
 
-        if (isIgnored(type_id)) {
+        if (partsType->isIgnored()) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tmarked as ignored, skipping\n" << KNRM);
           continue;
         }
 
-        if (!isPointer(type_id)) {
+        if (!partsType->isPointer()) {
           DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
           continue;
         }
 
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tis a " << (isDataPointer(type_id) ? "data" : "code") <<
-                                 " pointer, instrumenting (type_id=" << type_id << ")\n");
+        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tis a " << (partsType->isDataPointer() ? "data" : "code") <<
+                                 " pointer, instrumenting (type_id=" << partsType->getTypeId() << ")\n");
 
         auto reg = MIi->getOperand(0).getReg();
         if (PA::isStore(*MIi)) {
-          emitPAModAndInstr(MBB, *MIi, (isDataPointer(type_id) ? AArch64::PACDA : AArch64::PACIA), reg, type_id);
+          const auto instrOpcode = (partsType->isDataPointer() ? AArch64::PACDA : AArch64::PACIA);
+          emitPAModAndInstr(MBB, *MIi, instrOpcode, reg, partsType->getTypeId());
         } else {
           auto tmp = MIi;
           tmp++;
-          emitPAModAndInstr(MBB, *tmp, (isDataPointer(type_id) ? AArch64::AUTDA : AArch64::AUTIA), reg, type_id);
+          const auto instrOpcode = (partsType->isDataPointer() ? AArch64::AUTDA : AArch64::AUTIA);
+          emitPAModAndInstr(MBB, *tmp, instrOpcode, reg, partsType->getTypeId());
         }
       }
     }
@@ -218,7 +227,7 @@ inline bool PaForwardCfi::checkIfRegInstrumentable(unsigned reg)
   return registerFitsPointer(reg);
 }
 
-pauth_type_id PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
+PartsTypeMetadata_ptr PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
                                                          unsigned targetReg)
 {
   auto iter = MI.getIterator();
@@ -266,16 +275,16 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, Ma
         const pauth_type_id type_id = createPauthTypeId(FT->getParamType(param_i));
         // TODO: Embedd type_id into instruction
         DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching operand(" << param_i << "), using its type_id (=" << type_id << ")\n");
-        return type_id;
+        return PartsTypeMetadata::get(type_id);
       }
     }
   }
 
   DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
-  return type_id_Unknown;
+  return PartsTypeMetadata::getUnknown();
 }
 
-pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB,
+PartsTypeMetadata_ptr PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB,
                                                            MachineInstr &MI, unsigned targetReg,
                                                            unsigned reg, int64_t imm) {
 
@@ -298,7 +307,7 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, 
             // Found a store targeting the same location!
             const pauth_type_id type_id = getPauthTypeId(*MIi);
             DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching store, using it's type_id (" << type_id << ")\n");
-            return type_id;
+            return PartsTypeMetadata::get(type_id);
           }
         }
       }
@@ -316,7 +325,7 @@ pauth_type_id PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, 
   }
 
   DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
-  return type_id_Unknown;
+  return PartsTypeMetadata::getUnknown();
 }
 
 bool PaForwardCfi::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
