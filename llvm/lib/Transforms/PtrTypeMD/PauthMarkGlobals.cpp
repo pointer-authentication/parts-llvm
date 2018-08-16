@@ -8,6 +8,7 @@
 //
 
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/PartsTypeMetadata.h>
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
@@ -28,10 +29,10 @@ struct PauthMarkGlobals: public ModulePass {
 
   PauthMarkGlobals() : ModulePass(ID) {}
 
-  bool runOnModule(Module &F) override;
+  bool runOnModule(Module &M) override;
 
 private:
-  void writeTypeIds(Module &M, std::list<PA::pauth_type_id> &type_ids, const char *sectionName);
+  void writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName);
 };
 
 } // anonyous namespace
@@ -44,17 +45,17 @@ bool PauthMarkGlobals::runOnModule(Module &M)
   int marked_data_pointers = 0;
   int marked_code_pointers = 0;
 
-  auto data_type_ids = std::list<PA::pauth_type_id>(0);
-  auto code_type_ids = std::list<PA::pauth_type_id>(0);
+  auto data_type_ids = std::list<PARTS::type_id_t>(0);
+  auto code_type_ids = std::list<PARTS::type_id_t>(0);
 
   // Automatically annotate pointer globals
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
     auto Ty = GI->getOperand(0)->getType();
 
     if (Ty->isPointerTy()) {
-      auto type_id = PA::createPauthTypeId(Ty);
+      auto type_id = PartsTypeMetadata::idFromType(Ty);
 
-      if (PA::isCodePointer(type_id)) {
+      if (PartsTypeMetadata::TyIsCodePointer(Ty)) {
         marked_code_pointers++; // This should eventually be put in .code_pauth
         GI->setSection(".code_pauth");
         code_type_ids.push_back(type_id);
@@ -75,7 +76,7 @@ bool PauthMarkGlobals::runOnModule(Module &M)
   return (marked_code_pointers+marked_code_pointers) > 0;
 }
 
-void PauthMarkGlobals::writeTypeIds(Module &M, std::list<PA::pauth_type_id> &type_ids, const char *sectionName)
+void PauthMarkGlobals::writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName)
 {
   for (auto type_id : type_ids) {
     ConstantInt* type_id_Constant = ConstantInt::get(Type::getInt64Ty(M.getContext()), type_id);
