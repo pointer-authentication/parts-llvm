@@ -2,54 +2,101 @@
  *
  */
 
+#ifndef LLVM_IR_PARTSTYPEMETADATA_H
+#define LLVM_IR_PARTSTYPEMETADATA_H
+
 #include "../CodeGen/MachineInstr.h"
 #include "Metadata.h"
 
 namespace llvm {
 
+namespace PARTS {
+
 typedef uint64_t type_id_t;
 
-class PartsTypeMetadata : public ValueAsMetadata {
+}
+
+using namespace PARTS;
+
+class PartsTypeMetadata;
+
+typedef std::shared_ptr<PartsTypeMetadata> PartsTypeMetadata_ptr;
+
+/*! A encapsulating PARTS type_id and related metadata. */
+/*! This class encapsulates type_id information and related metadata, in particular, it also
+ * keeps track of whether type_id is known, unknown, ignored, and wthether the type_id corresponds
+ * to a pointer of data or code type. The class also includes utility functions for embedding and retrieving the data
+ * into an MDNode, this allows easy attaching and retrieval from various LLVM data-structures.
+ */
+class PartsTypeMetadata {
   type_id_t m_type_id = 0;
   bool m_known = false;
   bool m_pointer = false;
   bool m_data = false;
   bool m_ignored = false;
 
-  PartsTypeMetadata() = delete;
-  PartsTypeMetadata(Constant *C, type_id_t type_id);
+  static constexpr const int numNodes = 6;
 
-  inline static bool TyIsCodePointer(const Type *const type);
-  inline static bool TyIsPointer(const Type *const type);
+  static constexpr auto MetadataKindString = "PartsTypeMetadata";
+
+  PartsTypeMetadata() = delete;
 
 protected:
 public:
+  /*! Constructor usign type_id */
+  explicit PartsTypeMetadata(type_id_t type_id);
+  /*! Constructor used to restore PartsTypeMetadata from MDNode */
+  explicit PartsTypeMetadata(const MDNode *MDN);
 
-  inline type_id_t getTypeId() { return m_type_id; }
+  ~PartsTypeMetadata();
 
-  inline bool isIgnored() { return m_ignored; }
-  inline bool isKnown() { return m_known; }
-  inline bool isPointer() { return m_pointer; }
-  inline bool isDataPointer() { return m_pointer && m_data; }
-  inline bool isCodePointer() { return m_pointer && !m_data; }
+  /*! Get a (new) MDNode contaiing necessary information to re-create this object */
+  MDNode *getMDNode(LLVMContext &C);
 
-  inline void setIgnore(bool ignored);
+  /*! Get type_id of associated LLVM Type */
+  inline type_id_t getTypeId() const { return m_type_id; }
+
+  /*! Return true if the associated Value should be ignored */
+  inline bool isIgnored() const { return m_ignored; }
+  /*! Return true if type is known */
+  inline bool isKnown() const { return m_known; }
+  /*! Return true if type is a pointer */
+  inline bool isPointer() const { return m_pointer; }
+  /*! Return true if Type is a data pointer */
+  inline bool isDataPointer() const { return m_pointer && m_data; }
+  /*! Return true if Type is a code pointer */
+  inline bool isCodePointer() const { return m_pointer && !m_data; }
+
+  inline void setIgnored(bool ignored);
   inline void setIsKnown(bool known);
   inline void setIsPointer(bool pointer);
   inline void setIsDataPointer(bool data);
   inline void setIsCodePointer(bool code);
 
-  static PartsTypeMetadata *get(LLVMContext &C, type_id_t type_id);
-  static PartsTypeMetadata *get(LLVMContext &C, const Type *type);
+  void attach(LLVMContext &C, Instruction &I);
 
-  static const PartsTypeMetadata *retrieve(MachineInstr &MI);
-  static const PartsTypeMetadata *retrieve(const MDNode *MDNp);
+  static PartsTypeMetadata_ptr get(type_id_t type_id);
+  static PartsTypeMetadata_ptr get(const Type *type);
+  static PartsTypeMetadata_ptr getUnknown();
+  static PartsTypeMetadata_ptr getIgnored();
+  static const PartsTypeMetadata_ptr retrieve(const MachineInstr &MI);
+  static const PartsTypeMetadata_ptr retrieve(const MDNode *MDNp);
+
+  static bool isPartsTypeMetadataContainer(const MDNode *const MDN);
+
+  static MDNode *retrieveAsMDNode(const Instruction *I);
+
+  inline static bool TyIsCodePointer(const Type *const type);
+  inline static bool TyIsPointer(const Type *const type);
 
   static type_id_t idFromType(const Type *const type);
+
+  friend raw_ostream &operator<<(raw_ostream &stream, const PartsTypeMetadata_ptr);
 };
 
 inline bool PartsTypeMetadata::TyIsCodePointer(const Type *const type)
 {
+  assert(type->isPointerTy() && "expected a PointerTy Type!");
   return type->getPointerElementType()->isFunctionTy();
 }
 
@@ -58,7 +105,7 @@ inline bool PartsTypeMetadata::TyIsPointer(const Type *const type)
   return type->isPointerTy();
 }
 
-inline void PartsTypeMetadata::setIgnore(bool ignored)
+inline void PartsTypeMetadata::setIgnored(bool ignored)
 {
   m_ignored = ignored;
 }
@@ -86,3 +133,5 @@ inline void PartsTypeMetadata::setIsCodePointer(bool code)
 }
 
 } // namespace llvm
+
+#endif // LLVM_IR_PARTSTYPEMETADATA_H

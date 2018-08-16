@@ -1,44 +1,60 @@
+
+#include <llvm/IR/PartsTypeMetadata.h>
+
 #include "llvm/IR/PartsTypeMetadata.h"
 
 using namespace llvm;
 
-PartsTypeMetadata::PartsTypeMetadata(Constant *C, type_id_t type_id)
-    : ValueAsMetadata(PartsTypeMetadataKind, C),
-      m_type_id(type_id)
-{
+PartsTypeMetadata::PartsTypeMetadata(type_id_t type_id)
+    : m_type_id(type_id) {
   // Do we need to do something?
 }
 
-PartsTypeMetadata *PartsTypeMetadata::get(LLVMContext &C, type_id_t type_id)
-{
-  auto *type_id_Constant = Constant::getIntegerValue(
-      Type::getInt64Ty(C), APInt(64, type_id));
+PartsTypeMetadata::PartsTypeMetadata(const MDNode *MDN) {
+  assert(MDN != nullptr && "cannot construct from nullptr");
+  assert(isPartsTypeMetadataContainer(MDN) && "Constructor must have valid MDNode");
 
-  return new PartsTypeMetadata(type_id_Constant, type_id);
+  unsigned i = 1;
+  m_type_id = dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(UINT64_MAX);
+  m_known = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
+  m_pointer = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
+  m_data = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
+  m_ignored = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
 }
 
-PartsTypeMetadata *PartsTypeMetadata::get(LLVMContext &C, const Type *const type)
-{
-  auto *TMD = get(C, idFromType(type));
-  TMD->setIsKnown(true);
-  TMD->setIsPointer(TyIsPointer(type));
-  TMD->setIsCodePointer(TyIsCodePointer(type));
-
-  return TMD;
+PartsTypeMetadata::~PartsTypeMetadata() {
 }
 
-type_id_t PartsTypeMetadata::idFromType(const Type *const type)
-{
-  if (TyIsPointer(type))
-    return 1;
+MDNode *PartsTypeMetadata::getMDNode(LLVMContext &C) {
 
-  if (TyIsCodePointer(type))
-    return 7;
-
-  return 3;
+  Metadata* vals[numNodes] = {
+      MDString::get(C, MetadataKindString),
+      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, m_type_id))),
+      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_known ? 1 : 0))),
+      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_pointer ? 1 : 0))),
+      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_data ? 1 : 0))),
+      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_ignored ? 1 : 0))),
+  };
+  return MDNode::get(C, vals);
 }
 
-const PartsTypeMetadata *PartsTypeMetadata::retrieve(MachineInstr &MI)
+void PartsTypeMetadata::attach(LLVMContext &C, Instruction &I) {
+  I.setMetadata(MetadataKindString, getMDNode(C));
+}
+
+MDNode *PartsTypeMetadata::retrieveAsMDNode(const Instruction *I) {
+  auto MDN = I->getMetadata(MetadataKindString);
+
+  if (isPartsTypeMetadataContainer(MDN)) {
+    assert(isa<ConstantAsMetadata>(MDN->getOperand(1)) && "Cannot find PartsTypeMetadata although kind is okay?");
+    return MDN;
+  }
+
+  //errs() << "Found nothing\n";
+  return nullptr;
+}
+
+const PartsTypeMetadata_ptr PartsTypeMetadata::retrieve(const MachineInstr &MI)
 {
   const auto numOps = MI.getNumOperands();
 
@@ -46,17 +62,18 @@ const PartsTypeMetadata *PartsTypeMetadata::retrieve(MachineInstr &MI)
     const auto op = MI.getOperand(i);
 
     if (op.isMetadata()) {
-      if (const PartsTypeMetadata *n = retrieve(op.getMetadata()))
+      if (const PartsTypeMetadata_ptr n = retrieve(op.getMetadata()))
         return n;
     }
   }
   return nullptr;
 }
 
-const PartsTypeMetadata *PartsTypeMetadata::retrieve(const MDNode *MDNp)
+const PartsTypeMetadata_ptr PartsTypeMetadata::retrieve(const MDNode *MDNp)
 {
-  if (isa<PartsTypeMetadata>(MDNp))
-    return dyn_cast<PartsTypeMetadata>(MDNp);
+  if (isPartsTypeMetadataContainer(MDNp)) {
+    return std::make_shared<PartsTypeMetadata>(MDNp);
+  }
 
   if (MDNp->getNumOperands() == 1) {
     const auto &op = MDNp->getOperand(0);
@@ -66,3 +83,59 @@ const PartsTypeMetadata *PartsTypeMetadata::retrieve(const MDNode *MDNp)
 
   return nullptr;
 }
+PartsTypeMetadata_ptr PartsTypeMetadata::get(const type_id_t type_id) {
+  return std::make_shared<PartsTypeMetadata>(type_id);
+}
+
+PartsTypeMetadata_ptr PartsTypeMetadata::get(const Type *const type)
+{
+  auto TMD = get(idFromType(type));
+  TMD->setIsKnown(true);
+
+  if (TyIsPointer(type)) {
+    TMD->setIsPointer(true);
+    TMD->setIsCodePointer(TyIsCodePointer(type));
+  } else {
+    TMD->setIsPointer(false);
+  }
+
+  return TMD;
+}
+
+PartsTypeMetadata_ptr PartsTypeMetadata::getUnknown()
+{
+  return std::make_shared<PartsTypeMetadata>(0);
+}
+
+PartsTypeMetadata_ptr PartsTypeMetadata::getIgnored()
+{
+  auto TMD =  std::make_shared<PartsTypeMetadata>(0);
+  TMD->setIgnored(true);
+  
+  return TMD;
+}
+
+bool PartsTypeMetadata::isPartsTypeMetadataContainer(const MDNode *const MDN) {
+  return (MDN != nullptr && MDN->getNumOperands() == numNodes &&
+          isa<MDString>(MDN->getOperand(0)) && isa<ConstantAsMetadata>(MDN->getOperand(1)) &&
+          dyn_cast<MDString>(MDN->getOperand(0))->getString() == MetadataKindString);
+}
+
+
+type_id_t PartsTypeMetadata::idFromType(const Type *const type)
+{
+  if (!TyIsPointer(type))
+    return 0;
+
+  if (TyIsCodePointer(type))
+    return 7;
+
+  return 3;
+}
+
+raw_ostream &operator<<(raw_ostream &stream, const PartsTypeMetadata_ptr pmd) {
+  stream << "ParstTypeMetadata(" << pmd->getTypeId();
+  return stream;
+}
+
+
