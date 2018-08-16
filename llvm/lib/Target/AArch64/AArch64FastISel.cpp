@@ -68,6 +68,8 @@
 #include "llvm/Support/MachineValueType.h"
 #include "llvm/Support/MathExtras.h"
 #include "PointerAuthentication.h"
+#include "PartsFastISel.h"
+#include "llvm/IR/PartsTypeMetadata.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -150,6 +152,8 @@ class AArch64FastISel final : public FastISel {
   const AArch64Subtarget *Subtarget;
   LLVMContext *Context;
 
+  std::shared_ptr<PartsFastISel> PARTS;
+
   bool fastLowerArguments() override;
   bool fastLowerCall(CallLoweringInfo &CLI) override;
   bool fastLowerIntrinsicCall(const IntrinsicInst *II) override;
@@ -227,9 +231,11 @@ private:
   bool emitICmp_ri(MVT RetVT, unsigned LHSReg, bool LHSIsKill, uint64_t Imm);
   bool emitFCmp(MVT RetVT, const Value *LHS, const Value *RHS);
   unsigned emitLoad(MVT VT, MVT ResultVT, Address Addr, bool WantZExt = true,
-                    MachineMemOperand *MMO = nullptr, MDNode *PAData = nullptr);
+                    MachineMemOperand *MMO = nullptr,
+                    MDNode *partsType = nullptr);
   bool emitStore(MVT VT, unsigned SrcReg, Address Addr,
-                 MachineMemOperand *MMO = nullptr, MDNode *PAData = nullptr);
+                 MachineMemOperand *MMO = nullptr,
+                 MDNode *partsType = nullptr);
   bool emitStoreRelease(MVT VT, unsigned SrcReg, unsigned AddrReg,
                         MachineMemOperand *MMO = nullptr);
   unsigned emitIntExt(MVT SrcVT, unsigned SrcReg, MVT DestVT, bool isZExt);
@@ -297,6 +303,8 @@ public:
     Subtarget =
         &static_cast<const AArch64Subtarget &>(FuncInfo.MF->getSubtarget());
     Context = &FuncInfo.Fn->getContext();
+
+    PARTS = PartsFastISel::get(FuncInfo);
   }
 
   bool fastSelectInstruction(const Instruction *I) override;
@@ -1752,7 +1760,7 @@ unsigned AArch64FastISel::emitAnd_ri(MVT RetVT, unsigned LHSReg, bool LHSIsKill,
 
 unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
                                    bool WantZExt, MachineMemOperand *MMO,
-                                   MDNode *PAData) {
+                                   MDNode *partsType) {
   if (!TLI.allowsMisalignedMemoryAccesses(VT))
     return 0;
 
@@ -1867,15 +1875,7 @@ unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
                                     TII.get(Opc), ResultReg);
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOLoad, ScaleFactor, MMO);
 
-#ifdef ENABLE_PAUTH_SLLOW
-  if (PAData != nullptr) {
-      DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** moving metadata to emitted LDR\n");
-      auto &C = FuncInfo.Fn->getContext();
-      MIB.addMetadata(MDNode::get(C, PAData));
-  } else {
-      DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** no metadata when emitting LDR\n");
-  }
-#endif
+  PARTS->addMetadataToLoad(MIB, partsType);
 
   // Loading an i1 requires special handling.
   if (VT == MVT::i1) {
@@ -2001,10 +2001,8 @@ bool AArch64FastISel::selectLoad(const Instruction *I) {
     }
   }
 
-  auto PAData = ENABLE_PAUTH_SLLOW ? I->getMetadata(PA::Pauth_MDKind) : nullptr;
-
-  unsigned ResultReg =
-      emitLoad(VT, RetVT, Addr, WantZExt, createMachineMemOperandFor(I), PAData);
+  const auto partsType = PartsTypeMetadata::retrieveAsMDNode(I);
+  unsigned ResultReg = emitLoad(VT, RetVT, Addr, WantZExt, createMachineMemOperandFor(I), partsType);
   if (!ResultReg)
     return false;
 
@@ -2092,7 +2090,7 @@ bool AArch64FastISel::emitStoreRelease(MVT VT, unsigned SrcReg,
 
 bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
                                 MachineMemOperand *MMO,
-                                MDNode *PAData) {
+                                MDNode *partsType) {
   DEBUG_PA_LOW(FuncInfo.Fn, errs() << KGRN << "\t\t\t" << __FUNCTION__ << "\n");
 
   if (!TLI.allowsMisalignedMemoryAccesses(VT))
@@ -2160,15 +2158,7 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
 
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOStore, ScaleFactor, MMO);
 
-#ifdef ENABLE_PAUTH_SLLOW
-  if (PAData != nullptr) {
-      DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** moving metadata to emitted STR\n");
-      auto &C = FuncInfo.Fn->getContext();
-      MIB.addMetadata(MDNode::get(C, PAData));
-  } else {
-      DEBUG_PA_LOW(FuncInfo.Fn, errs() << "\t\t\t*** no metadata when emitting STR\n");
-  }
-#endif
+  PARTS->addMetadataToStore(MIB, partsType);
 
   return true;
 }
@@ -2236,9 +2226,9 @@ bool AArch64FastISel::selectStore(const Instruction *I) {
   if (!computeAddress(PtrV, Addr, Op0->getType()))
     return false;
 
-  auto PAData = ENABLE_PAUTH_SLLOW ? I->getMetadata(PA::Pauth_MDKind) : nullptr;
+  const auto partsType = PartsTypeMetadata::retrieveAsMDNode(I);
 
-  if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I), PAData))
+  if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I), partsType))
     return false;
   return true;
 }
@@ -2559,10 +2549,7 @@ bool AArch64FastISel::selectIndirectBr(const Instruction *I) {
 
   MachineInstrBuilder MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(AddrReg);
 
-#ifdef ENABLE_PAUTH_SLLOW
-  // move PA type_id for pauth CFI instrumentation
-  PA::addPAMDNodeToCall(FuncInfo.Fn->getContext(), MIB, I);
-#endif /* ENABLE_PAUTH_SLLOW */
+  PARTS->addMetadataToCall(MIB, PartsTypeMetadata::retrieveAsMDNode(I));
 
   // Make sure the CFG is up-to-date.
   for (auto *Succ : BI->successors())
@@ -3314,14 +3301,7 @@ bool AArch64FastISel::fastLowerCall(CallLoweringInfo &CLI) {
 
   CLI.Call = MIB;
 
-#ifdef ENABLE_PAUTH_SLLOW
-  // prep for pauth instrumentation by transfering type_id infor to emitted BLR
-  if (Addr.getReg()) {
-    PA::addPAMDNodeToCall(FuncInfo.Fn->getContext(), MIB, CLI);
-  } else {
-    PA::addPAMDNodeToCall(FuncInfo.Fn->getContext(), MIB, PA::type_id_Ignore);
-  }
-#endif /* ENABLE_PAUTH_SLLOW */
+  PARTS->addMetadataToCall(MIB, CLI, Addr.getReg());
 
   // Finish off the call including any return values.
   return finishCall(CLI, RetVT, NumBytes);

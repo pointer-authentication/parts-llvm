@@ -61,6 +61,8 @@ add_llvm_target(AArch64CodeGen
   AArch64SIMDInstrOpt.cpp
   AArch64PaForwardCfi.cpp
   PointerAuthentication.cpp
+  PartsFrameLowering.cpp
+  PartsFastISel.cpp
 
   DEPENDS
   intrinsics_gen
