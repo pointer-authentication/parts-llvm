@@ -47,11 +47,11 @@ declare -Ag submodules
 submodules["tools/clang"]="https://github.com/llvm-mirror/clang.git"
 submodules["tools/lld"]="https://github.com/llvm-mirror/lld.git"
 submodules["tools/clang/extra"]="https://github.com/llvm-mirror/clang-tools-extra.git"
-submodules["tools/lldb"]="https://github.com/llvm-mirror/lldb.git"
+# submodules["tools/lldb"]="https://github.com/llvm-mirror/lldb.git"
 submodules["projects/libcxx"]="https://github.com/llvm-mirror/libcxx.git"
 submodules["projects/libcxxabi"]="https://github.com/llvm-mirror/libcxxabi.git"
 submodules["projects/compiler-rt"]="https://github.com/llvm-mirror/compiler-rt.git"
-submodules["runtimes/libunwind"]="https://github.com/llvm-mirror/libunwind.git"
+# submodules["runtimes/libunwind"]="https://github.com/llvm-mirror/libunwind.git"
 
 #######################################################################
 # Package dependencies
@@ -61,13 +61,13 @@ if [[ ${build_tool} = "Unix Makefiles" ]];then
     build_tool_dependency="make"
 elif [[ ${build_tool} = "Ninja" ]]; then
     build_tool_dependency="ninja-build"
-else 
+else
     echo "unrecognized build tool '${build_tool}'"
 fi
 
 # Modify this list accordingly if you change some other stuff
 declare -a pkg_dependencies=(
-git cmake ccache python-dev libncurses5-dev swig libedit-dev
+git cmake ccache python-dev libncurses5-dev swig libedit-dev libxml2-dev
 build-essential gcc-${system_gcc}-plugin-dev
 ${build_tool_dependency}
 clang-${system_llvm} libclang-${system_llvm}-dev lld-${system_llvm}
@@ -142,7 +142,7 @@ include_examples=Off # (default Off)
 #######################################################################
 
 # Link time optimization will probably need gold linker
-enable_lto=On
+enable_lto=Off
 
 # Doxygen (this seems incrediby slow, maybe leave off) 
 enable_doxygen=Off
