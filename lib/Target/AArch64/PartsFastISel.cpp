@@ -6,7 +6,7 @@
 #include "PartsFastISel.h"
 #include "PointerAuthentication.h"
 #include "llvm/IR/Metadata.h"
-#include "llvm/IR/PartsTypeMetadata.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
 

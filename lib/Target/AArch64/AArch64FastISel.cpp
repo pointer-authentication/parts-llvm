@@ -69,7 +69,7 @@
 #include "llvm/Support/MathExtras.h"
 #include "PointerAuthentication.h"
 #include "PartsFastISel.h"
-#include "llvm/IR/PartsTypeMetadata.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>

@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/PartsTypeMetadata.h>
+#include <llvm/PARTS/PartsTypeMetadata.h>
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
