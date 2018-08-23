@@ -96,8 +96,7 @@ public:
 
 inline bool PartsTypeMetadata::TyIsCodePointer(const Type *const type)
 {
-  assert(type->isPointerTy() && "expected a PointerTy Type!");
-  return type->getPointerElementType()->isFunctionTy();
+  return type->isPointerTy() && type->getPointerElementType()->isFunctionTy();
 }
 
 inline bool PartsTypeMetadata::TyIsPointer(const Type *const type)
