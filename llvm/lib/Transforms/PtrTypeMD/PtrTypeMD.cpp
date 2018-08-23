@@ -152,20 +152,14 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction
   for (auto i = 0U; i < CI->getNumOperands()-1; i++) {
     auto O =CI->getOperand(i);
 
-    auto V = dyn_cast<Value>(O);
-    V->getType()->dump();
+    if (PartsTypeMetadata::TyIsCodePointer(O->getType()) && isa<Function>(O)) {
+      // lets replace the argument with an PACed pointer here!!!!
+      errs() << "UNIMPLEMENTED!!!\n\n\tNo support yet for adding PACs at IR level, in this case for function args!\n\n";
 
-    auto argMD = PartsTypeMetadata::get(V->getType());
-
-    if (!(argMD->isCodePointer() || isa<GlobalValue>(O))) {
-      continue;
+      // FIXME: need to implement this with intrinsics that allow us to create a PACed input pointer for the function
+      // Note: in this specific case this is quite acceptable because we are plan to have just a single
+      // "pointer creation" for code pointers.
     }
-
-    // lets replace the argument with an PACed pointer here!!!!
-    llvm_unreachable("unimplemented: no support yet for adding PACs at IR level, in this case for function args");
-    // FIXME: need to imlement this with intrinsics that allow us to create a PACed input pointer for the function
-    // Note: in this specific case this is quite acceptable because we are plan to have just a single
-    // "pointer creation" for code pointers.
   }
 
   return MD;
