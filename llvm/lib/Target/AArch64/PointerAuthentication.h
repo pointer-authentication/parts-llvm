@@ -26,7 +26,7 @@
 
 #define ENABLE_PAUTH_SLLOW true
 
-#define DISABLE_PA_DEBUG 1
+//#define DISABLE_PA_DEBUG 1
 //#define DEBUG_ONLY_FUNC "check_user"
 //#define DEBUG_ONLY_FUNC "DivideInternalFPF"
 #define DEBUG_PA_OPT(F,x) do { \
