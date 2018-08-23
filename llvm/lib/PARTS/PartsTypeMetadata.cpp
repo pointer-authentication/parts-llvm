@@ -1,7 +1,7 @@
 
-#include <llvm/IR/PartsTypeMetadata.h>
+#include <llvm/PARTS/PartsTypeMetadata.h>
 
-#include "llvm/IR/PartsTypeMetadata.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
 

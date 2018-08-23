@@ -5,8 +5,8 @@
 #ifndef LLVM_IR_PARTSTYPEMETADATA_H
 #define LLVM_IR_PARTSTYPEMETADATA_H
 
-#include "../CodeGen/MachineInstr.h"
-#include "Metadata.h"
+#include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/IR/Metadata.h"
 
 namespace llvm {
 
@@ -50,7 +50,7 @@ public:
 
   ~PartsTypeMetadata();
 
-  /*! Get a (new) MDNode contaiing necessary information to re-create this object */
+  /*! Get a (new) MDNode containing necessary information to re-create this object */
   MDNode *getMDNode(LLVMContext &C);
 
   /*! Get type_id of associated LLVM Type */

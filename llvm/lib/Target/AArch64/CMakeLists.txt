@@ -66,6 +66,10 @@ add_llvm_target(AArch64CodeGen
 
   DEPENDS
   intrinsics_gen
+  Parts
+
+  LINK_LIBS
+  Parts
 )
 
 add_subdirectory(AsmParser)

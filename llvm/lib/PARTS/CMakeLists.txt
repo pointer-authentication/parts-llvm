@@ -1,6 +1,7 @@
 add_llvm_library(Parts
   PartsLog.cpp
   PartsLogStream.cpp
+  PartsTypeMetadata.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/PARTS
@@ -8,7 +9,15 @@ add_llvm_library(Parts
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/IR
 
   DEPENDS
-  intrinsics_gen
+  #intrinsics_gen
+  LLVMCore
+  LLVMSupport
+  #LLVMObject
+
+  LINK_LIBS
+  LLVMCore
+  LLVMSupport
+  #LLVMObject
   )
 
 set_property(TARGET Parts PROPERTY LLVM_SYSTEM_LIBS)

@@ -8,7 +8,7 @@
 
 
 #include <iostream>
-#include <llvm/IR/PartsTypeMetadata.h>
+#include <llvm/PARTS/PartsTypeMetadata.h>
 #include "PointerAuthentication.h"
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
