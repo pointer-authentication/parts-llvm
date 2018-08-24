@@ -13,8 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/PARTS/PartsTypeMetadata.h>
+#include <llvm/PARTS/PartsIntr.h>
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
@@ -136,7 +137,7 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction
 
   PartsTypeMetadata_ptr MD;
 
-  const CallInst *CI = dyn_cast<CallInst>(&I);
+  CallInst *CI = dyn_cast<CallInst>(&I);
   if (CI->getCalledFunction() == nullptr) {
     DEBUG_PA_OPT(&F, errs() << TAG << KGRN << "\t\t\t found indirect call!!!!\n");
     MD = PartsTypeMetadata::get(I.getOperand(0)->getType());
@@ -159,6 +160,9 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction
       // FIXME: need to implement this with intrinsics that allow us to create a PACed input pointer for the function
       // Note: in this specific case this is quite acceptable because we are plan to have just a single
       // "pointer creation" for code pointers.
+
+      auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
+      CI->setOperand(i, paced_arg);
     }
   }
 
