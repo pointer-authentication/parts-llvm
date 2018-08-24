@@ -2,6 +2,7 @@ add_llvm_library(Parts
   PartsLog.cpp
   PartsLogStream.cpp
   PartsTypeMetadata.cpp
+  PartsIntr.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/PARTS
