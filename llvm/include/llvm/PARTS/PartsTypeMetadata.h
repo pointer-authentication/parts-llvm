@@ -90,6 +90,7 @@ public:
   inline static bool TyIsPointer(const Type *const type);
 
   static type_id_t idFromType(const Type *const type);
+  static Constant *idConstantFromType(LLVMContext &context, const Type *const type);
 
   friend raw_ostream &operator<<(raw_ostream &stream, const PartsTypeMetadata_ptr);
 };

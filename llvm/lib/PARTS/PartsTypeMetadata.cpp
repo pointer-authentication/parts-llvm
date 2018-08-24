@@ -133,9 +133,14 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   return 3;
 }
 
+Constant *PartsTypeMetadata::idConstantFromType(LLVMContext &C, const Type *const type) {
+  return Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, idFromType(type)));
+}
+
 raw_ostream &operator<<(raw_ostream &stream, const PartsTypeMetadata_ptr pmd) {
   stream << "ParstTypeMetadata(" << pmd->getTypeId();
   return stream;
 }
+
 
 
