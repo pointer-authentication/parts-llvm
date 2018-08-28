@@ -6276,3 +6276,5 @@ def : Pat<(AArch64tcret texternalsym:$dst, (i32 timm:$FPDiff)),
 
 include "AArch64InstrAtomics.td"
 include "AArch64SVEInstrInfo.td"
+
+include "llvm/PARTS/AArch64InstInfo.td"
