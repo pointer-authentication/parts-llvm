@@ -30,6 +30,8 @@
 #include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/Target/TargetOptions.h"
 
+#include "PointerAuthentication.h"
+
 using namespace llvm;
 
 #define GET_REGINFO_TARGET_DESC
@@ -210,7 +212,7 @@ AArch64RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   assert(checkAllSuperRegsMarked(Reserved));
 
   // pauth: Reserve register for PA modifier
-  markSuperRegs(Reserved, AArch64::W23);
+  markSuperRegs(Reserved, Pauth_ModifierReg);
 
   return Reserved;
 }
