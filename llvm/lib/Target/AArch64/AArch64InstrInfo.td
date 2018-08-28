@@ -6810,3 +6810,5 @@ def : Pat<(i64 (AArch64LocalRecover mcsym:$sym)), (MOVMCSym mcsym:$sym)>;
 
 include "AArch64InstrAtomics.td"
 include "AArch64SVEInstrInfo.td"
+
+include "llvm/PARTS/AArch64InstInfo.td"

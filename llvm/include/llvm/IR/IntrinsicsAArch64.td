@@ -696,3 +696,5 @@ let TargetPrefix = "aarch64" in {
 //def int_aarch64_autda : Intrinsic<[llvm_i64_ty], [llvm_i64_ty]>;
 //def int_aarch64_pacda : Intrinsic<[llvm_i64_ty]>;
 //def int_aarch64_autda : Intrinsic<[llvm_i64_ty]>;
+
+include "llvm/PARTS/Intrinsics.td"
