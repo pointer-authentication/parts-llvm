@@ -55,6 +55,7 @@ createAArch64InstructionSelector(const AArch64TargetMachine &,
                                  AArch64Subtarget &, AArch64RegisterBankInfo &);
 
 FunctionPass *createAArch64PaForwardCfiPass();
+FunctionPass *createPartsPassIntrinsics();
 
 void initializeAArch64A53Fix835769Pass(PassRegistry&);
 void initializeAArch64A57FPLoadBalancingPass(PassRegistry&);
