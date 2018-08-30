@@ -116,3 +116,104 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
   DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
   return PartsTypeMetadata::getUnknown();
 }
+
+void PartsUtils::attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstr *MI) {
+  MI->addOperand(MachineOperand::CreateMetadata(PTMD->getMDNode(C)));
+}
+
+void PartsUtils::attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstrBuilder *MIB) {
+  MIB->addMetadata(PTMD->getMDNode(C));
+}
+
+bool PartsUtils::isLoadOrStore(const MachineInstr &MI) {
+  const auto opCode = MI.getOpcode();
+  return isLoad(opCode) || isStore(opCode);
+}
+
+bool PartsUtils::isLoad(const MachineInstr &MI) {
+  return isLoad(MI.getOpcode());
+}
+
+bool PartsUtils::isStore(const MachineInstr &MI) {
+  return isStore(MI.getOpcode());
+}
+
+bool PartsUtils::isStore(const unsigned opCode) {
+  switch(opCode) {
+    default:
+      return false;
+    case AArch64::STRWpost:
+    case AArch64::STURQi:
+    case AArch64::STURXi:
+    case AArch64::STURDi:
+    case AArch64::STURWi:
+    case AArch64::STURSi:
+    case AArch64::STURHi:
+    case AArch64::STURHHi:
+    case AArch64::STURBi:
+    case AArch64::STURBBi:
+    case AArch64::STPQi:
+    case AArch64::STNPQi:
+    case AArch64::STRQui:
+    case AArch64::STPXi:
+    case AArch64::STPDi:
+    case AArch64::STNPXi:
+    case AArch64::STNPDi:
+    case AArch64::STRXui:
+    case AArch64::STRDui:
+    case AArch64::STPWi:
+    case AArch64::STPSi:
+    case AArch64::STNPWi:
+    case AArch64::STNPSi:
+    case AArch64::STRWui:
+    case AArch64::STRSui:
+    case AArch64::STRHui:
+    case AArch64::STRHHui:
+    case AArch64::STRBui:
+    case AArch64::STRBBui:
+      return true;
+  }
+}
+
+bool PartsUtils::isLoad(const unsigned opCode) {
+  switch(opCode) {
+    default:
+      return false;
+    case AArch64::LDPXi:
+    case AArch64::LDPDi:
+    case AArch64::LDRWpost:
+    case AArch64::LDURQi:
+    case AArch64::LDURXi:
+    case AArch64::LDURDi:
+    case AArch64::LDURWi:
+    case AArch64::LDURSi:
+    case AArch64::LDURSWi:
+    case AArch64::LDURHi:
+    case AArch64::LDURHHi:
+    case AArch64::LDURSHXi:
+    case AArch64::LDURSHWi:
+    case AArch64::LDURBi:
+    case AArch64::LDURBBi:
+    case AArch64::LDURSBXi:
+    case AArch64::LDURSBWi:
+    case AArch64::LDPQi:
+    case AArch64::LDNPQi:
+    case AArch64::LDRQui:
+    case AArch64::LDNPXi:
+    case AArch64::LDNPDi:
+    case AArch64::LDRXui:
+    case AArch64::LDRDui:
+    case AArch64::LDPWi:
+    case AArch64::LDPSi:
+    case AArch64::LDNPWi:
+    case AArch64::LDNPSi:
+    case AArch64::LDRWui:
+    case AArch64::LDRSui:
+    case AArch64::LDRSWui:
+    case AArch64::LDRHui:
+    case AArch64::LDRHHui:
+    case AArch64::LDRBui:
+    case AArch64::LDRBBui:
+      return true;
+  }
+}

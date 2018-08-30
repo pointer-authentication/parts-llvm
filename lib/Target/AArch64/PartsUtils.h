@@ -6,6 +6,7 @@
 #define LLVM_PARTSUTILS_H
 
 #include <memory>
+#include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "AArch64.h"
 #include "AArch64RegisterInfo.h"
 #include "AArch64InstrInfo.h"
@@ -18,6 +19,8 @@ namespace PARTS {
 class PartsUtils;
 
 typedef std::shared_ptr<PartsUtils> PartsUtils_ptr;
+
+static inline unsigned getModifierReg() { return AArch64::X23; }
 
 class PartsUtils {
 
@@ -42,6 +45,15 @@ public:
                                                        MachineBasicBlock &MBB,
                                                        MachineInstr &MI,
                                                        unsigned targetReg, unsigned reg, int64_t imm);
+
+  void attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstr *MI);
+  void attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstrBuilder *MIB);
+
+  bool isLoadOrStore(const MachineInstr &MI);
+  bool isLoad(const MachineInstr &MI);
+  bool isStore(const MachineInstr &MI);
+  bool isLoad(unsigned opCode);
+  bool isStore(unsigned opCode);
 };
 
 inline bool PartsUtils::registerFitsPointer(unsigned reg)
