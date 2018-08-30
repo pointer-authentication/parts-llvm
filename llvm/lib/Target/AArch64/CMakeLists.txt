@@ -59,6 +59,7 @@ add_llvm_target(AArch64CodeGen
   AArch64TargetObjectFile.cpp
   AArch64TargetTransformInfo.cpp
   AArch64SIMDInstrOpt.cpp
+  PartsUtils.cpp
   PartsPassPointerLoadStore.cpp
   PartsPassIntrinsics.cpp
   PointerAuthentication.cpp
