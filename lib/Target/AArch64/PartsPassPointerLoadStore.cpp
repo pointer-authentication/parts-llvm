@@ -47,6 +47,7 @@ namespace {
    PartsTypeMetadata_ptr inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
                                                 unsigned targetReg, unsigned reg, int64_t imm);
 
+   bool instrumentBranches(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    bool instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id);
    bool instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id);
 
@@ -96,52 +97,7 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
       auto partsType = PartsTypeMetadata::retrieve(*MIi);
 
       if (MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL) {
-        /* ----------------------------- BL/BLR ---------------------------------------- */
-        DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a BL/BLR (" << TII->getName(MIOpcode) << ")\n");
-
-        if (partsType == nullptr) {
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to figure out type_id\n");
-          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tUNIMPLEMENTED!!!\n");
-
-          partsType = PartsTypeMetadata::getUnknown();
-        }
-
-        if (!partsType->isKnown()) {
-          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
-          errs() << MIi->getDebugLoc() <<  ": type_id is unknown!\n";
-          continue;
-        }
-
-        if (partsType->isIgnored()) {
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tmarked as ignored, skipping\n" << KNRM);
-          continue;
-        }
-
-        if (!partsType->isPointer()) {
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
-          continue;
-        }
-
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t going to instrument indirect call (type_id=" << partsType->getTypeId() << ")\n");
-
-        assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
-
-        // Create the PAC modifier
-        BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi))
-            .addReg(Pauth_ModifierReg)
-            .addImm(partsType->getTypeId())
-            .addImm(0);
-
-        // Swap out the branch to a auth+branch variant
-        auto BMI = BuildMI(MBB, *MIi, MIi->getDebugLoc(), TII->get(AArch64::BLRAA));
-        BMI.add(MIi->getOperand(0));
-        BMI.addReg(Pauth_ModifierReg);
-
-        // Remove the old instruction!
-        auto &MI = *MIi;
-        MIi--;
-        MI.removeFromParent();
-        //MIi->removeFromParent();
+        instrumentBranches(MBB, MIi);
       } else if (PA::isLoad(*MIi) || PA::isStore(*MIi)) {
         /* ----------------------------- LOAD/STORE ---------------------------------------- */
         DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a load/store (" << TII->getName(MIOpcode) << ")\n" << KNRM);
@@ -208,6 +164,7 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   return true;
 }
 
+
 inline bool PartsPassPointerLoadStore::registerFitsPointer(unsigned reg)
 {
   const auto RC = TRI->getMinimalPhysRegClass(reg);
@@ -228,7 +185,7 @@ inline bool PartsPassPointerLoadStore::checkIfRegInstrumentable(unsigned reg)
 }
 
 PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
-                                                         unsigned targetReg)
+                                                                              unsigned targetReg)
 {
   auto iter = MI.getIterator();
 
@@ -285,8 +242,8 @@ PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdRegBackwards(Ma
 }
 
 PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB,
-                                                           MachineInstr &MI, unsigned targetReg,
-                                                           unsigned reg, int64_t imm) {
+                                                                                MachineInstr &MI, unsigned targetReg,
+                                                                                unsigned reg, int64_t imm) {
 
   DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n");
 
@@ -326,6 +283,61 @@ PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdStackBackwards(
 
   DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
   return PartsTypeMetadata::getUnknown();
+}
+
+bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi) {
+  const auto MIOpcode = MIi->getOpcode();
+  auto partsType = PartsTypeMetadata::retrieve(*MIi);
+
+  assert(MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL);
+
+  /* ----------------------------- BL/BLR ---------------------------------------- */
+  DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a BL/BLR (" << TII->getName(MIOpcode) << ")\n");
+
+  if (partsType == nullptr) {
+    DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to figure out type_id\n");
+    DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tUNIMPLEMENTED!!!\n");
+
+    partsType = PartsTypeMetadata::getUnknown();
+  }
+
+  if (!partsType->isKnown()) {
+    DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
+    errs() << MIi->getDebugLoc() <<  ": type_id is unknown!\n";
+    return false;
+  }
+
+  if (partsType->isIgnored()) {
+    DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tmarked as ignored, skipping\n" << KNRM);
+    return false;
+  }
+
+  if (!partsType->isPointer()) {
+    DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
+    return false;
+  }
+
+  DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t going to instrument indirect call (type_id=" << partsType->getTypeId() << ")\n");
+
+  assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
+
+  // Create the PAC modifier
+  BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi))
+      .addReg(Pauth_ModifierReg)
+      .addImm(partsType->getTypeId())
+      .addImm(0);
+
+  // Swap out the branch to a auth+branch variant
+  auto BMI = BuildMI(MBB, *MIi, MIi->getDebugLoc(), TII->get(AArch64::BLRAA));
+  BMI.add(MIi->getOperand(0));
+  BMI.addReg(Pauth_ModifierReg);
+
+  // Remove the old instruction!
+  auto &MI = *MIi;
+  MIi--;
+  MI.removeFromParent();
+
+  return true;
 }
 
 bool PartsPassPointerLoadStore::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
