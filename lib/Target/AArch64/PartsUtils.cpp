@@ -4,7 +4,7 @@
 
 #include "PartsUtils.h"
 
-#include "PointerAuthentication.h"
+#include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -27,16 +27,16 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
     // FIXME: This is potentially unsafe! iterator might not match execution order!
 
     while (MIi != mbb->instr_rend()) {
-      if (PA::isStore(*MIi)) {
+      if (isStore(*MIi)) {
         if (MIi->getNumOperands() >= 3) {
           auto Op1 = MIi->getOperand(1);
           auto Op2 = MIi->getOperand(2);
 
           if (Op1.getReg() == reg && Op2.getImm() == imm) {
             // Found a store targeting the same location!
-            const auto type_id = PA::getPauthTypeId(*MIi);
-            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching store, using it's type_id (" << type_id << ")\n");
-            return PartsTypeMetadata::get(type_id);
+            const auto PTMD = PartsTypeMetadata::retrieve(*MIi);
+            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching store, using it's type_id (" << PTMD->getTypeId() << ")\n");
+            return PTMD;
           }
         }
       }
@@ -105,10 +105,10 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
       }
 
       if (param_i < numParams) {
-        const auto type_id = PA::createPauthTypeId(FT->getParamType(param_i));
+        const auto PTMD = PartsTypeMetadata::get(FT->getParamType(param_i));
         // TODO: Embedd type_id into instruction
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching operand(" << param_i << "), using its type_id (=" << type_id << ")\n");
-        return PartsTypeMetadata::get(type_id);
+        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching operand(" << param_i << "), using its type_id (=" << PTMD->getTypeId() << ")\n");
+        return PTMD;
       }
     }
   }
