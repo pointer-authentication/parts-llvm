@@ -5,9 +5,11 @@
 #ifndef LLVM_PARTSUTILS_H
 #define LLVM_PARTSUTILS_H
 
+#include <memory>
 #include "AArch64.h"
 #include "AArch64RegisterInfo.h"
-#include <memory>
+#include "AArch64InstrInfo.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
 
 namespace llvm {
 
@@ -19,17 +21,27 @@ typedef std::shared_ptr<PartsUtils> PartsUtils_ptr;
 
 class PartsUtils {
 
+  const AArch64InstrInfo *TII;
   const AArch64RegisterInfo *TRI;
 
 public:
-  PartsUtils(const AArch64RegisterInfo *TRI) : TRI(TRI) {};
+  PartsUtils(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII);
 
-  static inline PartsUtils_ptr get(const AArch64RegisterInfo *TRI) {
-    return std::make_shared<PartsUtils>(TRI);
+  static inline PartsUtils_ptr get(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII) {
+    return std::make_shared<PartsUtils>(TRI, TII);
   };
 
   inline bool registerFitsPointer(unsigned reg);
   inline bool checkIfRegInstrumentable(unsigned reg);
+
+  PartsTypeMetadata_ptr inferPauthTypeIdRegBackwards(MachineFunction &MF,
+                                                     MachineBasicBlock &MBB,
+                                                     MachineInstr &MI,
+                                                     unsigned targetReg);
+  PartsTypeMetadata_ptr inferPauthTypeIdStackBackwards(MachineFunction &MF,
+                                                       MachineBasicBlock &MBB,
+                                                       MachineInstr &MI,
+                                                       unsigned targetReg, unsigned reg, int64_t imm);
 };
 
 inline bool PartsUtils::registerFitsPointer(unsigned reg)

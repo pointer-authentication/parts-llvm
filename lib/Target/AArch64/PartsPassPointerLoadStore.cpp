@@ -43,11 +43,6 @@ namespace {
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
 
-   PartsTypeMetadata_ptr inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
-                                              unsigned targetReg);
-   PartsTypeMetadata_ptr inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
-                                                unsigned targetReg, unsigned reg, int64_t imm);
-
    bool instrumentBranches(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    bool instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id);
    bool instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id);
@@ -84,7 +79,7 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
-  partsUtils = PartsUtils::get(TRI);
+  partsUtils = PartsUtils::get(TRI, TII);
 
   auto &C = MF.getFunction().getContext();
 
@@ -112,11 +107,11 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
             partsType = PartsTypeMetadata::getIgnored();
           } else {
             if (PA::isStore(*MIi)) {
-              partsType = inferPauthTypeIdRegBackwards(MF, MBB, *MIi, targetReg);
+              partsType = partsUtils->inferPauthTypeIdRegBackwards(MF, MBB, *MIi, targetReg);
             } else {
               // FIXME: this only supports loads of type load reg [reg, imm]
               if (MIi->getOperand(2).isImm()) {
-                partsType = inferPauthTypeIdStackBackwards(MF, MBB, *MIi, targetReg, MIi->getOperand(1).getReg(), MIi->getOperand(2).getImm());
+                partsType = partsUtils->inferPauthTypeIdStackBackwards(MF, MBB, *MIi, targetReg, MIi->getOperand(1).getReg(), MIi->getOperand(2).getImm());
               } else {
                 DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tOMG! unexpected operands, is this a pair store thingy?\n");
                 partsType = PartsTypeMetadata::getUnknown();
@@ -163,107 +158,6 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   }
 
   return true;
-}
-
-PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
-                                                                              unsigned targetReg)
-{
-  auto iter = MI.getIterator();
-
-  DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look for " << TRI->getName(targetReg) << " load\n");
-
-  // Look through current MBB
-  while (iter != MBB.begin()) {
-    iter--;
-
-    for (unsigned i = 0; i < iter->getNumOperands(); i++) {
-      const MachineOperand &MO = iter->getOperand(i);
-
-      if (MO.isReg()) {
-        if (MO.getReg() == targetReg) {
-          DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tused in " << TII->getName(iter->getOpcode()) << "\n" << KNRM);
-          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tUNIMPLEMENTED!!!!\n");
-          // TODO: unimplemetned!
-          //llvm_unreachable_internal("unimplemented");
-        }
-      }
-    }
-  }
-
-  // Check if this is the entry block, and if so, look at function arguments
-  if (MF.begin() == MBB.getIterator()) {
-    DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look at function args\n");
-    auto *FT = MF.getFunction().getFunctionType();
-    const auto numParams = FT->getNumParams();
-    if (numParams != 0) {
-      unsigned param_i = INT_MAX;
-
-      switch(targetReg) {
-        case AArch64::X0: param_i = 0; break;
-        case AArch64::X1: param_i = 1; break;
-        case AArch64::X2: param_i = 2; break;
-        case AArch64::X3: param_i = 3; break;
-        case AArch64::X4: param_i = 4; break;
-        case AArch64::X5: param_i = 5; break;
-        case AArch64::X6: param_i = 6; break;
-        default: break;
-      }
-
-      if (param_i < numParams) {
-        const pauth_type_id type_id = createPauthTypeId(FT->getParamType(param_i));
-        // TODO: Embedd type_id into instruction
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching operand(" << param_i << "), using its type_id (=" << type_id << ")\n");
-        return PartsTypeMetadata::get(type_id);
-      }
-    }
-  }
-
-  DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
-  return PartsTypeMetadata::getUnknown();
-}
-
-PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB,
-                                                                                MachineInstr &MI, unsigned targetReg,
-                                                                                unsigned reg, int64_t imm) {
-
-  DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n");
-
-  auto mbb = MBB.getReverseIterator();
-  auto MIi = MI.getReverseIterator();
-  MIi++;
-
-  while(true) {
-    // FIXME: This is potentially unsafe! iterator might not match execution order!
-
-    while (MIi != mbb->instr_rend()) {
-      if (PA::isStore(*MIi)) {
-        if (MIi->getNumOperands() >= 3) {
-          auto Op1 = MIi->getOperand(1);
-          auto Op2 = MIi->getOperand(2);
-
-          if (Op1.getReg() == reg && Op2.getImm() == imm) {
-            // Found a store targeting the same location!
-            const pauth_type_id type_id = getPauthTypeId(*MIi);
-            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching store, using it's type_id (" << type_id << ")\n");
-            return PartsTypeMetadata::get(type_id);
-          }
-        }
-      }
-
-      MIi++;
-    }
-
-    mbb++;
-
-    if (mbb == MF.rend())
-      break;
-
-    // Do this update there, so we can start the first MBB iteration at MI
-    MIi = mbb->instr_rbegin();
-  }
-
-  DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
-  return PartsTypeMetadata::getUnknown();
 }
 
 bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi) {
@@ -320,6 +214,7 @@ bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, Machi
 
   return true;
 }
+
 
 bool PartsPassPointerLoadStore::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
 {
