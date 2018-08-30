@@ -31,11 +31,11 @@ using namespace llvm;
 using namespace llvm::PA;
 
 namespace {
- class PaForwardCfi : public MachineFunctionPass {
+ class PartsPassPointerLoadStore : public MachineFunctionPass {
  public:
    static char ID;
 
-   PaForwardCfi() : MachineFunctionPass(ID) {}
+   PartsPassPointerLoadStore() : MachineFunctionPass(ID) {}
 
    StringRef getPassName() const override { return "pauth-sllow"; }
 
@@ -64,16 +64,16 @@ namespace {
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PaForwardCfiPass() {
-  return new PaForwardCfi();
+  return new PartsPassPointerLoadStore();
 }
 
-char PaForwardCfi::ID = 0;
+char PartsPassPointerLoadStore::ID = 0;
 
-bool PaForwardCfi::doInitialization(Module &M) {
+bool PartsPassPointerLoadStore::doInitialization(Module &M) {
   return false;
 }
 
-bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
+bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   if (!ENABLE_PAUTH_SLLOW) return false;
 
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
@@ -208,7 +208,7 @@ bool PaForwardCfi::runOnMachineFunction(MachineFunction &MF) {
   return true;
 }
 
-inline bool PaForwardCfi::registerFitsPointer(unsigned reg)
+inline bool PartsPassPointerLoadStore::registerFitsPointer(unsigned reg)
 {
   const auto RC = TRI->getMinimalPhysRegClass(reg);
   if (64 <= TRI->getRegSizeInBits(*RC)) {
@@ -218,7 +218,7 @@ inline bool PaForwardCfi::registerFitsPointer(unsigned reg)
   return false;
 }
 
-inline bool PaForwardCfi::checkIfRegInstrumentable(unsigned reg)
+inline bool PartsPassPointerLoadStore::checkIfRegInstrumentable(unsigned reg)
 {
   if (reg == AArch64::FP || reg == AArch64::LR) {
     DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tignoring FP and LR registers\n");
@@ -227,7 +227,7 @@ inline bool PaForwardCfi::checkIfRegInstrumentable(unsigned reg)
   return registerFitsPointer(reg);
 }
 
-PartsTypeMetadata_ptr PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
+PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
                                                          unsigned targetReg)
 {
   auto iter = MI.getIterator();
@@ -284,7 +284,7 @@ PartsTypeMetadata_ptr PaForwardCfi::inferPauthTypeIdRegBackwards(MachineFunction
   return PartsTypeMetadata::getUnknown();
 }
 
-PartsTypeMetadata_ptr PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB,
+PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdStackBackwards(MachineFunction &MF, MachineBasicBlock &MBB,
                                                            MachineInstr &MI, unsigned targetReg,
                                                            unsigned reg, int64_t imm) {
 
@@ -328,12 +328,12 @@ PartsTypeMetadata_ptr PaForwardCfi::inferPauthTypeIdStackBackwards(MachineFuncti
   return PartsTypeMetadata::getUnknown();
 }
 
-bool PaForwardCfi::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
+bool PartsPassPointerLoadStore::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
 {
   return emitPAModAndInstr(MBB, MI, AArch64::PACDA, pointerReg, type_id);
 }
 
-bool PaForwardCfi::instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
+bool PartsPassPointerLoadStore::instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id)
 {
   auto MI_iter = MI.getIterator();
   MI_iter++;
@@ -341,7 +341,7 @@ bool PaForwardCfi::instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInst
   return emitPAModAndInstr(MBB, *MI_iter, AArch64::AUTDA, pointerReg, type_id);
 }
 
-bool PaForwardCfi::emitPAModAndInstr(MachineBasicBlock &MBB, MachineInstr &MI, unsigned PAOpcode, unsigned reg, pauth_type_id type_id)
+bool PartsPassPointerLoadStore::emitPAModAndInstr(MachineBasicBlock &MBB, MachineInstr &MI, unsigned PAOpcode, unsigned reg, pauth_type_id type_id)
 {
   //type_id = 0; // FIXME: currently using zero PA modifier!!!
   BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(Pauth_ModifierReg).addImm(type_id).addImm(0);
