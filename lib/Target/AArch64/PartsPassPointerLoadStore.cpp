@@ -10,6 +10,7 @@
 #include <iostream>
 #include <llvm/PARTS/PartsTypeMetadata.h>
 #include "PointerAuthentication.h"
+#include "PartsUtils.h"
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
@@ -52,8 +53,6 @@ namespace {
    bool instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, pauth_type_id type_id);
 
  private:
-   inline bool registerFitsPointer(unsigned reg);
-   inline bool checkIfRegInstrumentable(unsigned reg);
 
    bool emitPAModAndInstr(MachineBasicBlock &MBB, MachineInstr &MI, unsigned PAOpcode, unsigned reg, pauth_type_id);
 
@@ -61,6 +60,7 @@ namespace {
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
    const AArch64RegisterInfo *TRI = nullptr;
+   PartsUtils_ptr  partsUtils = nullptr;
  };
 } // end anonymous namespace
 
@@ -84,6 +84,7 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
+  partsUtils = PartsUtils::get(TRI);
 
   auto &C = MF.getFunction().getContext();
 
@@ -107,7 +108,7 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
           auto Op = MIi->getOperand(0);
           const auto targetReg = Op.getReg();
 
-          if (!checkIfRegInstrumentable(targetReg)) {
+          if (!partsUtils->checkIfRegInstrumentable(targetReg)) {
             partsType = PartsTypeMetadata::getIgnored();
           } else {
             if (PA::isStore(*MIi)) {
@@ -162,26 +163,6 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   }
 
   return true;
-}
-
-
-inline bool PartsPassPointerLoadStore::registerFitsPointer(unsigned reg)
-{
-  const auto RC = TRI->getMinimalPhysRegClass(reg);
-  if (64 <= TRI->getRegSizeInBits(*RC)) {
-    return true;
-  }
-  DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tregister not suitable for pointers\n");
-  return false;
-}
-
-inline bool PartsPassPointerLoadStore::checkIfRegInstrumentable(unsigned reg)
-{
-  if (reg == AArch64::FP || reg == AArch64::LR) {
-    DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tignoring FP and LR registers\n");
-    return false;
-  }
-  return registerFitsPointer(reg);
 }
 
 PartsTypeMetadata_ptr PartsPassPointerLoadStore::inferPauthTypeIdRegBackwards(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI,
