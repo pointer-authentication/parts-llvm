@@ -49,6 +49,9 @@ public:
   void attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstr *MI);
   void attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstrBuilder *MIB);
 
+  void pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
+                      unsigned srcReg, unsigned modReg, type_id_t type_id);
+
   bool isLoadOrStore(const MachineInstr &MI);
   bool isLoad(const MachineInstr &MI);
   bool isStore(const MachineInstr &MI);
