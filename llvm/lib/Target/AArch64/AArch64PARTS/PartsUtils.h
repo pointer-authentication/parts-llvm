@@ -52,11 +52,26 @@ public:
   void pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
                       unsigned srcReg, unsigned modReg, type_id_t type_id);
 
+  void pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                      unsigned modReg, type_id_t type_id);
+
+  void pacDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                      unsigned modReg, type_id_t type_id);
+
+  void autCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                      unsigned modReg, type_id_t type_id);
+
+  void autDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                      unsigned modReg, type_id_t type_id);
+
   bool isLoadOrStore(const MachineInstr &MI);
   bool isLoad(const MachineInstr &MI);
   bool isStore(const MachineInstr &MI);
   bool isLoad(unsigned opCode);
   bool isStore(unsigned opCode);
+
+  void moveTypeIdToReg(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned modReg,
+                       type_id_t type_id);
 };
 
 inline bool PartsUtils::registerFitsPointer(unsigned reg)

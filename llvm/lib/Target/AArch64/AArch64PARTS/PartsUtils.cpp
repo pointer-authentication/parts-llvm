@@ -218,15 +218,46 @@ bool PartsUtils::isLoad(const unsigned opCode) {
   }
 }
 
+void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned modReg,
+                                 type_id_t type_id) {
+  // FIXME: This doesn't seem to work with larger than 8(?) bit values!?! (value truncated in PartsTypeMetadata)
+  //BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::MOVZXi), modReg).addImm((uint32_t)type_id) .addImm(0);
+  //BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::MOVZXi), modReg).addImm((uint16_t)type_id) .addImm(0);
+  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::MOVZXi), modReg).addImm(type_id).addImm(0);
+}
+
 void PartsUtils::pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
                                 unsigned srcReg, unsigned modReg, type_id_t type_id) {
-  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::ADDXri), dstReg)
-      .addReg(srcReg).addImm(0).addImm(0);
-  // Prep the PA modifier
-  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::MOVZXi), modReg)
-      .addImm(type_id)
-      .addImm(0);
-  // Insert the PAC instruction
-  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::PACIA), dstReg)
-      .addReg(modReg);
+  // Move src to dst
+  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::ADDXri), dstReg).addReg(srcReg).addImm(0).addImm(0);
+  // Then PAC only the dst
+  pacCodePointer(MBB, MIi, dstReg, modReg, type_id);
 }
+
+void PartsUtils::pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                                unsigned modReg, type_id_t type_id) {
+  moveTypeIdToReg(MBB, MIi, modReg, type_id);
+  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::PACIA), ptrReg).addReg(modReg);
+}
+
+void PartsUtils::pacDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                                unsigned modReg, type_id_t type_id) {
+  moveTypeIdToReg(MBB, MIi, modReg, type_id);
+  BuildMI(MBB, MIi, DebugLoc(), TII->get(AArch64::PACDA)).addReg(ptrReg).addReg(modReg);
+}
+
+void PartsUtils::autCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                                unsigned modReg, type_id_t type_id) {
+  moveTypeIdToReg(MBB, MIi, modReg, type_id);
+  BuildMI(MBB, MIi, DebugLoc(), TII->get(AArch64::AUTIA)).addReg(ptrReg).addReg(modReg);
+}
+
+
+void PartsUtils::autDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                                unsigned modReg, type_id_t type_id) {
+  moveTypeIdToReg(MBB, MIi, modReg, type_id);
+  BuildMI(MBB, MIi, DebugLoc(), TII->get(AArch64::AUTDA)).addReg(ptrReg).addReg(modReg);
+}
+
+
+
