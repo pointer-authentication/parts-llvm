@@ -217,3 +217,16 @@ bool PartsUtils::isLoad(const unsigned opCode) {
       return true;
   }
 }
+
+void PartsUtils::pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
+                                unsigned srcReg, unsigned modReg, type_id_t type_id) {
+  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::ADDXri), dstReg)
+      .addReg(srcReg).addImm(0).addImm(0);
+  // Prep the PA modifier
+  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::MOVZXi), modReg)
+      .addImm(type_id)
+      .addImm(0);
+  // Insert the PAC instruction
+  BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::PACIA), dstReg)
+      .addReg(modReg);
+}

@@ -8,11 +8,6 @@
 
 
 #include <iostream>
-#include <llvm/PARTS/PartsTypeMetadata.h>
-#include "PointerAuthentication.h"
-#include "AArch64.h"
-#include "AArch64Subtarget.h"
-#include "AArch64RegisterInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
@@ -24,6 +19,12 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
+#include "AArch64.h"
+#include "AArch64Subtarget.h"
+#include "AArch64RegisterInfo.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
+#include "PointerAuthentication.h"
+#include "PartsUtils.h"
 
 #define DEBUG_TYPE "aarch64-pa-forwardcfi"
 
@@ -47,7 +48,8 @@ private:
   //const TargetMachine *TM = nullptr;
   const AArch64Subtarget *STI = nullptr;
   const AArch64InstrInfo *TII = nullptr;
-  //const AArch64RegisterInfo *TRI = nullptr;
+  const AArch64RegisterInfo *TRI = nullptr;
+  PartsUtils_ptr partsUtils;
 };
 } // end anonymous namespace
 
@@ -67,7 +69,8 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   //TM = &MF.getTarget();;
-  //TRI = STI->getRegisterInfo();
+  TRI = STI->getRegisterInfo();
+  partsUtils = PartsUtils::get(TRI, TII);
 
   for (auto &MBB : MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
@@ -79,20 +82,12 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
         unsigned SrcReg = MIi->getOperand(1).getReg();
         unsigned DstReg = MIi->getOperand(0).getReg();
         unsigned ModReg = Pauth_ModifierReg;
-        auto mod = MIi->getOperand(2).getImm();
+        auto type_id = static_cast<type_id_t>(MIi->getOperand(2).getImm());
 
-        // Leave DstReg untouched by copying it before PACing
-        BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::ADDXri), DstReg)
-           .addReg(SrcReg).addImm(0).addImm(0);
-        // Prep the PA modifier
-        BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::MOVZXi), ModReg)
-            .addImm(mod)
-            .addImm(0);
-        // Insert the PAC instruction
-        BuildMI(MBB, MIi, MIi->getDebugLoc(), TII->get(AArch64::PACIA), DstReg)
-            .addReg(ModReg);
+        // PAC the pointer
+        partsUtils->pacCodePointer(MBB, MIi, DstReg, SrcReg, ModReg, type_id);
 
-        // And finally, remove the old instruction
+        // And finally, remove the intrinsic
         auto tmp = MIi;
         MIi--;
         tmp->removeFromParent();
