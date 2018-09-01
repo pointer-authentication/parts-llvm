@@ -1,7 +1,11 @@
 
-#include <llvm/PARTS/PartsTypeMetadata.h>
-
 #include "llvm/PARTS/PartsTypeMetadata.h"
+
+extern "C" {
+#include "sha3/include/sha3.h"
+}
+
+//#define PARTS_USE_SHA3
 
 using namespace llvm;
 
@@ -83,6 +87,7 @@ const PartsTypeMetadata_ptr PartsTypeMetadata::retrieve(const MDNode *MDNp)
 
   return nullptr;
 }
+
 PartsTypeMetadata_ptr PartsTypeMetadata::get(const type_id_t type_id) {
   return std::make_shared<PartsTypeMetadata>(type_id);
 }
@@ -127,10 +132,38 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   if (!TyIsPointer(type))
     return 0;
 
+#ifdef PARTS_USE_SHA3
+  type_id_t type_id = 0;
+
+  // Generate a std::string from type
+  std::string type_str;
+  llvm::raw_string_ostream rso(type_str);
+  type->print(rso);
+
+  // Prepare SHA3 generation
+  mbedtls_sha3_context sha3_context;
+  mbedtls_sha3_type_t sha3_type = MBEDTLS_SHA3_256;
+  mbedtls_sha3_init(&sha3_context);
+
+  // Prepare input and output variables
+  auto *input = reinterpret_cast<const unsigned char*>(rso.str().c_str());
+  auto *output= new unsigned char[32]();
+
+  // Generate hash
+  auto result = mbedtls_sha3(input, sizeof(input), sha3_type, output);
+  if (result != 0)
+    llvm_unreachable("SHA3 hashing failed :(");
+
+  // Use as many bytes as possible
+  memcpy(&type_id, output, sizeof(type_id_t));
+
+  return type_id % UINT8_MAX;
+#else
   if (TyIsCodePointer(type))
     return 7;
 
   return 3;
+#endif
 }
 
 Constant *PartsTypeMetadata::idConstantFromType(LLVMContext &C, const Type *const type) {
