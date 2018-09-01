@@ -8,6 +8,7 @@
 //
 
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/PARTS/PartsTypeMetadata.h>
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
@@ -42,12 +43,15 @@ static RegisterPass<PauthPacMain> X("pauth-pacmain", "PAC argv for main call");
 
 bool PauthPacMain::doInitialization(Module &M)
 {
+  auto &C = M.getContext();
 
-  Type* types[2];
-  types[0] = Type::getInt32Ty(M.getContext());
-  types[1] = PointerType::get(Type::getInt8PtrTy(M.getContext()), 0);
-  ArrayRef<Type*> params(types, 2);
-  auto result = Type::getVoidTy(M.getContext());
+  Type* types[3];
+  types[0] = Type::getInt32Ty(C);
+  types[1] = PointerType::get(Type::getInt8PtrTy(C), 0);
+  types[2] = Type::getInt64Ty(C);
+
+  ArrayRef<Type*> params(types, 3);
+  auto result = Type::getVoidTy(C);
 
   FunctionType* signature = FunctionType::get(result, params, false);
   funcFixMain = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_main_args", &M);
@@ -87,9 +91,15 @@ bool PauthPacMain::runOnFunction(Function &F) {
   args.push_back(&argc);
   args.push_back(&argv);
 
+  args.push_back(PartsTypeMetadata::idConstantFromType(
+      F.getContext(),
+      dyn_cast<PointerType>(argv.getType())->getElementType()
+  ));
+
   IRBuilder<> Builder(&I);
   Builder.CreateCall(funcFixMain, args);
 
+  errs() << "Adding call to __pauth_pac_main_args\n";
   return true;
 }
 
