@@ -62,7 +62,6 @@ add_llvm_target(AArch64CodeGen
   AArch64PARTS/PartsUtils.cpp
   AArch64PARTS/PartsPassPointerLoadStore.cpp
   AArch64PARTS/PartsPassIntrinsics.cpp
-  AArch64PARTS/PointerAuthentication.cpp
   AArch64PARTS/PartsFrameLowering.cpp
   AArch64PARTS/PartsFastISel.cpp
 

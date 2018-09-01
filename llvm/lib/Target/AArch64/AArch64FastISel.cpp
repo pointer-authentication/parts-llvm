@@ -73,8 +73,8 @@
 #include <iterator>
 #include <utility>
 #include "llvm/PARTS/Parts.h"
+#include "llvm/PARTS/PartsLog.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
-#include "AArch64PARTS/PointerAuthentication.h"
 #include "AArch64PARTS/PartsFastISel.h"
 
 using namespace llvm;
