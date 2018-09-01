@@ -67,8 +67,8 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MachineValueType.h"
 #include "llvm/Support/MathExtras.h"
-#include "PointerAuthentication.h"
-#include "PartsFastISel.h"
+#include "AArch64PARTS/PointerAuthentication.h"
+#include "AArch64PARTS/PartsFastISel.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include <algorithm>
 #include <cassert>

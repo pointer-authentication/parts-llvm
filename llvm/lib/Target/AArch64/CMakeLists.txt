@@ -59,12 +59,12 @@ add_llvm_target(AArch64CodeGen
   AArch64TargetObjectFile.cpp
   AArch64TargetTransformInfo.cpp
   AArch64SIMDInstrOpt.cpp
-  PartsUtils.cpp
-  PartsPassPointerLoadStore.cpp
-  PartsPassIntrinsics.cpp
-  PointerAuthentication.cpp
-  PartsFrameLowering.cpp
-  PartsFastISel.cpp
+  AArch64PARTS/PartsUtils.cpp
+  AArch64PARTS/PartsPassPointerLoadStore.cpp
+  AArch64PARTS/PartsPassIntrinsics.cpp
+  AArch64PARTS/PointerAuthentication.cpp
+  AArch64PARTS/PartsFrameLowering.cpp
+  AArch64PARTS/PartsFastISel.cpp
 
   DEPENDS
   intrinsics_gen

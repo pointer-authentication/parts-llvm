@@ -30,7 +30,7 @@
 #include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/Target/TargetOptions.h"
 
-#include "PointerAuthentication.h"
+#include "AArch64PARTS/PointerAuthentication.h"
 
 using namespace llvm;
 

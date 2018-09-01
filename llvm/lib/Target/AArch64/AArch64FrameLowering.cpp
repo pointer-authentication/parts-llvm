@@ -130,8 +130,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
-#include "PartsFrameLowering.h"
-#include "PointerAuthentication.h"
+#include "AArch64PARTS/PartsFrameLowering.h"
+#include "AArch64PARTS/PointerAuthentication.h"
 #include <cassert>
 #include <cstdint>
 #include <iterator>

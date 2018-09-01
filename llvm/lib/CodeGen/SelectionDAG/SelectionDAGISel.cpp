@@ -100,7 +100,7 @@
 #include <utility>
 #include <vector>
 
-#include "../../Target/AArch64/PointerAuthentication.h"
+#include "../../Target/AArch64/AArch64PARTS/PointerAuthentication.h"
 
 using namespace llvm;
 
