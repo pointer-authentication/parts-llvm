@@ -140,10 +140,6 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction
     MD = PartsTypeMetadata::getIgnored();
   }
 
-  errs() << "op num: " << CI->getNumOperands() << "\n";
-
-  CI->dump();
-
   // Look at function arguments to see if we need to fix any of them
   for (auto i = 0U; i < CI->getNumOperands()-1; i++) {
     auto O =CI->getOperand(i);

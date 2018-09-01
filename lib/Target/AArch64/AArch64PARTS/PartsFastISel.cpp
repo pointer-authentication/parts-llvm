@@ -26,7 +26,6 @@ PartsFastISel_ptr PartsFastISel::get(FunctionLoweringInfo &FuncInfo) {
 void PartsFastISel::addPartsTypeMetadata(MachineInstrBuilder &MIB, MDNode *partsType) {
   assert(partsType != nullptr && "Expected a non-null MDNode pointer!");
   assert(isa<MDNode>(partsType) && "Expected an MDNode");
-  partsType->dump();
   assert(PartsTypeMetadata::isPartsTypeMetadataContainer(partsType) && "Not a PartsTypeMetadata MDNode!");
   
   MIB.addMetadata(partsType);
