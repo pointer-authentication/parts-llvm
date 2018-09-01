@@ -19,7 +19,6 @@
 #include "llvm/IR/Constant.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
-#include "MDclass.h"
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsLog.h"
 
@@ -34,7 +33,6 @@ namespace {
 struct PtrTypeMDPass : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
 
-  MDclass md=MDclass();
   PtrTypeMDPass() : FunctionPass(ID) {}
 
   bool runOnFunction(Function &F) override;
