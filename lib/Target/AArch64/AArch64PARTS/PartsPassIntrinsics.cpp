@@ -22,14 +22,14 @@
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
+#include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
-#include "PointerAuthentication.h"
 #include "PartsUtils.h"
 
 #define DEBUG_TYPE "aarch64-pa-forwardcfi"
 
 using namespace llvm;
-using namespace llvm::PA;
+using namespace llvm::PARTS;
 
 namespace {
 class PartsPassIntrinsics : public MachineFunctionPass {

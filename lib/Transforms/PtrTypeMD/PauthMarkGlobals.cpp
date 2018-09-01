@@ -8,14 +8,14 @@
 //
 
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/PARTS/PartsTypeMetadata.h>
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
-#include "../../Target/AArch64/AArch64PARTS/PointerAuthentication.h"
+#include "llvm/PARTS/Parts.h"
+#include <llvm/PARTS/PartsTypeMetadata.h>
 
 using namespace llvm;
 
