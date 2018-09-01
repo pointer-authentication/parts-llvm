@@ -4,6 +4,8 @@ add_llvm_library(Parts
   PartsLogStream.cpp
   PartsTypeMetadata.cpp
   PartsIntr.cpp
+  sha3/sha3.c
+  sha3/keccak.c
 
   ADDITIONAL_HEADER_DIRS
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/PARTS
