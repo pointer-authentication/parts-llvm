@@ -28,3 +28,4 @@ add_subdirectory(Testing)
 add_subdirectory(WindowsManifest)
 
 add_subdirectory(PARTS)
+add_subdirectory(PARTS-sha3)

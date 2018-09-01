@@ -8,30 +8,12 @@
 #
 #===----------------------------------------------------------------------===//
 
-add_llvm_library(Parts
-  Parts.cpp
-  PartsLog.cpp
-  PartsLogStream.cpp
-  PartsTypeMetadata.cpp
-  PartsIntr.cpp
+add_llvm_library(PARTSsha3
+  keccak.c
+  sha3.c
 
   ADDITIONAL_HEADER_DIRS
-  ${LLVM_MAIN_INCLUDE_DIR}/llvm/PARTS
-  ${LLVM_MAIN_INCLUDE_DIR}/llvm/Support
-  ${LLVM_MAIN_INCLUDE_DIR}/llvm/IR
-
-  DEPENDS
-  #intrinsics_gen
-  LLVMCore
-  LLVMSupport
-  PARTSsha3
-  #LLVMObject
-
-  LINK_LIBS
-  LLVMCore
-  LLVMSupport
-  PARTSsha3
-  #LLVMObject
+  ${LLVM_MAIN_INCLUDE_DIR}/llvm/PARTS-sha3/include
   )
 
 set_property(TARGET Parts PROPERTY LLVM_SYSTEM_LIBS)

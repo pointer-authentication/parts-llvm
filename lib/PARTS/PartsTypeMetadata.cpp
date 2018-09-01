@@ -12,7 +12,8 @@
 #include "llvm/PARTS/PartsTypeMetadata.h"
 
 extern "C" {
-#include "sha3/include/sha3.h"
+// A bit ugly, but works...
+#include "../PARTS-sha3/include/sha3.h"
 }
 
 #define PARTS_USE_SHA3
