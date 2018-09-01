@@ -1,4 +1,5 @@
 add_llvm_library(Parts
+  Parts.cpp
   PartsLog.cpp
   PartsLogStream.cpp
   PartsTypeMetadata.cpp

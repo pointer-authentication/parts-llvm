@@ -24,10 +24,11 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "MDclass.h"
-#include "../../Target/AArch64/AArch64PARTS/PointerAuthentication.h"
+#include "llvm/PARTS/Parts.h"
+#include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
-using namespace llvm::PA;
+using namespace llvm::PARTS;
 
 #define DEBUG_TYPE "PtrTypeMDPass"
 #define TAG KBLU DEBUG_TYPE ": "

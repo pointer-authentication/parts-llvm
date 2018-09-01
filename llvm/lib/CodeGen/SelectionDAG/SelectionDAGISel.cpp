@@ -99,8 +99,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "../../Target/AArch64/AArch64PARTS/PointerAuthentication.h"
+#include "llvm/PARTS/Parts.h"
+#include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
 

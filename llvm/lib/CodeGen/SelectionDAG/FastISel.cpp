@@ -104,12 +104,13 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
-#include "../../Target/AArch64/AArch64PARTS/PointerAuthentication.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <iterator>
 #include <utility>
+#include "llvm/PARTS/Parts.h"
+#include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
 using namespace PatternMatch;

@@ -67,14 +67,15 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MachineValueType.h"
 #include "llvm/Support/MathExtras.h"
-#include "AArch64PARTS/PointerAuthentication.h"
-#include "AArch64PARTS/PartsFastISel.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <iterator>
 #include <utility>
+#include "llvm/PARTS/Parts.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
+#include "AArch64PARTS/PointerAuthentication.h"
+#include "AArch64PARTS/PartsFastISel.h"
 
 using namespace llvm;
 

@@ -29,8 +29,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/Target/TargetOptions.h"
-
-#include "AArch64PARTS/PointerAuthentication.h"
+#include "llvm/PARTS/Parts.h"
 
 using namespace llvm;
 
