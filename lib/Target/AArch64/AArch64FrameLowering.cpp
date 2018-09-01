@@ -132,8 +132,8 @@
 #include <iterator>
 #include <vector>
 #include "llvm/PARTS/Parts.h"
+#include "llvm/PARTS/PartsLog.h"
 #include "AArch64PARTS/PartsFrameLowering.h"
-#include "AArch64PARTS/PointerAuthentication.h"
 
 using namespace llvm;
 
