@@ -42,7 +42,7 @@ struct PtrTypeMDPass : public FunctionPass {
   PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
 };
 
-} // anonyous namespace
+} // anonymous namespace
 
 char PtrTypeMDPass::ID = 0;
 static RegisterPass<PtrTypeMDPass> X("ptr-type-md-pass", "Pointer Type Metadata Pass");

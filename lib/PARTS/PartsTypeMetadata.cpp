@@ -168,7 +168,7 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   // Use as many bytes as possible
   memcpy(&type_id, output, sizeof(type_id_t));
 
-  // FIXME: Support proper PA modifiers (this is a workaround for PartsUtils inability to move larger immediates)
+  // FIXME: Support proper PA modifiers (this is a workaround for PartsUtils inability to move larger immediate value)
   type_id = type_id % UINT8_MAX;
 
   return type_id;
@@ -185,7 +185,7 @@ Constant *PartsTypeMetadata::idConstantFromType(LLVMContext &C, const Type *cons
 }
 
 raw_ostream &operator<<(raw_ostream &stream, const PartsTypeMetadata_ptr pmd) {
-  stream << "ParstTypeMetadata(" << pmd->getTypeId();
+  stream << "PartsTypeMetadata(" << pmd->getTypeId();
   return stream;
 }
 

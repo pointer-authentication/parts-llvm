@@ -84,7 +84,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
         if (MO.getReg() == targetReg) {
           DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tused in " << TII->getName(iter->getOpcode()) << "\n" << KNRM);
           DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tUNIMPLEMENTED!!!!\n");
-          // TODO: unimplemetned!
+          // TODO: unimplemented!
           //llvm_unreachable_internal("unimplemented");
         }
       }

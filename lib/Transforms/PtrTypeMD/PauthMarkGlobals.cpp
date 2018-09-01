@@ -36,7 +36,7 @@ private:
   void writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName);
 };
 
-} // anonyous namespace
+} // anonymous namespace
 
 char PauthMarkGlobals::ID = 0;
 static RegisterPass<PauthMarkGlobals> X("pauth-markglobals", "PAC argv for main call");

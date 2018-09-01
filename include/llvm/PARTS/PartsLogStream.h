@@ -38,7 +38,7 @@ public:
   PartsLogStream &operator<<(Instruction &I);
 };
 
-} // namesapce PARTS
+} // namespace PARTS
 
 } // namespace llvm
 
