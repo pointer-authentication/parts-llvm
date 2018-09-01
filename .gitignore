@@ -83,6 +83,7 @@ bindings/go/llvm/workdir
 .idea/misc.xml
 .idea/modules.xml
 .idea/pa-llvm.iml
+.idea/fileTemplates
 .idea/vcs.xml
 .idea/workspace.xml
 cmake-build-debug
