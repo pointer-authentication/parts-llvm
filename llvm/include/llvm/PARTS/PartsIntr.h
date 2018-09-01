@@ -23,9 +23,6 @@ class PartsIntr {
 public:
   static Value *pac_code_pointer(Function &F, Instruction &I, Value *V);
   static Value *pac_code_pointer(Function &F, Instruction &I, Value *V, const std::string &name);
-
-  static Value *pac_pointer(Function &function, Instruction &instruction, Value *pValue, Function *pFunction,
-                            const std::string &basic_string);
 };
 
 } // PARTS

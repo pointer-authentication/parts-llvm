@@ -8,10 +8,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <llvm/PARTS/PartsIntr.h>
+
 #include "llvm/PARTS/PartsIntr.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
+
+class pa_pacia;
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -32,3 +36,4 @@ Value *PartsIntr::pac_code_pointer(Function &F, Instruction &I, Value *V, const 
 Value *PartsIntr::pac_code_pointer(Function &F, Instruction &I, Value *V) {
   return pac_code_pointer(F, I, V, "paced_ptr");
 }
+

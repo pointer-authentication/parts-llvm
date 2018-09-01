@@ -30,7 +30,7 @@ typedef std::shared_ptr<PartsTypeMetadata> PartsTypeMetadata_ptr;
 
 /*! A encapsulating PARTS type_id and related metadata. */
 /*! This class encapsulates type_id information and related metadata, in particular, it also
- * keeps track of whether type_id is known, unknown, ignored, and wthether the type_id corresponds
+ * keeps track of whether type_id is known, unknown, ignored, and whether the type_id corresponds
  * to a pointer of data or code type. The class also includes utility functions for embedding and retrieving the data
  * into an MDNode, this allows easy attaching and retrieval from various LLVM data-structures.
  */
@@ -49,7 +49,7 @@ class PartsTypeMetadata {
 
 protected:
 public:
-  /*! Constructor usign type_id */
+  /*! Constructor using type_id */
   explicit PartsTypeMetadata(type_id_t type_id);
   /*! Constructor used to restore PartsTypeMetadata from MDNode */
   explicit PartsTypeMetadata(const MDNode *MDN);
