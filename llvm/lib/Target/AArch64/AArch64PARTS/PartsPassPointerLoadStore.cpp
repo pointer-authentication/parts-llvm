@@ -125,7 +125,6 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
 
         if (!partsType->isKnown()) {
           DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
-          errs() << MIi->getDebugLoc() <<  ": type_id is unknown!\n";
           continue;
         }
 
@@ -184,7 +183,6 @@ bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, Machi
 
   if (!partsType->isKnown()) {
     DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
-    errs() << MIi->getDebugLoc() <<  ": type_id is unknown!\n";
     return false;
   }
 
