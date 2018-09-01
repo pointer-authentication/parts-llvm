@@ -24,7 +24,7 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "MDclass.h"
-#include "../../Target/AArch64/PointerAuthentication.h"
+#include "../../Target/AArch64/AArch64PARTS/PointerAuthentication.h"
 
 using namespace llvm;
 using namespace llvm::PA;

@@ -15,7 +15,7 @@
 #define LLVM_LIB_TARGET_AARCH64_AARCH64FRAMELOWERING_H
 
 #include "llvm/CodeGen/TargetFrameLowering.h"
-#include "PartsFrameLowering.h"
+#include "AArch64PARTS/PartsFrameLowering.h"
 
 namespace llvm {
 
