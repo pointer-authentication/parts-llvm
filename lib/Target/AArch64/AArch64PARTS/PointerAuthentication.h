@@ -1,9 +1,12 @@
-/*
- * PointerAuthentication.h
- * Copyright (C) 2018 Hans Liljestrand <hans.liljestrand@pm.me>
- *
- * Distributed under terms of the MIT license.
- */
+//===----------------------------------------------------------------------===//
+//
+// Author: Hans Liljestrand <hans.liljestrand@pm.me>
+// Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
 
 #ifndef POINTERAUTHENTICATION_H
 #define POINTERAUTHENTICATION_H
