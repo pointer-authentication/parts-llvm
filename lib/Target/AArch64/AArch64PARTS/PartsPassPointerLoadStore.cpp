@@ -51,8 +51,6 @@ namespace {
 
  private:
 
-   bool emitPAModAndInstr(MachineBasicBlock &MBB, MachineInstr &MI, unsigned PAOpcode, unsigned reg, type_id_t type_id);
-
    const TargetMachine *TM = nullptr;
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
@@ -144,14 +142,21 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
                                  " pointer, instrumenting (type_id=" << partsType->getTypeId() << ")\n");
 
         auto reg = MIi->getOperand(0).getReg();
+        const auto modReg = PARTS::getModifierReg();
+        const auto type_id = partsType->getTypeId();
+
         if (partsUtils->isStore(*MIi)) {
-          const auto instrOpcode = (partsType->isDataPointer() ? AArch64::PACDA : AArch64::PACIA);
-          emitPAModAndInstr(MBB, *MIi, instrOpcode, reg, partsType->getTypeId());
+          if (partsType->isDataPointer())
+            partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id);
+          else
+            partsUtils->pacCodePointer(MBB, MIi, reg, modReg, type_id);
         } else {
-          auto tmp = MIi;
-          tmp++;
-          const auto instrOpcode = (partsType->isDataPointer() ? AArch64::AUTDA : AArch64::AUTIA);
-          emitPAModAndInstr(MBB, *tmp, instrOpcode, reg, partsType->getTypeId());
+          auto loc = MIi;
+          loc++;
+          if (partsType->isDataPointer())
+            partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id);
+          else
+            partsUtils->autCodePointer(MBB, loc, reg, modReg, type_id);
         }
       }
     }
@@ -197,10 +202,13 @@ bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, Machi
   assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
 
   // Create the PAC modifier
+  partsUtils->moveTypeIdToReg(MBB, MIi, PARTS::getModifierReg(), partsType->getTypeId());
+  /*
   BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi))
       .addReg(PARTS::getModifierReg())
       .addImm(partsType->getTypeId())
       .addImm(0);
+  */
 
   // Swap out the branch to a auth+branch variant
   auto BMI = BuildMI(MBB, *MIi, MIi->getDebugLoc(), TII->get(AArch64::BLRAA));
@@ -219,23 +227,11 @@ bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, Machi
 bool PartsPassPointerLoadStore::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI,
                                                            unsigned pointerReg, type_id_t type_id)
 {
-  return emitPAModAndInstr(MBB, MI, AArch64::PACDA, pointerReg, type_id);
+  return false;
 }
 
 bool PartsPassPointerLoadStore::instrumentDataPointerLoad(MachineBasicBlock &MBB, MachineInstr &MI,
                                                           unsigned pointerReg, type_id_t type_id)
 {
-  auto MI_iter = MI.getIterator();
-  MI_iter++;
-
-  return emitPAModAndInstr(MBB, *MI_iter, AArch64::AUTDA, pointerReg, type_id);
-}
-
-bool PartsPassPointerLoadStore::emitPAModAndInstr(MachineBasicBlock &MBB, MachineInstr &MI, unsigned PAOpcode,
-                                                  unsigned reg, type_id_t type_id)
-{
-  const auto modReg = PARTS::getModifierReg();
-  BuildMI(MBB, MI, DebugLoc(), TII->get(AArch64::MOVZXi)).addReg(modReg).addImm(type_id).addImm(0);
-  BuildMI(MBB, MI, DebugLoc(), TII->get(PAOpcode)).addReg(reg).addReg(modReg);
-  return true;
+  return false;
 }
