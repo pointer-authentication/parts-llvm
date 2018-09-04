@@ -81,6 +81,8 @@ public:
 
   void attach(LLVMContext &C, Instruction &I);
 
+  std::string toString();
+
   static PartsTypeMetadata_ptr get(type_id_t type_id);
   static PartsTypeMetadata_ptr get(const Type *type);
   static PartsTypeMetadata_ptr getUnknown();
