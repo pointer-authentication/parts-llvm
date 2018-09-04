@@ -57,6 +57,12 @@ void PartsTypeMetadata::attach(LLVMContext &C, Instruction &I) {
   I.setMetadata(MetadataKindString, getMDNode(C));
 }
 
+std::string PartsTypeMetadata::toString() {
+  return "[ignored:" + std::to_string((isIgnored() ? 1 : 0)) +
+         "," + (isPointer() ? (isCodePointer() ? "codePointer" : "dataPointer") : "not-a-pointer") +
+         ",id:" + std::to_string(getTypeId()) + "]";
+}
+
 MDNode *PartsTypeMetadata::retrieveAsMDNode(const Instruction *I) {
   auto MDN = I->getMetadata(MetadataKindString);
 
