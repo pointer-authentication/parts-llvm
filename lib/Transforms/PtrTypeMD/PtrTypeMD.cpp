@@ -79,13 +79,7 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
       if (MD != nullptr) {
         MD->attach(C, I);
 
-        DEBUG_PA_OPT(&F, do {
-          if (MD->isIgnored()) {
-            DEBUG_PA_OPT(&F, errs() << TAG << KCYN << "\t\t\t adding metadata to ignore\n");
-          } else {
-            DEBUG_PA_OPT(&F, errs() << TAG << KGRN << "\t\t\t adding metadata (type_id=" << MD->getTypeId() << ")\n");
-          }
-        } while(0));
+        DEBUG_PA_OPT(&F, errs() << TAG << (MD->isIgnored() ? KCYN : KGRN)<< "\t\t\t adding metadata " << MD->toString() << "\n");
       } else {
         DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t skipping\n");
       }
@@ -132,7 +126,7 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction
 
   PartsTypeMetadata_ptr MD;
 
-  CallInst *CI = dyn_cast<CallInst>(&I);
+  auto CI = dyn_cast<CallInst>(&I);
   if (CI->getCalledFunction() == nullptr) {
     DEBUG_PA_OPT(&F, errs() << TAG << KGRN << "\t\t\t found indirect call!!!!\n");
     MD = PartsTypeMetadata::get(I.getOperand(0)->getType());
@@ -145,13 +139,6 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction
     auto O =CI->getOperand(i);
 
     if (PartsTypeMetadata::TyIsCodePointer(O->getType()) && isa<Function>(O)) {
-      // lets replace the argument with an PACed pointer here!!!!
-      errs() << "UNIMPLEMENTED!!!\n\n\tNo support yet for adding PACs at IR level, in this case for function args!\n\n";
-
-      // FIXME: need to implement this with intrinsics that allow us to create a PACed input pointer for the function
-      // Note: in this specific case this is quite acceptable because we are plan to have just a single
-      // "pointer creation" for code pointers.
-
       auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
       CI->setOperand(i, paced_arg);
     }

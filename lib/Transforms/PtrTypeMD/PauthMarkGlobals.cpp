@@ -93,7 +93,7 @@ bool PauthMarkGlobals::runOnModule(Module &M)
   writeTypeIds(M, data_type_ids, ".data_type_id");
   writeTypeIds(M, code_type_ids, ".code_type_id");
 
-  DEBUG(errs() << getPassName() << ": moved " << marked_data_pointers << "+" << marked_code_pointers <<
+  DEBUG_DO(errs() << getPassName() << ": moved " << marked_data_pointers << "+" << marked_code_pointers <<
                " globals to pauth data/code section(s)\n");
 
   return (marked_code_pointers+marked_code_pointers) > 0;
