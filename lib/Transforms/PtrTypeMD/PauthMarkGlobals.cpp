@@ -16,12 +16,24 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
-#include <llvm/PARTS/PartsTypeMetadata.h>
+#include "llvm/PARTS/PartsLog.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
+
 
 using namespace llvm;
 
 #define DEBUG_TYPE "PauthOptPauthMarkGlobals"
 #define TAG KYEL DEBUG_TYPE ": "
+
+#define DEBUG_DO(x) do { \
+  x;\
+  errs() << KNRM; \
+} while(0);
+
+#ifdef DISABLE_PA_DEBUG
+#undef DEBUG_DO
+#define DEBUG_DO(x)
+#endif
 
 namespace {
 
@@ -51,6 +63,12 @@ bool PauthMarkGlobals::runOnModule(Module &M)
 
   // Automatically annotate pointer globals
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
+    DEBUG_DO(errs() << TAG << "inspecting "; GI->dump(););
+    if (GI->getNumOperands() == 0) {
+      DEBUG_DO(errs() << TAG << "skipping\n");
+      continue;
+    }
+
     auto Ty = GI->getOperand(0)->getType();
 
     if (Ty->isPointerTy()) {
@@ -60,11 +78,15 @@ bool PauthMarkGlobals::runOnModule(Module &M)
         marked_code_pointers++; // This should eventually be put in .code_pauth
         GI->setSection(".code_pauth");
         code_type_ids.push_back(type_id);
+        DEBUG_DO(errs() << TAG << "put in .code_pauth\n");
       } else {
         marked_data_pointers++;
         GI->setSection(".data_pauth");
         data_type_ids.push_back(type_id);
+        DEBUG_DO(errs() << TAG << "put in .data_pauth\n");
       }
+    } else {
+      DEBUG_DO(errs() << TAG << "skipping\n");
     }
   }
 
