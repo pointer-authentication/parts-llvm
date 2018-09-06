@@ -40,7 +40,14 @@ namespace {
 struct PauthMarkGlobals: public ModulePass {
   static char ID; // Pass identification, replacement for typeid
 
-  PauthMarkGlobals() : ModulePass(ID) {}
+  PartsLog_ptr log;
+
+  PauthMarkGlobals() :
+      ModulePass(ID),
+      log(PartsLog::getLogger(DEBUG_TYPE))
+  {
+    log->disable();
+  }
 
   bool runOnModule(Module &M) override;
 
@@ -63,9 +70,11 @@ bool PauthMarkGlobals::runOnModule(Module &M)
 
   // Automatically annotate pointer globals
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
-    DEBUG_DO(errs() << TAG << "inspecting "; GI->dump(););
+    log->info() << "inspecting " << GI << "\n";
+    errs();
+    //DEBUG_DO(errs() << TAG << "inspecting "; GI->dump(););
     if (GI->getNumOperands() == 0) {
-      DEBUG_DO(errs() << TAG << "skipping\n");
+      log->info() << "skipping\n";
       continue;
     }
 
@@ -78,23 +87,20 @@ bool PauthMarkGlobals::runOnModule(Module &M)
         marked_code_pointers++; // This should eventually be put in .code_pauth
         GI->setSection(".code_pauth");
         code_type_ids.push_back(type_id);
-        DEBUG_DO(errs() << TAG << "put in .code_pauth\n");
+        log->inc(DEBUG_TYPE ".CodePointers") << "annotating code pointer for PACing";
       } else {
         marked_data_pointers++;
         GI->setSection(".data_pauth");
         data_type_ids.push_back(type_id);
-        DEBUG_DO(errs() << TAG << "put in .data_pauth\n");
+        log->inc(DEBUG_TYPE ".DataPointers") << "annotating data pointer for PACing";
       }
     } else {
-      DEBUG_DO(errs() << TAG << "skipping\n");
+      log->info() << "skipping\n";
     }
   }
 
   writeTypeIds(M, data_type_ids, ".data_type_id");
   writeTypeIds(M, code_type_ids, ".code_type_id");
-
-  DEBUG_DO(errs() << getPassName() << ": moved " << marked_data_pointers << "+" << marked_code_pointers <<
-               " globals to pauth data/code section(s)\n");
 
   return (marked_code_pointers+marked_code_pointers) > 0;
 }
