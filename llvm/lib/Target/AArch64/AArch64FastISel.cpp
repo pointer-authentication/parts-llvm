@@ -2069,7 +2069,7 @@ bool AArch64FastISel::selectLoad(const Instruction *I) {
 bool AArch64FastISel::emitStoreRelease(MVT VT, unsigned SrcReg,
                                        unsigned AddrReg,
                                        MachineMemOperand *MMO) {
-  DEBUG_PA_LOW(FuncInfo.Fn, errs() << KGRN << "\t\t\t" << __FUNCTION__ << "\n");
+  partsFastISel->getLog()->debug(FuncInfo.Fn->getName()) << "entering " << __FUNCTION__ << "\n";
   unsigned Opc;
   switch (VT.SimpleTy) {
   default: return false;
@@ -2092,7 +2092,7 @@ bool AArch64FastISel::emitStoreRelease(MVT VT, unsigned SrcReg,
 bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
                                 MachineMemOperand *MMO,
                                 MDNode *partsType) {
-  DEBUG_PA_LOW(FuncInfo.Fn, errs() << KGRN << "\t\t\t" << __FUNCTION__ << "\n");
+  partsFastISel->getLog()->debug(FuncInfo.Fn->getName()) << "entering " << __FUNCTION__ << "\n";
 
   if (!TLI.allowsMisalignedMemoryAccesses(VT))
     return false;
@@ -2165,7 +2165,7 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
 }
 
 bool AArch64FastISel::selectStore(const Instruction *I) {
-  DEBUG_PA_LOW(FuncInfo.Fn, errs() << KGRN << "\t\t\t" << __FUNCTION__ << "\n");
+  partsFastISel->getLog()->debug(FuncInfo.Fn->getName()) << "entering " << __FUNCTION__ << "\n";
   MVT VT;
   const Value *Op0 = I->getOperand(0);
   // Verify we have a legal type before going any further.  Currently, we handle
@@ -5125,7 +5125,7 @@ bool AArch64FastISel::selectAtomicCmpXchg(const AtomicCmpXchgInst *I) {
 }
 
 bool AArch64FastISel::fastSelectInstruction(const Instruction *I) {
-  DEBUG_PA_LOW(FuncInfo.Fn, errs() << KRED << "\t\t\t" << __FUNCTION__ << "\n");
+  partsFastISel->getLog()->debug(FuncInfo.Fn->getName()) << "entering " << __FUNCTION__ << "\n";
   switch (I->getOpcode()) {
   default:
     break;

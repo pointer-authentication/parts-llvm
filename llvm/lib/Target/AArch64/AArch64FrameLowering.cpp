@@ -1381,7 +1381,6 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
 
   // If there is a single SP update, insert it before the ret and we're done.
   if (CombineSPBump) {
-    DEBUG_PA_LOW(&MF, errs() << "emitting frame offset thingy\n");
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     NumBytes + AfterCSRPopSize, TII, MachineInstr::FrameDestroy,
                     false, NeedsWinCFI);
