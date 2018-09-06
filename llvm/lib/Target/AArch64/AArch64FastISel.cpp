@@ -153,7 +153,7 @@ class AArch64FastISel final : public FastISel {
   const AArch64Subtarget *Subtarget;
   LLVMContext *Context;
 
-  std::shared_ptr<PartsFastISel> PARTS;
+  std::shared_ptr<PartsFastISel> partsFastISel;
 
   bool fastLowerArguments() override;
   bool fastLowerCall(CallLoweringInfo &CLI) override;
@@ -305,7 +305,7 @@ public:
         &static_cast<const AArch64Subtarget &>(FuncInfo.MF->getSubtarget());
     Context = &FuncInfo.Fn->getContext();
 
-    PARTS = PartsFastISel::get(FuncInfo);
+    partsFastISel = PartsFastISel::get(FuncInfo);
   }
 
   bool fastSelectInstruction(const Instruction *I) override;
@@ -1876,7 +1876,7 @@ unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
                                     TII.get(Opc), ResultReg);
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOLoad, ScaleFactor, MMO);
 
-  PARTS->addMetadataToLoad(MIB, partsType);
+  partsFastISel->addMetadataToLoad(MIB, partsType);
 
   // Loading an i1 requires special handling.
   if (VT == MVT::i1) {
@@ -2159,7 +2159,7 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
 
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOStore, ScaleFactor, MMO);
 
-  PARTS->addMetadataToStore(MIB, partsType);
+  partsFastISel->addMetadataToStore(MIB, partsType);
 
   return true;
 }
@@ -2550,7 +2550,7 @@ bool AArch64FastISel::selectIndirectBr(const Instruction *I) {
 
   MachineInstrBuilder MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(AddrReg);
 
-  PARTS->addMetadataToCall(MIB, PartsTypeMetadata::retrieveAsMDNode(I));
+  partsFastISel->addMetadataToCall(MIB, PartsTypeMetadata::retrieveAsMDNode(I));
 
   // Make sure the CFG is up-to-date.
   for (auto *Succ : BI->successors())
@@ -3302,7 +3302,7 @@ bool AArch64FastISel::fastLowerCall(CallLoweringInfo &CLI) {
 
   CLI.Call = MIB;
 
-  PARTS->addMetadataToCall(MIB, CLI, Addr.getReg());
+  partsFastISel->addMetadataToCall(MIB, CLI, Addr.getReg());
 
   // Finish off the call including any return values.
   return finishCall(CLI, RetVT, NumBytes);
