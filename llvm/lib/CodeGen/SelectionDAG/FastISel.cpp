@@ -1595,8 +1595,6 @@ void FastISel::removeDeadLocalValueCode(MachineInstr *SavedLastLocalValue)
 }
 
 bool FastISel::selectInstruction(const Instruction *I) {
-  DEBUG_PA_LOW(I->getParent()->getParent(), errs() << KRED << "\t\t\t" << __FUNCTION__ << "\n");
-
   MachineInstr *SavedLastLocalValue = getLastLocalValue();
   // Just before the terminator instruction, insert instructions to
   // feed PHI nodes in successor blocks.
@@ -1653,12 +1651,10 @@ bool FastISel::selectInstruction(const Instruction *I) {
   }
   // Next, try calling the target to attempt to handle the instruction.
   if (fastSelectInstruction(I)) {
-    DEBUG_PA_LOW(I->getParent()->getParent(), errs() << KRED << "\t\t\t*used fastSelectInstruction\n");
     ++NumFastIselSuccessTarget;
     DbgLoc = DebugLoc();
     return true;
   }
-  DEBUG_PA_LOW(I->getParent()->getParent(), errs() << KRED << "\t\t\t*removing dead code\n");
   // Remove dead code.
   recomputeInsertPt();
   if (SavedInsertPt != FuncInfo.InsertPt)

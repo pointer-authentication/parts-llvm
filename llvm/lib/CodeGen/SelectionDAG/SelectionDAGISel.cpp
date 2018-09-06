@@ -1544,8 +1544,6 @@ void SelectionDAGISel::SelectAllBasicBlocks(const Function &Fn) {
     FastIS = TLI->createFastISel(*FuncInfo, LibInfo);
   }
 
-  DEBUG_PA_LOW(&Fn, errs() << "Function " << Fn.getName() << "\n");
-
   setupSwiftErrorVals(Fn, TLI, FuncInfo);
 
   ReversePostOrderTraversal<const Function*> RPOT(&Fn);
@@ -1600,8 +1598,6 @@ void SelectionDAGISel::SelectAllBasicBlocks(const Function &Fn) {
   // Iterate over all basic blocks in the function.
   StackProtector &SP = getAnalysis<StackProtector>();
   for (const BasicBlock *LLVMBB : RPOT) {
-    DEBUG_PA_LOW(&Fn, errs() << "\tBlock " << LLVMBB->getName() << "\n");
-
     if (OptLevel != CodeGenOpt::None) {
       bool AllPredsVisited = true;
       for (const_pred_iterator PI = pred_begin(LLVMBB), PE = pred_end(LLVMBB);
@@ -1655,8 +1651,6 @@ void SelectionDAGISel::SelectAllBasicBlocks(const Function &Fn) {
       // Do FastISel on as many instructions as possible.
       for (; BI != Begin; --BI) {
         const Instruction *Inst = &*std::prev(BI);
-        DEBUG_PA_LOW(&Fn, errs() << "\t\t");
-        DEBUG_PA_LOW(&Fn, Inst->dump());
 
         // If we no longer require this instruction, skip it.
         if (isFoldedOrDeadInstruction(Inst, FuncInfo) ||
