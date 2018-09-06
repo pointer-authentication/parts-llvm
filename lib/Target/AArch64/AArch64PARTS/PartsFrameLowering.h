@@ -13,6 +13,7 @@
 
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "AArch64InstrInfo.h"
+#include "llvm/PARTS/PartsLog.h"
 
 namespace llvm {
 
@@ -20,8 +21,10 @@ class PartsFrameLowering;
 typedef std::shared_ptr<PartsFrameLowering> PartsFrameLowering_ptr;
 
 class PartsFrameLowering {
+  PARTS::PartsLog_ptr log;
+
 public:
-  PartsFrameLowering() {}
+  PartsFrameLowering() : log(PARTS::PartsLog::getLogger("PartsFrameLowering")) {}
 
   static PartsFrameLowering_ptr get();
 

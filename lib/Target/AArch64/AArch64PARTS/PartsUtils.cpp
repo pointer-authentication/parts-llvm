@@ -15,15 +15,20 @@
 using namespace llvm;
 using namespace llvm::PARTS;
 
-PartsUtils::PartsUtils(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII)
-    : TII(TII), TRI(TRI) {};
+PartsUtils::PartsUtils(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII) :
+    log(PartsLog::getLogger("PartsUtils")),
+    TII(TII),
+    TRI(TRI)
+{
+  log->disable();
+};
 
 PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction &MF,
                                                                  MachineBasicBlock &MBB,
                                                                  MachineInstr &MI, unsigned targetReg,
                                                                  unsigned reg, int64_t imm) {
-
-  DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n");
+  const auto fName = MF.getName();
+  log->info(fName) << "      trying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n";
 
   auto mbb = MBB.getReverseIterator();
   auto MIi = MI.getReverseIterator();
@@ -41,7 +46,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
           if (Op1.getReg() == reg && Op2.getImm() == imm) {
             // Found a store targeting the same location!
             const auto PTMD = PartsTypeMetadata::retrieve(*MIi);
-            DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching store, using it's type_id (" << PTMD->getTypeId() << ")\n");
+            log->inc("PartsUtils.BackwardsLookupOk", true, fName) << "      found matching store " << PTMD->toString() << "\n";
             return PTMD;
           }
         }
@@ -59,7 +64,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
     MIi = mbb->instr_rbegin();
   }
 
-  DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
+  log->inc("PartsUtils.BackwardsLookupFail", false, fName) << "      failed to infer type_id\n";
   return PartsTypeMetadata::getUnknown();
 }
 
@@ -67,11 +72,11 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
 PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &MF,
                                                                MachineBasicBlock &MBB,
                                                                MachineInstr &MI,
-                                                               unsigned targetReg)
-{
+                                                               unsigned targetReg) {
+  const auto fName = MF.getName();
   auto iter = MI.getIterator();
 
-  DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look for " << TRI->getName(targetReg) << " load\n");
+  log->info(fName) << "      trying to look for " << TRI->getName(targetReg) << " load\n";
 
   // Look through current MBB
   while (iter != MBB.begin()) {
@@ -82,8 +87,8 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
 
       if (MO.isReg()) {
         if (MO.getReg() == targetReg) {
-          DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tused in " << TII->getName(iter->getOpcode()) << "\n" << KNRM);
-          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tUNIMPLEMENTED!!!!\n");
+          log->info(fName) << "      used in " << TII->getName(iter->getOpcode()) << "\n";
+          log->error(fName) << "      UNIMPLEMENTED!!!!\n";
           // TODO: unimplemented!
           //llvm_unreachable_internal("unimplemented");
         }
@@ -93,7 +98,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
 
   // Check if this is the entry block, and if so, look at function arguments
   if (MF.begin() == MBB.getIterator()) {
-    DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to look at function args\n");
+    log->info(fName) << "      trying to look at function args\n";
     auto *FT = MF.getFunction().getFunctionType();
     const auto numParams = FT->getNumParams();
     if (numParams != 0) {
@@ -113,13 +118,14 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
       if (param_i < numParams) {
         const auto PTMD = PartsTypeMetadata::get(FT->getParamType(param_i));
         // TODO: Embedd type_id into instruction
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tfound matching operand(" << param_i << "), using its type_id (=" << PTMD->getTypeId() << ")\n");
+        log->inc("PartsUtils.ForwardLookupFunc", true, fName) << "      found matching operand(" << param_i <<
+                                                              "), using " << PTMD->toString() << "\n";
         return PTMD;
       }
     }
   }
 
-  DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tfailed to infer type_id\n")
+  log->inc("PartsUtils.ForwardsLookupFail", false, fName) << "      failed to infer type_id\n";
   return PartsTypeMetadata::getUnknown();
 }
 
