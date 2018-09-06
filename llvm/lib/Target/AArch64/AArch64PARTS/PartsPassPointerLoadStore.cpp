@@ -36,10 +36,16 @@ using namespace llvm::PARTS;
 
 namespace {
  class PartsPassPointerLoadStore : public MachineFunctionPass {
+
  public:
    static char ID;
 
-   PartsPassPointerLoadStore() : MachineFunctionPass(ID) {}
+   PartsPassPointerLoadStore() :
+   MachineFunctionPass(ID),
+   log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
+   {
+     log->disable();
+   }
 
    StringRef getPassName() const override { return "pauth-sllow"; }
 
@@ -51,6 +57,8 @@ namespace {
    bool instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI, unsigned pointerReg, type_id_t type_id);
 
  private:
+
+   PartsLog_ptr log;
 
    const TargetMachine *TM = nullptr;
    const AArch64Subtarget *STI = nullptr;
@@ -72,7 +80,7 @@ bool PartsPassPointerLoadStore::doInitialization(Module &M) {
 
 bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
-  DEBUG_PA_MIR(&MF, errs() << KBLU << "function " << MF.getName() << '\n' << KNRM);
+  log->debug() << "function " << MF.getName() << "\n";
 
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
@@ -81,12 +89,13 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   partsUtils = PartsUtils::get(TRI, TII);
 
   auto &C = MF.getFunction().getContext();
+  const auto fName = MF.getName();
 
   for (auto &MBB : MF) {
-    DEBUG_PA_MIR(&MF, do { errs() << KBLU << "\tBlock "; errs().write_escaped(MBB.getName()); } while(0));
+    log->debug(fName) << "  block " << MBB.getName() << "\n";
 
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      DEBUG_PA_OPT(&MF, do { errs() << "\t\t"; MIi->dump(); } while(false));
+      log->debug(fName) << "   " << MIi;
 
       const auto MIOpcode = MIi->getOpcode();
       auto partsType = PartsTypeMetadata::retrieve(*MIi);
@@ -95,10 +104,10 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
         instrumentBranches(MBB, MIi);
       } else if (partsUtils->isLoadOrStore(*MIi)) {
         /* ----------------------------- LOAD/STORE ---------------------------------------- */
-        DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a load/store (" << TII->getName(MIOpcode) << ")\n" << KNRM);
+        log->debug(fName) << "      found a load/store (" << TII->getName(MIOpcode) << ")\n";
 
         if (partsType == nullptr) {
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to figure out type_id\n");
+          log->debug(fName) << "      trying to figure out type_id\n";
           auto Op = MIi->getOperand(0);
           const auto targetReg = Op.getReg();
 
@@ -112,7 +121,7 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
               if (MIi->getOperand(2).isImm()) {
                 partsType = partsUtils->inferPauthTypeIdStackBackwards(MF, MBB, *MIi, targetReg, MIi->getOperand(1).getReg(), MIi->getOperand(2).getImm());
               } else {
-                DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tOMG! unexpected operands, is this a pair store thingy?\n");
+                log->error() << "      OMG! unexpected operands, is this a pair store thingy?\n";
                 partsType = PartsTypeMetadata::getUnknown();
               }
             }
@@ -120,26 +129,30 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
           partsUtils->attach(MF.getFunction().getContext(), partsType, &*MIi);
 
           MIi->addOperand(MachineOperand::CreateMetadata(partsType->getMDNode(C)));
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tstoring type_id (" << partsType->getTypeId() << ") in current MI\n" << KNRM);
+          log->inc("StoreLoad.Inferred") << "      storing type_id " << partsType->toString() << ") in current MI\n";
         }
 
         if (!partsType->isKnown()) {
-          DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
+          log->inc("StoreLoad.Unknown", false) << "      type_id is unknown!\n";
           continue;
         }
 
         if (partsType->isIgnored()) {
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tmarked as ignored, skipping\n" << KNRM);
+          log->inc("StoreLoad.Ignored") << "      marked as ignored, skipping\n";
           continue;
         }
 
         if (!partsType->isPointer()) {
-          DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
+          log->inc("StoreLoad.NotAPointer") << "      not a pointer, skipping\n";
           continue;
         }
 
-        DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\tis a " << (partsType->isDataPointer() ? "data" : "code") <<
-                                 " pointer, instrumenting (type_id=" << partsType->getTypeId() << ")\n");
+        if (partsType->isDataPointer()) {
+          log->inc("StoreLoad.InstrumentedData", true) << "      instrumenting store/load " << partsType->toString() << "\n";
+        } else {
+          assert(partsType->isCodePointer());
+          log->inc("StoreLoad.InstrumentedCode", true) << "      instrumenting store/load " << partsType->toString() << "\n";
+        }
 
         auto reg = MIi->getOperand(0).getReg();
         const auto modReg = PARTS::getModifierReg();
@@ -167,37 +180,37 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
 
 bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi) {
   const auto MIOpcode = MIi->getOpcode();
+  const auto fName = MBB.getParent()->getName();
   auto partsType = PartsTypeMetadata::retrieve(*MIi);
 
   assert(MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL);
 
   /* ----------------------------- BL/BLR ---------------------------------------- */
-  DEBUG_PA_MIR(&MF, errs() << KBLU << "\t\t\tfound a BL/BLR (" << TII->getName(MIOpcode) << ")\n");
+  log->debug(fName) << "      found a BL/BLR (" << TII->getName(MIOpcode) << ")\n";
 
   if (partsType == nullptr) {
-    DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\ttrying to figure out type_id\n");
-    DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\tUNIMPLEMENTED!!!\n");
+    log->debug(fName) << "      trying to figure out type_id\n";
+    log->error(fName) << "      figuring out NOT IMPLEMENTED!!!\n";
 
     partsType = PartsTypeMetadata::getUnknown();
   }
 
   if (!partsType->isKnown()) {
-    DEBUG_PA_MIR(&MF, errs() << KRED << "\t\t\ttype_id is unknown!\n");
+    log->inc("Branch.Unknown", false) << "      type_id is unknown!\n";
     return false;
   }
 
   if (partsType->isIgnored()) {
-    DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tmarked as ignored, skipping\n" << KNRM);
+    log->inc("Branch.Ignored") << "      marked as ignored, skipping\n";
     return false;
   }
 
   if (!partsType->isPointer()) {
-    DEBUG_PA_MIR(&MF, errs() << KCYN << "\t\t\tnot a pointer, skipping\n" << KNRM);
+    log->inc("Branch.NotAPointer") << "      not a pointer, skipping\n";
     return false;
   }
 
-  DEBUG_PA_MIR(&MF, errs() << KGRN << "\t\t\t going to instrument indirect call (type_id=" << partsType->getTypeId() << ")\n");
-
+  log->inc("StoreLoad.InstrumentedCall", true) << "      instrumenting call " << partsType->toString() << "\n";
   assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
 
   // Create the PAC modifier
@@ -221,7 +234,6 @@ bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, Machi
 
   return true;
 }
-
 
 bool PartsPassPointerLoadStore::instrumentDataPointerStore(MachineBasicBlock &MBB, MachineInstr &MI,
                                                            unsigned pointerReg, type_id_t type_id)

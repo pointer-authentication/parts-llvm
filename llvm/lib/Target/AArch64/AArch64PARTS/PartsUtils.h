@@ -17,6 +17,7 @@
 #include "AArch64RegisterInfo.h"
 #include "AArch64InstrInfo.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
+#include "llvm/PARTS/PartsLog.h"
 
 namespace llvm {
 
@@ -29,9 +30,11 @@ typedef std::shared_ptr<PartsUtils> PartsUtils_ptr;
 static inline unsigned getModifierReg() { return AArch64::X23; }
 
 class PartsUtils {
+  PartsLog_ptr log;
 
   const AArch64InstrInfo *TII;
   const AArch64RegisterInfo *TRI;
+  PartsUtils() =delete;
 
 public:
   PartsUtils(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII);

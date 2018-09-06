@@ -15,6 +15,7 @@
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/FunctionLoweringInfo.h"
 #include "llvm/CodeGen/FastISel.h"
+#include "llvm/PARTS/PartsLog.h"
 
 namespace llvm {
 
@@ -24,11 +25,15 @@ typedef std::shared_ptr<PartsFastISel> PartsFastISel_ptr;
 class PartsFastISel {
   FunctionLoweringInfo &FuncInfo;
 
+  PARTS::PartsLog_ptr log;
+
 protected:
 public:
 
   PartsFastISel() = delete;
   PartsFastISel(FunctionLoweringInfo &FuncInfo);
+
+  PARTS::PartsLog_ptr getLog() { return log; }
 
   void addPartsTypeMetadata(MachineInstrBuilder &MIB, MDNode *partsType);
 
