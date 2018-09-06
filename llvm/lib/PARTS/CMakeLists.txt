@@ -24,12 +24,14 @@ add_llvm_library(Parts
   #intrinsics_gen
   LLVMCore
   LLVMSupport
+  LLVMCodeGen
   PARTSsha3
   #LLVMObject
 
   LINK_LIBS
   LLVMCore
   LLVMSupport
+  LLVMCodeGen
   PARTSsha3
   #LLVMObject
   )
