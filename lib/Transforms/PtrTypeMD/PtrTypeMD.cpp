@@ -33,7 +33,14 @@ namespace {
 struct PtrTypeMDPass : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
 
-  PtrTypeMDPass() : FunctionPass(ID) {}
+  PartsLog_ptr log;
+
+  PtrTypeMDPass() :
+      FunctionPass(ID),
+      log(PartsLog::getLogger(DEBUG_TYPE))
+  {
+    log->disable();
+  }
 
   bool runOnFunction(Function &F) override;
 
@@ -48,15 +55,15 @@ char PtrTypeMDPass::ID = 0;
 static RegisterPass<PtrTypeMDPass> X("ptr-type-md-pass", "Pointer Type Metadata Pass");
 
 bool PtrTypeMDPass::runOnFunction(Function &F) {
-  DEBUG_PA_OPT(&F, do { errs() << TAG << "Function: "; errs().write_escaped(F.getName()) << "\n"; } while(false));
+  log->debug() << "Function: " << F.getName() << "\n";
 
   auto &C = F.getContext();
 
   for (auto &BB:F){
-    DEBUG_PA_OPT(&F, do { errs() << TAG << "\tBasicBlock: "; errs().write_escaped(BB.getName()) << '\n'; } while(false));
+    log->debug() << "  BasicBlock: " << BB.getName() << "\n";
 
     for (auto &I: BB) {
-      DEBUG_PA_OPT(&F, do { errs() << TAG << "\t\t"; I.dump(); } while(false));
+      log->debug() << "  " << I << "\n";
 
       const auto IOpcode = I.getOpcode();
 
@@ -78,10 +85,9 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
 
       if (MD != nullptr) {
         MD->attach(C, I);
-
-        DEBUG_PA_OPT(&F, errs() << TAG << (MD->isIgnored() ? KCYN : KGRN)<< "\t\t\t adding metadata " << MD->toString() << "\n");
+        log->inc(DEBUG_TYPE ".MetadataAddedWithTypeId", !MD->isIgnored()) << "      adding metadata " << MD->toString() << "\n";
       } else {
-        DEBUG_PA_OPT(&F, errs() << TAG << "\t\t\t skipping\n");
+        log->inc(DEBUG_TYPE ".MetadataNotAdded") << "      " << "skipping\n";
       }
     }
   }
@@ -128,7 +134,7 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction
 
   auto CI = dyn_cast<CallInst>(&I);
   if (CI->getCalledFunction() == nullptr) {
-    DEBUG_PA_OPT(&F, errs() << TAG << KGRN << "\t\t\t found indirect call!!!!\n");
+    log->inc(DEBUG_TYPE ".IndirectCallMetadataFound", true, F.getName()) << "      found indirect call!!!!\n";
     MD = PartsTypeMetadata::get(I.getOperand(0)->getType());
   } else {
     MD = PartsTypeMetadata::getIgnored();

@@ -17,6 +17,7 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
+#include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
 
@@ -29,7 +30,14 @@ struct PauthPacMain: public FunctionPass {
 
   Function *funcFixMain = nullptr;
 
-  PauthPacMain() : FunctionPass(ID) {}
+  PartsLog_ptr log;
+
+  PauthPacMain() :
+      FunctionPass(ID),
+      log(PartsLog::getLogger(DEBUG_TYPE))
+  {
+    log->disable();
+  }
 
   bool doInitialization(Module &M) override;
   bool doFinalization(Module &M) override;
@@ -100,7 +108,7 @@ bool PauthPacMain::runOnFunction(Function &F) {
   IRBuilder<> Builder(&I);
   Builder.CreateCall(funcFixMain, args);
 
-  errs() << "Adding call to __pauth_pac_main_args\n";
+  log->info() << "Adding call to __pauth_pac_main_args\n";
   return true;
 }
 
