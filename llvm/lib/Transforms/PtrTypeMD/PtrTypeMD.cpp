@@ -39,7 +39,7 @@ struct PtrTypeMDPass : public FunctionPass {
       FunctionPass(ID),
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
-    log->disable();
+    DEBUG_PA(log->enable());
   }
 
   bool runOnFunction(Function &F) override;
@@ -55,15 +55,15 @@ char PtrTypeMDPass::ID = 0;
 static RegisterPass<PtrTypeMDPass> X("ptr-type-md-pass", "Pointer Type Metadata Pass");
 
 bool PtrTypeMDPass::runOnFunction(Function &F) {
-  log->debug() << "Function: " << F.getName() << "\n";
+  DEBUG_PA(log->debug() << "Function: " << F.getName() << "\n");
 
   auto &C = F.getContext();
 
   for (auto &BB:F){
-    log->debug() << "  BasicBlock: " << BB.getName() << "\n";
+    DEBUG_PA(log->debug() << "  BasicBlock: " << BB.getName() << "\n");
 
     for (auto &I: BB) {
-      log->debug() << "  " << I << "\n";
+      DEBUG_PA(log->debug() << "  " << I << "\n");
 
       const auto IOpcode = I.getOpcode();
 

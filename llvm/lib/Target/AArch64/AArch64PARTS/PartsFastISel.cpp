@@ -20,7 +20,7 @@ PartsFastISel::PartsFastISel(FunctionLoweringInfo &FuncInfo)
     : FuncInfo(FuncInfo),
       log(PartsLog::getLogger("PartsFastISel"))
 {
-  log->enable();
+  DEBUG_PA(log->enable());
 }
 
 PartsFastISel_ptr PartsFastISel::get(FunctionLoweringInfo &FuncInfo) {
@@ -37,10 +37,10 @@ void PartsFastISel::addPartsTypeMetadata(MachineInstrBuilder &MIB, MDNode *parts
 
 void PartsFastISel::addMetadataToStore(MachineInstrBuilder &MIB, MDNode *partsType) {
   if (partsType == nullptr) {
-    log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** no metadata when emitting store\n";
+    DEBUG_PA(log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** no metadata when emitting store\n");
     return;
   }
-  log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** moving metadata to emitted store\n";
+  DEBUG_PA(log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** moving metadata to emitted store\n");
 
   addPartsTypeMetadata(MIB, partsType);
 }
@@ -48,20 +48,20 @@ void PartsFastISel::addMetadataToStore(MachineInstrBuilder &MIB, MDNode *partsTy
 
 void PartsFastISel::addMetadataToLoad(MachineInstrBuilder &MIB, MDNode *partsType) {
   if (partsType == nullptr) {
-    log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** no metadata when emitting LDR\n";
+    DEBUG_PA(log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** no metadata when emitting LDR\n");
     return;
   }
-  log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** moving metadata to emitted LDR\n";
+  DEBUG_PA(log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** moving metadata to emitted LDR\n");
 
   addPartsTypeMetadata(MIB, partsType);
 }
 
 void PartsFastISel::addMetadataToCall(MachineInstrBuilder &MIB, MDNode *partsType) {
   if (partsType == nullptr) {
-    log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** no metadata when emitting call\n";
+    DEBUG_PA(log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** no metadata when emitting call\n");
     return;
   }
-  log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** moving metadata to emitted call\n";
+  DEBUG_PA(log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** moving metadata to emitted call\n");
 
   addPartsTypeMetadata(MIB, partsType);
 }
@@ -76,10 +76,10 @@ void PartsFastISel::addMetadataToCall(MachineInstrBuilder &MIB, FastISel::CallLo
   const Value *Callee = CLI.Callee;
 
   if (reg) {
-    log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** preparing metadata to emitted branch instruction\n";
+    DEBUG_PA(log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** preparing metadata to emitted branch instruction\n");
     partsType = PartsTypeMetadata::get(Callee->getType());
   } else {
-    log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** setting ignore metadata to emitted branch instruction\n";
+    DEBUG_PA(log->debug(FuncInfo.Fn->getName()) << "\t\t\t*** setting ignore metadata to emitted branch instruction\n");
     partsType = PartsTypeMetadata::getIgnored();
   }
 

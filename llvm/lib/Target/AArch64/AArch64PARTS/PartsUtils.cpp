@@ -20,7 +20,7 @@ PartsUtils::PartsUtils(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *T
     TII(TII),
     TRI(TRI)
 {
-  log->disable();
+  DEBUG_PA(log->enable());
 };
 
 PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction &MF,
@@ -28,7 +28,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
                                                                  MachineInstr &MI, unsigned targetReg,
                                                                  unsigned reg, int64_t imm) {
   const auto fName = MF.getName();
-  log->info(fName) << "      trying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n";
+  DEBUG_PA(log->info(fName) << "      trying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n");
 
   auto mbb = MBB.getReverseIterator();
   auto MIi = MI.getReverseIterator();
@@ -76,7 +76,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
   const auto fName = MF.getName();
   auto iter = MI.getIterator();
 
-  log->info(fName) << "      trying to look for " << TRI->getName(targetReg) << " load\n";
+  DEBUG_PA(log->info(fName) << "      trying to look for " << TRI->getName(targetReg) << " load\n");
 
   // Look through current MBB
   while (iter != MBB.begin()) {
@@ -87,8 +87,8 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
 
       if (MO.isReg()) {
         if (MO.getReg() == targetReg) {
-          log->info(fName) << "      used in " << TII->getName(iter->getOpcode()) << "\n";
-          log->error(fName) << "      UNIMPLEMENTED!!!!\n";
+          DEBUG_PA(log->info(fName) << "      used in " << TII->getName(iter->getOpcode()) << "\n");
+          log->error(fName) << "      " << "PartsUtils::" << __FUNCTION__ << " UNIMPLEMENTED!!!!\n";
           // TODO: unimplemented!
           //llvm_unreachable_internal("unimplemented");
         }
@@ -98,7 +98,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
 
   // Check if this is the entry block, and if so, look at function arguments
   if (MF.begin() == MBB.getIterator()) {
-    log->info(fName) << "      trying to look at function args\n";
+    DEBUG_PA(log->info(fName) << "      trying to look at function args\n");
     auto *FT = MF.getFunction().getFunctionType();
     const auto numParams = FT->getNumParams();
     if (numParams != 0) {

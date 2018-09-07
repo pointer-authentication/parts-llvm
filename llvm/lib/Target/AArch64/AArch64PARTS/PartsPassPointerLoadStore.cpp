@@ -44,7 +44,7 @@ namespace {
    MachineFunctionPass(ID),
    log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
    {
-     log->disable();
+     DEBUG_PA(log->enable());
    }
 
    StringRef getPassName() const override { return "pauth-sllow"; }
@@ -80,7 +80,7 @@ bool PartsPassPointerLoadStore::doInitialization(Module &M) {
 
 bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
-  log->debug() << "function " << MF.getName() << "\n";
+  DEBUG_PA(log->debug() << "function " << MF.getName() << "\n");
 
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
@@ -89,13 +89,13 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
   partsUtils = PartsUtils::get(TRI, TII);
 
   auto &C = MF.getFunction().getContext();
-  const auto fName = MF.getName();
+  DEBUG_PA(const auto fName = MF.getName());
 
   for (auto &MBB : MF) {
-    log->debug(fName) << "  block " << MBB.getName() << "\n";
+    DEBUG_PA(log->debug(fName) << "  block " << MBB.getName() << "\n");
 
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      log->debug(fName) << "   " << MIi;
+      DEBUG_PA(log->debug(fName) << "   " << MIi);
 
       const auto MIOpcode = MIi->getOpcode();
       auto partsType = PartsTypeMetadata::retrieve(*MIi);
@@ -104,10 +104,10 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
         instrumentBranches(MBB, MIi);
       } else if (partsUtils->isLoadOrStore(*MIi)) {
         /* ----------------------------- LOAD/STORE ---------------------------------------- */
-        log->debug(fName) << "      found a load/store (" << TII->getName(MIOpcode) << ")\n";
+        DEBUG_PA(log->debug(fName) << "      found a load/store (" << TII->getName(MIOpcode) << ")\n");
 
         if (partsType == nullptr) {
-          log->debug(fName) << "      trying to figure out type_id\n";
+          DEBUG_PA(log->debug(fName) << "      trying to figure out type_id\n");
           auto Op = MIi->getOperand(0);
           const auto targetReg = Op.getReg();
 
@@ -121,7 +121,7 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
               if (MIi->getOperand(2).isImm()) {
                 partsType = partsUtils->inferPauthTypeIdStackBackwards(MF, MBB, *MIi, targetReg, MIi->getOperand(1).getReg(), MIi->getOperand(2).getImm());
               } else {
-                log->error() << "      OMG! unexpected operands, is this a pair store thingy?\n";
+                log->error() << __FUNCTION__ << ": OMG! unexpected operands, is this a pair store thingy?\n";
                 partsType = PartsTypeMetadata::getUnknown();
               }
             }
@@ -186,11 +186,11 @@ bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, Machi
   assert(MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL);
 
   /* ----------------------------- BL/BLR ---------------------------------------- */
-  log->debug(fName) << "      found a BL/BLR (" << TII->getName(MIOpcode) << ")\n";
+  DEBUG_PA(log->debug(fName) << "      found a BL/BLR (" << TII->getName(MIOpcode) << ")\n");
 
   if (partsType == nullptr) {
-    log->debug(fName) << "      trying to figure out type_id\n";
-    log->error(fName) << "      figuring out NOT IMPLEMENTED!!!\n";
+    DEBUG_PA(log->debug(fName) << "      trying to figure out type_id\n");
+    log->error(fName) << __FUNCTION__ << ": figuring out NOT IMPLEMENTED!!!\n";
 
     partsType = PartsTypeMetadata::getUnknown();
   }

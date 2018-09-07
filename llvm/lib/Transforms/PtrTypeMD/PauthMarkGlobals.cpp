@@ -46,7 +46,7 @@ struct PauthMarkGlobals: public ModulePass {
       ModulePass(ID),
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
-    log->disable();
+    DEBUG_PA(log->enable());
   }
 
   bool runOnModule(Module &M) override;
@@ -70,11 +70,11 @@ bool PauthMarkGlobals::runOnModule(Module &M)
 
   // Automatically annotate pointer globals
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
-    log->info() << "inspecting " << GI << "\n";
+    DEBUG_PA(log->info() << "inspecting " << GI << "\n");
     errs();
     //DEBUG_DO(errs() << TAG << "inspecting "; GI->dump(););
     if (GI->getNumOperands() == 0) {
-      log->info() << "skipping\n";
+      DEBUG_PA(log->info() << "skipping\n");
       continue;
     }
 
@@ -95,7 +95,7 @@ bool PauthMarkGlobals::runOnModule(Module &M)
         log->inc(DEBUG_TYPE ".DataPointers") << "annotating data pointer for PACing";
       }
     } else {
-      log->info() << "skipping\n";
+      DEBUG_PA(log->info() << "skipping\n");
     }
   }
 
