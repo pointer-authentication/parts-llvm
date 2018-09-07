@@ -24,7 +24,9 @@ class PartsFrameLowering {
   PARTS::PartsLog_ptr log;
 
 public:
-  PartsFrameLowering() : log(PARTS::PartsLog::getLogger("PartsFrameLowering")) {}
+  PartsFrameLowering() : log(PARTS::PartsLog::getLogger("PartsFrameLowering")) {
+    DEBUG_PA(log->enable());
+  }
 
   static PartsFrameLowering_ptr get();
 

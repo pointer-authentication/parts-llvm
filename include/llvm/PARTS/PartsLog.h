@@ -16,83 +16,13 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/PartsLogStream.h"
 
-#define KNRM  "\x1B[0m"
-#define KRED  "\x1B[31m"
-#define KGRN  "\x1B[32m"
-#define KYEL  "\x1B[33m"
-#define KBLU  "\x1B[34m"
-#define KMAG  "\x1B[35m"
-#define KCYN  "\x1B[36m"
-#define KWHT  "\x1B[37m"
-
-
-//#define DISABLE_PA_DEBUG 1
-//#define DEBUG_ONLY_FUNC "check_user"
-//#define DEBUG_ONLY_FUNC "DivideInternalFPF"
-#define DEBUG_PA_OPT(F,x) do { \
-  x;\
-  errs() << KNRM; \
-} while(0);
-#define DEBUG_PA_MIR(F,x) do { \
-  x;\
-  errs() << KNRM; \
-} while(0);
-#define DEBUG_PA_LOW(F,x) do { \
-  x;\
-  errs() << KNRM; \
-} while(0);
-#define DEBUG_PA_FUNC(F, name, x) do { \
-  if (((F)->getName() == (name)) { \
-    errs() << KBLU; \
-    x; \
-    errs() << KNRM; \
-  } \
-} while(0);
-
-
-#ifdef DEBUG_ONLY_FUNC
-#undef DEBUG_PA_OPT
-#undef DEBUG_PA_MIR
-#undef DEBUG_PA_LOW
-#undef DEBUG_PA_FUNC
-#define DEBUG_PA_OPT(F,x) do { \
-  if (F != nullptr && DEBUG_ONLY_FUNC == (F)->getName()) { \
-    x;\
-    errs() << KNRM; \
-  } \
-} while(0);
-#define DEBUG_PA_MIR(F,x) do { \
-  if (F != nullptr && DEBUG_ONLY_FUNC == (F)->getName()) { \
-    x;\
-    errs() << KNRM; \
-  } \
-} while(0);
-#define DEBUG_PA_LOW(F,x) do { \
-  if (F != nullptr && DEBUG_ONLY_FUNC == (F)->getName()) { \
-    x;\
-    errs() << KNRM; \
-  } \
-} while(0);
-#define DEBUG_PA_FUNC(F, name, x) do { \
-  if (DEBUG_ONLY_FUNC == (F)->getName()) { \
-    errs() << KBLU; \
-    x; \
-    errs() << KNRM; \
-  } \
-} while(0);
-#endif
+#define DISABLE_PA_DEBUG 1
 
 #ifdef DISABLE_PA_DEBUG
-#undef DEBUG_PA_OPT
-#define DEBUG_PA_OPT(F,x)
-#undef DEBUG_PA_MIR
-#define DEBUG_PA_MIR(F,x)
-#undef DEBUG_PA_LOW
-#define DEBUG_PA_LOW(F,x)
-#undef DEBUG_PA_FUNC
-#define DEBUG_PA_FUNC(F,x)
+#define DEBUG_PA(x)
+#else
+#define DEBUG_PA(x) x
 #endif
-
 
 namespace llvm {
 
@@ -118,13 +48,13 @@ private:
   };
 
   const std::string m_name;
-  bool m_enabled = true;
+  bool m_enabled = false;
   bool m_onlyFunc = false;
   std::string m_onlyFuncName = "";
 
   static Stats &getStats();
-  inline raw_ostream &get_ostream(const raw_ostream::Colors c) const;
-  inline raw_ostream &get_ostream(const std::string &F, const raw_ostream::Colors c) const;
+  inline raw_ostream &get_ostream(bool enabled, const raw_ostream::Colors c) const;
+  inline raw_ostream &get_ostream(bool enabled, const std::string &F, const raw_ostream::Colors c) const;
 
 protected:
 public:
@@ -158,15 +88,15 @@ public:
   static PartsLog_ptr getLogger(const std::string &name);
 };
 
-inline raw_ostream &PartsLog::get_ostream(const raw_ostream::Colors c) const {
-  if (m_enabled)
+inline raw_ostream &PartsLog::get_ostream(bool enabled, const raw_ostream::Colors c) const {
+  if (enabled)
     return (errs().changeColor(c, false, false) << m_name << ": ");
 
   return nulls();
 }
 
-inline raw_ostream &PartsLog::get_ostream(const std::string &F, const raw_ostream::Colors c) const {
-  if (m_enabled && (!m_onlyFunc || F.compare(m_onlyFuncName) == 0)) {
+inline raw_ostream &PartsLog::get_ostream(bool enabled, const std::string &F, const raw_ostream::Colors c) const {
+  if (enabled && (!m_onlyFunc || F.compare(m_onlyFuncName) == 0)) {
     return (errs().changeColor(c, false, false) << m_name << ": ");
   }
 

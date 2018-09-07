@@ -32,41 +32,40 @@ void PartsLog::restrictToFunc(const std::string func) {
   m_onlyFuncName = func;
 }
 
-
 PARTS::PartsLogStream PartsLog::debug() {
-  return PartsLogStream(get_ostream(raw_ostream::CYAN));
+  return PartsLogStream(get_ostream(m_enabled, raw_ostream::CYAN));
 }
 
 PARTS::PartsLogStream PartsLog::debug(const std::string &F) {
-  return PartsLogStream(get_ostream(F, raw_ostream::CYAN));
+  return PartsLogStream(get_ostream(m_enabled, F, raw_ostream::CYAN));
 }
 
 PARTS::PartsLogStream PartsLog::info() {
-  return PartsLogStream(get_ostream(raw_ostream::WHITE));
+  return PartsLogStream(get_ostream(m_enabled, raw_ostream::WHITE));
 }
 
 PARTS::PartsLogStream PartsLog::info(const std::string &F) {
-  return PartsLogStream(get_ostream(F, raw_ostream::WHITE));
-}
-
-PARTS::PartsLogStream PartsLog::warn() {
-  return PartsLogStream(get_ostream(raw_ostream::YELLOW));
-}
-
-PARTS::PartsLogStream PartsLog::error() {
-  return PartsLogStream(get_ostream(raw_ostream::MAGENTA));
-}
-
-PARTS::PartsLogStream PartsLog::error(const std::string &F) {
-  return PartsLogStream(get_ostream(F, raw_ostream::MAGENTA));
+  return PartsLogStream(get_ostream(m_enabled, F, raw_ostream::WHITE));
 }
 
 PARTS::PartsLogStream PartsLog::red() {
-  return PartsLogStream(get_ostream(raw_ostream::RED));
+  return PartsLogStream(get_ostream(m_enabled, raw_ostream::RED));
 }
 
 PARTS::PartsLogStream PartsLog::green() {
-  return PartsLogStream(get_ostream(raw_ostream::GREEN));
+  return PartsLogStream(get_ostream(m_enabled, raw_ostream::GREEN));
+}
+
+PARTS::PartsLogStream PartsLog::warn() {
+  return PartsLogStream(get_ostream(true, raw_ostream::YELLOW));
+}
+
+PARTS::PartsLogStream PartsLog::error() {
+  return PartsLogStream(get_ostream(true, raw_ostream::MAGENTA));
+}
+
+PARTS::PartsLogStream PartsLog::error(const std::string &F) {
+  return PartsLogStream(get_ostream(true, F, raw_ostream::MAGENTA));
 }
 
 std::mutex _mutex;
@@ -98,13 +97,13 @@ PartsLogStream PartsLog::dec(const std::string &var, bool b, const std::string &
 PartsLogStream PartsLog::inc(const std::string &var, const raw_ostream::Colors c, const std::string &F) {
   auto &s = getStats();
   s.inc(var);
-  return PartsLogStream(get_ostream(F, c));
+  return PartsLogStream(get_ostream(m_enabled, F, c));
 }
 
 PartsLogStream PartsLog::dec(const std::string &var, const raw_ostream::Colors c, const std::string &F) {
   auto &s = getStats();
   s.inc(var);
-  return PartsLogStream(get_ostream(F, c));
+  return PartsLogStream(get_ostream(m_enabled, F, c));
 }
 
 

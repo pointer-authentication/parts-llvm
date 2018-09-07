@@ -36,7 +36,7 @@ struct PauthPacMain: public FunctionPass {
       FunctionPass(ID),
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
-    log->disable();
+    DEBUG_PA(log->enable());
   }
 
   bool doInitialization(Module &M) override;
@@ -108,7 +108,7 @@ bool PauthPacMain::runOnFunction(Function &F) {
   IRBuilder<> Builder(&I);
   Builder.CreateCall(funcFixMain, args);
 
-  log->info() << "Adding call to __pauth_pac_main_args\n";
+  DEBUG_PA(log->info() << "Adding call to __pauth_pac_main_args\n");
   return true;
 }
 
