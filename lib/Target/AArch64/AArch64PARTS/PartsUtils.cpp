@@ -43,7 +43,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
           auto Op1 = MIi->getOperand(1);
           auto Op2 = MIi->getOperand(2);
 
-          if (Op1.getReg() == reg && Op2.getImm() == imm) {
+          if (Op1.isReg() && Op2.isImm() && Op1.getReg() == reg && Op2.getImm() == imm) {
             // Found a store targeting the same location!
             const auto PTMD = PartsTypeMetadata::retrieve(*MIi);
             log->inc("PartsUtils.BackwardsLookupOk", true, fName) << "      found matching store " << PTMD->toString() << "\n";
