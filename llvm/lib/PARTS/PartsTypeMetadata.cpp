@@ -9,6 +9,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <llvm/PARTS/PartsTypeMetadata.h>
+
 #include "llvm/PARTS/PartsTypeMetadata.h"
 
 extern "C" {
@@ -193,6 +195,10 @@ Constant *PartsTypeMetadata::idConstantFromType(LLVMContext &C, const Type *cons
 raw_ostream &operator<<(raw_ostream &stream, const PartsTypeMetadata_ptr pmd) {
   stream << "PartsTypeMetadata(" << pmd->getTypeId();
   return stream;
+}
+
+Constant *PartsTypeMetadata::getTypeIdConstant(LLVMContext &C) const {
+  return Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, getTypeId()));
 }
 
 
