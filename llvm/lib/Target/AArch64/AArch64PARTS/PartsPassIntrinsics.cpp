@@ -86,7 +86,7 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
         auto type_id = static_cast<type_id_t>(MIi->getOperand(2).getImm());
 
         // PAC the pointer
-        partsUtils->pacCodePointer(MBB, MIi, DstReg, SrcReg, ModReg, type_id);
+        partsUtils->pacCodePointer(MBB, MIi, DstReg, SrcReg, ModReg, type_id, MIi->getDebugLoc());
 
         // And finally, remove the intrinsic
         auto tmp = MIi;
