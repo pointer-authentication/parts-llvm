@@ -61,6 +61,7 @@ public:
 
   /*! Get type_id of associated LLVM Type */
   inline type_id_t getTypeId() const { return m_type_id; }
+  Constant *getTypeIdConstant(LLVMContext &C) const;
 
   /*! Return true if the associated Value should be ignored */
   inline bool isIgnored() const { return m_ignored; }
