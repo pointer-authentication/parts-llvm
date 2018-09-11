@@ -34,7 +34,8 @@ class PartsUtils {
 
   const AArch64InstrInfo *TII;
   const AArch64RegisterInfo *TRI;
-  PartsUtils() =delete;
+
+  PartsUtils() = delete;
 
 public:
   PartsUtils(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII);
@@ -44,43 +45,53 @@ public:
   };
 
   inline bool registerFitsPointer(unsigned reg);
+
   inline bool checkIfRegInstrumentable(unsigned reg);
 
   PartsTypeMetadata_ptr inferPauthTypeIdRegBackwards(MachineFunction &MF,
                                                      MachineBasicBlock &MBB,
                                                      MachineInstr &MI,
                                                      unsigned targetReg);
+
   PartsTypeMetadata_ptr inferPauthTypeIdStackBackwards(MachineFunction &MF,
                                                        MachineBasicBlock &MBB,
                                                        MachineInstr &MI,
                                                        unsigned targetReg, unsigned reg, int64_t imm);
 
   void attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstr *MI);
+
   void attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstrBuilder *MIB);
 
   void pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
-                      unsigned srcReg, unsigned modReg, type_id_t type_id);
+                      unsigned srcReg, unsigned modReg, type_id_t type_id, const DebugLoc &DL);
 
   void pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                      unsigned modReg, type_id_t type_id);
+                      unsigned modReg, type_id_t type_id, const DebugLoc &DL);
 
   void pacDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                      unsigned modReg, type_id_t type_id);
+                      unsigned modReg, type_id_t type_id, const DebugLoc &DL);
 
   void autCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                      unsigned modReg, type_id_t type_id);
+                      unsigned modReg, type_id_t type_id, const DebugLoc &DL);
 
   void autDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                      unsigned modReg, type_id_t type_id);
+                      unsigned modReg, type_id_t type_id, const DebugLoc &DL);
 
   bool isLoadOrStore(const MachineInstr &MI);
+
   bool isLoad(const MachineInstr &MI);
+
   bool isStore(const MachineInstr &MI);
+
   bool isLoad(unsigned opCode);
+
   bool isStore(unsigned opCode);
 
   void moveTypeIdToReg(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned modReg,
-                       type_id_t type_id);
+                       type_id_t type_id, const DebugLoc &DL);
+
+  void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                     unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
 };
 
 inline bool PartsUtils::registerFitsPointer(unsigned reg)

@@ -160,16 +160,17 @@ bool PartsPassPointerLoadStore::runOnMachineFunction(MachineFunction &MF) {
 
         if (partsUtils->isStore(*MIi)) {
           if (partsType->isDataPointer())
-            partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id);
+            partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
           else
-            partsUtils->pacCodePointer(MBB, MIi, reg, modReg, type_id);
+            partsUtils->pacCodePointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
         } else {
           auto loc = MIi;
+          MIi->getDebugLoc();
           loc++;
           if (partsType->isDataPointer())
-            partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id);
+            partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id, MIi->getDebugLoc());
           else
-            partsUtils->autCodePointer(MBB, loc, reg, modReg, type_id);
+            partsUtils->autCodePointer(MBB, loc, reg, modReg, type_id, MIi->getDebugLoc());
         }
       }
     }
@@ -214,7 +215,7 @@ bool PartsPassPointerLoadStore::instrumentBranches(MachineBasicBlock &MBB, Machi
   assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
 
   // Create the PAC modifier
-  partsUtils->moveTypeIdToReg(MBB, MIi, PARTS::getModifierReg(), partsType->getTypeId());
+  partsUtils->moveTypeIdToReg(MBB, MIi, PARTS::getModifierReg(), partsType->getTypeId(), MIi->getDebugLoc());
   /*
   BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi))
       .addReg(PARTS::getModifierReg())
