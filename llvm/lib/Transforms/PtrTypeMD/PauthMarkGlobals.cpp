@@ -19,7 +19,6 @@
 #include "llvm/PARTS/PartsLog.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 
-
 using namespace llvm;
 
 #define DEBUG_TYPE "PauthOptPauthMarkGlobals"
@@ -62,6 +61,9 @@ static RegisterPass<PauthMarkGlobals> X("pauth-markglobals", "PAC argv for main 
 
 bool PauthMarkGlobals::runOnModule(Module &M)
 {
+  if ( !(PARTS::useFeCfi() || PARTS::useDpi()))
+    return false;
+
   int marked_data_pointers = 0;
   int marked_code_pointers = 0;
 
@@ -84,23 +86,34 @@ bool PauthMarkGlobals::runOnModule(Module &M)
       auto type_id = PartsTypeMetadata::idFromType(Ty);
 
       if (PartsTypeMetadata::TyIsCodePointer(Ty)) {
-        marked_code_pointers++; // This should eventually be put in .code_pauth
-        GI->setSection(".code_pauth");
-        code_type_ids.push_back(type_id);
-        log->inc(DEBUG_TYPE ".CodePointers") << "annotating code pointer for PACing";
+
+        if (PARTS::useFeCfi()) {
+          marked_code_pointers++;
+          GI->setSection(".code_pauth");
+          code_type_ids.push_back(type_id);
+        }
       } else {
-        marked_data_pointers++;
-        GI->setSection(".data_pauth");
-        data_type_ids.push_back(type_id);
-        log->inc(DEBUG_TYPE ".DataPointers") << "annotating data pointer for PACing";
+
+        if (PARTS::useDpi()) {
+          marked_data_pointers++;
+          GI->setSection(".data_pauth");
+          data_type_ids.push_back(type_id);
+        }
       }
     } else {
       DEBUG_PA(log->info() << "skipping\n");
     }
   }
 
-  writeTypeIds(M, data_type_ids, ".data_type_id");
-  writeTypeIds(M, code_type_ids, ".code_type_id");
+  if (PARTS::useFeCfi()) {
+    log->inc(DEBUG_TYPE ".CodePointers") << "annotating " << code_type_ids.size() << " pointer for PACing";
+    writeTypeIds(M, code_type_ids, ".code_type_id");
+  }
+
+  if (PARTS::useDpi()) {
+    log->inc(DEBUG_TYPE ".DataPointers") << "annotating " << data_type_ids.size() << " pointer for PACing";
+    writeTypeIds(M, data_type_ids, ".data_type_id");
+  }
 
   return (marked_code_pointers+marked_code_pointers) > 0;
 }

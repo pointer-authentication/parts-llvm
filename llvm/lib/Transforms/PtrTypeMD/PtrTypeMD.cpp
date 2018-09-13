@@ -47,6 +47,8 @@ struct PtrTypeMDPass : public FunctionPass {
   PartsTypeMetadata_ptr createCallMetadata(Function &F, Instruction &I);
   PartsTypeMetadata_ptr createLoadMetadata(Function &F, Instruction &I);
   PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
+
+  void fixDirectFunctionArgs(Function &F, Instruction &I);
 };
 
 } // anonymous namespace
@@ -55,6 +57,9 @@ char PtrTypeMDPass::ID = 0;
 static RegisterPass<PtrTypeMDPass> X("ptr-type-md-pass", "Pointer Type Metadata Pass");
 
 bool PtrTypeMDPass::runOnFunction(Function &F) {
+  if ( !(PARTS::useFeCfi() || PARTS::useDpi()))
+    return false;
+
   DEBUG_PA(log->debug() << "Function: " << F.getName() << "\n");
 
   auto &C = F.getContext();
@@ -77,6 +82,7 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
           MD = createLoadMetadata(F, I);
           break;
         case Instruction::Call:
+          fixDirectFunctionArgs(F, I);
           MD = createCallMetadata(F, I);
           break;
         default:
@@ -103,6 +109,10 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createLoadMetadata(Function &F, Instruction
   if (MD->isCodePointer()) {
     // Ignore all loaded function-pointers (at least for now)
     MD->setIgnored(true);
+  } else if (MD->isDataPointer()) {
+    if (!PARTS::useDpi()) {
+      MD->setIgnored(true);
+    }
   }
 
   return MD;
@@ -122,9 +132,28 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createStoreMetadata(Function &F, Instructio
     if (constant == nullptr || constant->isZeroValue()) {
       MD->setIgnored(true);
     }
+  } else if (MD->isDataPointer()) {
+    if (!PARTS::useDpi())
+      MD->setIgnored(true);
   }
 
   return MD;
+}
+
+void PtrTypeMDPass::fixDirectFunctionArgs(Function &F, Instruction &I) {
+  if (!PARTS::useFeCfi())
+    return;
+
+  auto CI = dyn_cast<CallInst>(&I);
+
+  for (auto i = 0U; i < CI->getNumOperands() - 1; i++) {
+    auto O = CI->getOperand(i);
+
+    if (PartsTypeMetadata::TyIsCodePointer(O->getType()) && isa<Function>(O)) {
+      auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
+      CI->setOperand(i, paced_arg);
+    }
+  }
 }
 
 PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction &I) {
@@ -133,21 +162,12 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction
   PartsTypeMetadata_ptr MD;
 
   auto CI = dyn_cast<CallInst>(&I);
+
   if (CI->getCalledFunction() == nullptr) {
     log->inc(DEBUG_TYPE ".IndirectCallMetadataFound", true, F.getName()) << "      found indirect call!!!!\n";
     MD = PartsTypeMetadata::get(I.getOperand(0)->getType());
   } else {
     MD = PartsTypeMetadata::getIgnored();
-  }
-
-  // Look at function arguments to see if we need to fix any of them
-  for (auto i = 0U; i < CI->getNumOperands()-1; i++) {
-    auto O =CI->getOperand(i);
-
-    if (PartsTypeMetadata::TyIsCodePointer(O->getType()) && isa<Function>(O)) {
-      auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
-      CI->setOperand(i, paced_arg);
-    }
   }
 
   return MD;
