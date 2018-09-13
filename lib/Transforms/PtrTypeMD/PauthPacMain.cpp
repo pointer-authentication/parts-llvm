@@ -52,6 +52,9 @@ static RegisterPass<PauthPacMain> X("pauth-pacmain", "PAC argv for main call");
 
 bool PauthPacMain::doInitialization(Module &M)
 {
+  if (!PARTS::useDpi())
+    return false;
+
   auto &C = M.getContext();
 
   Type* types[3];
@@ -69,11 +72,11 @@ bool PauthPacMain::doInitialization(Module &M)
 }
 
 bool PauthPacMain::doFinalization(Module &M) {
-  return true;
+  return PARTS::useDpi();
 }
 
 bool PauthPacMain::runOnFunction(Function &F) {
-  if (!F.getName().equals("main"))
+  if (!(PARTS::useDpi() &&F.getName().equals("main")))
     return false;
 
   assert(F.getName().equals("main"));
