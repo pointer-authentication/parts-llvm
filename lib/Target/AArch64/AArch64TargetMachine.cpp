@@ -40,6 +40,7 @@
 #include "llvm/Transforms/Scalar.h"
 #include <memory>
 #include <string>
+#include "llvm/PARTS/Parts.h"
 
 using namespace llvm;
 
@@ -140,12 +141,6 @@ static cl::opt<int> EnableGlobalISelAtO(
 
 static cl::opt<bool> EnableFalkorHWPFFix("aarch64-enable-falkor-hwpf-fix",
                                          cl::init(true), cl::Hidden);
-
-static cl::opt<bool> EnablePauthSLLOW("aarch64-pauth-sllow", cl::Hidden,
-                                      cl::desc("Enable Pointer Authentication Store/Load "
-                                               "MachineIR instrumentation."),
-                                      cl::init(false));
-
 
 extern "C" void LLVMInitializeAArch64Target() {
   // Register the target.
@@ -530,8 +525,10 @@ void AArch64PassConfig::addPreEmitPass() {
       TM->getTargetTriple().isOSBinFormatMachO())
     addPass(createAArch64CollectLOHPass());
 
-  if (EnablePauthSLLOW) {
-    addPass(createAArch64PaForwardCfiPass());
+  if (PARTS::useAny()) {
     addPass(createPartsPassIntrinsics());
+
+    if (PARTS::useAny())
+      addPass(createPartsPassDpi());
   }
 }
