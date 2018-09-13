@@ -41,6 +41,7 @@
 #include "llvm/Transforms/Scalar.h"
 #include <memory>
 #include <string>
+#include "llvm/PARTS/Parts.h"
 
 using namespace llvm;
 
@@ -150,12 +151,6 @@ static cl::opt<bool>
     EnableBranchTargets("aarch64-enable-branch-targets", cl::Hidden,
                         cl::desc("Enable the AAcrh64 branch target pass"),
                         cl::init(true));
-
-static cl::opt<bool> EnablePauthSLLOW("aarch64-pauth-sllow", cl::Hidden,
-                                      cl::desc("Enable Pointer Authentication Store/Load "
-                                               "MachineIR instrumentation."),
-                                      cl::init(false));
-
 
 extern "C" void LLVMInitializeAArch64Target() {
   // Register the target.
@@ -596,8 +591,10 @@ void AArch64PassConfig::addPreEmitPass() {
       TM->getTargetTriple().isOSBinFormatMachO())
     addPass(createAArch64CollectLOHPass());
 
-  if (EnablePauthSLLOW) {
-    addPass(createAArch64PaForwardCfiPass());
+  if (PARTS::useAny()) {
     addPass(createPartsPassIntrinsics());
+
+    if (PARTS::useAny())
+      addPass(createPartsPassDpi());
   }
 }
