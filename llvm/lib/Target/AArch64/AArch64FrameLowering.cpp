@@ -151,11 +151,6 @@ static cl::opt<bool>
                          cl::desc("reverse the CSR restore sequence"),
                          cl::init(false), cl::Hidden);
 
-static cl::opt<bool> EnablePauthBECFI("aarch64-pauth-becfi", cl::Hidden,
-                                      cl::desc("Enable Pointer Authentication for"
-                                               "backward edge CFI."),
-                                      cl::init(false));
-
 STATISTIC(NumRedZoneFunctions, "Number of functions using red zone");
 
 /// This is the biggest offset to the stack pointer we can encode in aarch64
@@ -891,7 +886,7 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
-  if (EnablePauthBECFI) // Insert pauth for LR
+  if (PARTS::useBeCfi()) // Insert pauth for LR
     PARTS->instrumentPrologue(TII, MBB, MBBI, DebugLoc());
 
   bool IsWin64 =
@@ -1390,7 +1385,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
           .setMIFlag(MachineInstr::FrameDestroy);
 
     // Insert pauth instruction to authenticate LR
-    if (EnablePauthBECFI && (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() ||
+    if (PARTS::useBeCfi() && (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() ||
                                windowsRequiresStackProbe(MF, NumBytes))) {
       PARTS->instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
     }
@@ -1472,7 +1467,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
   if (NeedsWinCFI)
     BuildMI(MBB, MBB.getFirstTerminator(), DL, TII->get(AArch64::SEH_EpilogEnd))
         .setMIFlag(MachineInstr::FrameDestroy);
-  if (EnablePauthBECFI)
+  if (PARTS::useBeCfi())
     PARTS->instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
 }
 
