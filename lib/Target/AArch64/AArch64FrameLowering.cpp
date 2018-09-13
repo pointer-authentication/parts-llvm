@@ -143,11 +143,6 @@ static cl::opt<bool> EnableRedZone("aarch64-redzone",
                                    cl::desc("enable use of redzone on AArch64"),
                                    cl::init(false), cl::Hidden);
 
-static cl::opt<bool> EnablePauthBECFI("aarch64-pauth-becfi", cl::Hidden,
-                                      cl::desc("Enable Pointer Authentication for"
-                                               "backward edge CFI."),
-                                      cl::init(false));
-
 STATISTIC(NumRedZoneFunctions, "Number of functions using red zone");
 
 /// Look at each instruction that references stack frames and return the stack
@@ -531,7 +526,7 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
-  if (EnablePauthBECFI) // Insert pauth for LR
+  if (PARTS::useBeCfi()) // Insert pauth for LR
     PARTS->instrumentPrologue(TII, MBB, MBBI, DebugLoc());
 
   bool IsWin64 =
@@ -860,7 +855,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
                     MachineInstr::FrameDestroy);
 
     // Insert pauth instruction to authenticate LR
-    if (EnablePauthBECFI && (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() ||
+    if (PARTS::useBeCfi() && (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() ||
                                windowsRequiresStackProbe(MF, NumBytes))) {
       PARTS->instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
     }
@@ -886,7 +881,6 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     // If we were able to combine the local stack pop with the argument pop,
     // then we're done.
     if (NoCalleeSaveRestore || ArgumentPopSize == 0) {
-      // if (EnablePauthBECFI) PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
       return;
     }
     NumBytes = 0;
@@ -911,7 +905,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     ArgumentPopSize, TII, MachineInstr::FrameDestroy);
 
-  if (EnablePauthBECFI)
+  if (PARTS::useBeCfi())
     PARTS->instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
 }
 
