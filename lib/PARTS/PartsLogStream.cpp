@@ -28,22 +28,22 @@ PartsLogStream &PartsLogStream::operator<<(const std::string &str) {
   return *this;
 }
 
-PartsLogStream &PartsLogStream::operator<<(unsigned long &str) {
+PartsLogStream &PartsLogStream::operator<<(const unsigned long &str) {
   *m_ostream << str;
   return *this;
 }
 
-PartsLogStream &PartsLogStream::operator<<(long &str) {
+PartsLogStream &PartsLogStream::operator<<(const long &str) {
   *m_ostream << std::to_string(str);
   return *this;
 }
 
-PartsLogStream &PartsLogStream::operator<<(unsigned &str) {
+PartsLogStream &PartsLogStream::operator<<(const unsigned &str) {
   *m_ostream << std::to_string(str);
   return *this;
 }
 
-PartsLogStream &PartsLogStream::operator<<(Instruction &I) {
+PartsLogStream &PartsLogStream::operator<<(const Instruction &I) {
   I.print(*m_ostream, true);
   return *this;
 }
@@ -53,12 +53,12 @@ PartsLogStream &PartsLogStream::operator<<(const char *str) {
   return *this;
 }
 
-PartsLogStream &PartsLogStream::operator<<(Module::global_iterator &GV) {
+PartsLogStream &PartsLogStream::operator<<(const Module::global_iterator &GV) {
   GV->print(*m_ostream, true);
   return *this;
 }
 
-PartsLogStream &PartsLogStream::operator<<(MachineBasicBlock::instr_iterator &MI) {
+PartsLogStream &PartsLogStream::operator<<(const MachineBasicBlock::instr_iterator &MI) {
   MI->print(*m_ostream);
   return *this;
 }

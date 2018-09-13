@@ -35,13 +35,13 @@ public:
   PartsLogStream &changeColor(enum raw_ostream::Colors colors, bool bold,bool bg);
 
   PartsLogStream &operator<<(const std::string &str);
-  PartsLogStream &operator<<(unsigned long &str);
+  PartsLogStream &operator<<(const unsigned long &str);
   PartsLogStream &operator<<(const char *str);
-  PartsLogStream &operator<<(long &str);
-  PartsLogStream &operator<<(unsigned &str);
-  PartsLogStream &operator<<(Instruction &I);
-  PartsLogStream &operator<<(Module::global_iterator &GV);
-  PartsLogStream &operator<<(MachineBasicBlock::instr_iterator &MI);
+  PartsLogStream &operator<<(const long &str);
+  PartsLogStream &operator<<(const unsigned &str);
+  PartsLogStream &operator<<(const Instruction &I);
+  PartsLogStream &operator<<(const Module::global_iterator &GV);
+  PartsLogStream &operator<<(const MachineBasicBlock::instr_iterator &MI);
 };
 
 } // namespace PARTS
