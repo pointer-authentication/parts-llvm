@@ -17,7 +17,10 @@ namespace llvm {
 
 namespace PARTS {
 
-
+bool useBeCfi();
+bool useFeCfi();
+bool useDpi();
+bool useAny();
 
 } // PARTS
 
