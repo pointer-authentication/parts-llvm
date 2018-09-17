@@ -248,6 +248,20 @@ void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_
   }
 }
 
+void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
+                               unsigned srcReg, unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
+  if (dstReg != srcReg) {
+    // Move src to dst
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dstReg).addReg(srcReg).addImm(0).addImm(0);
+  }
+
+  if (MIi == MBB.instr_end()) {
+    BuildMI(&MBB, DL, MCID).addReg(dstReg).addReg(modReg);
+  } else {
+    BuildMI(MBB, MIi, DL, MCID, dstReg).addReg(modReg);
+  }
+}
+
 void PartsUtils::pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
                                 unsigned srcReg, unsigned modReg, type_id_t type_id, const DebugLoc &DL) {
   // Move src to dst

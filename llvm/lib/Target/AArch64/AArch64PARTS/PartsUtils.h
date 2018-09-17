@@ -92,6 +92,9 @@ public:
 
   void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                      unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
+
+  void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned srcReg,
+                     unsigned dstReg, unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
 };
 
 inline bool PartsUtils::registerFitsPointer(unsigned reg)
