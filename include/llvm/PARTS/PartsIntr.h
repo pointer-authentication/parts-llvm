@@ -13,6 +13,7 @@
 
 #include "llvm/IR/Value.h"
 #include "llvm/IR/Function.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
 
 namespace llvm {
 
@@ -23,6 +24,9 @@ class PartsIntr {
 public:
   static Value *pac_code_pointer(Function &F, Instruction &I, Value *V);
   static Value *pac_code_pointer(Function &F, Instruction &I, Value *V, const std::string &name);
+
+  static Value *load_aut_pointer(Function &F, Instruction &I, PartsTypeMetadata_ptr PTMD);
+  static Value *store_aut_pointer(Function &F, Instruction &I, PartsTypeMetadata_ptr PTMD);
 };
 
 } // PARTS
