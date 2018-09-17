@@ -106,12 +106,12 @@ bool PauthMarkGlobals::runOnModule(Module &M)
   }
 
   if (PARTS::useFeCfi()) {
-    log->inc(DEBUG_TYPE ".CodePointers") << "annotating " << code_type_ids.size() << " pointer for PACing";
+    log->inc(DEBUG_TYPE ".CodePointers") << "annotating " << code_type_ids.size() << " pointer for PACing\n";
     writeTypeIds(M, code_type_ids, ".code_type_id");
   }
 
   if (PARTS::useDpi()) {
-    log->inc(DEBUG_TYPE ".DataPointers") << "annotating " << data_type_ids.size() << " pointer for PACing";
+    log->inc(DEBUG_TYPE ".DataPointers") << "annotating " << data_type_ids.size() << " pointer for PACing\n";
     writeTypeIds(M, data_type_ids, ".data_type_id");
   }
 
