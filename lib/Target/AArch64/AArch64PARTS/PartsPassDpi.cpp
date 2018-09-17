@@ -128,7 +128,7 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
   auto partsType = PartsTypeMetadata::retrieve(*MIi);
   auto &C = MF.getFunction().getContext();
 
-  DEBUG_PA(log->debug(MF.getName()) << "      found a load/store (" << TII->getName(MIOpcode) << ")\n");
+  DEBUG_PA(log->debug(MF.getName()) << "      found a load/store (" << TII->getName(MIi->getOpcode()) << ")\n");
 
   if (partsType == nullptr) {
     DEBUG_PA(log->debug(MF.getName()) << "      trying to figure out type_id\n");
