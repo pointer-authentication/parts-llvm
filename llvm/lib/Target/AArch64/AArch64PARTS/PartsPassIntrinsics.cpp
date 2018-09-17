@@ -77,24 +77,42 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       const auto MIOpcode = MIi->getOpcode();
 
-      if (MIOpcode == AArch64::PARTS_PACIA) {
+      switch(MIOpcode) {
+        default:
+          break;
+        case AArch64::PARTS_PACIA:
+        case AArch64::PARTS_PACDA:
+        case AArch64::PARTS_AUTIA:
+        case AArch64::PARTS_AUTDA:
+          const auto &DL = MIi->getDebugLoc();
+          const unsigned dst = MIi->getOperand(0).getReg();
+          const unsigned src = MIi->getOperand(1).getReg();
+          const unsigned mod = MIi->getOperand(2).getReg();
 
-        // Find our registers and the PA modifier
-        unsigned SrcReg = MIi->getOperand(1).getReg();
-        unsigned DstReg = MIi->getOperand(0).getReg();
-        unsigned ModReg = Pauth_ModifierReg;
-        auto type_id = static_cast<type_id_t>(MIi->getOperand(2).getImm());
+          // Move the pointer to destination register
+          BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
 
-        // PAC the pointer
-        partsUtils->pacCodePointer(MBB, MIi, DstReg, SrcReg, ModReg, type_id, MIi->getDebugLoc());
+          // Insert appropriate PA instruction
+          if (MIOpcode == AArch64::PARTS_PACIA) {
+            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACIA), DL);
+          } else if (MIOpcode == AArch64::PARTS_PACDA) {
+            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
+          } else if (MIOpcode == AArch64::PARTS_AUTIA) {
+            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTIA), DL);
+          } else if (MIOpcode == AArch64::PARTS_AUTDA) {
+            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTDA), DL);
+          }
 
-        // And finally, remove the intrinsic
-        auto tmp = MIi;
-        MIi--;
-        tmp->removeFromParent();
+          // And finally, remove the intrinsic
+          auto tmp = MIi;
+          MIi--;
+          tmp->removeFromParent();
 
-        found = true; // make sure we return true when we modify stuff
+          found = true; // make sure we return true when we modify stuff
+
+          break;
       }
+
     }
   }
 
