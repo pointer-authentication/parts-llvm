@@ -15,8 +15,6 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 
-class pa_pacia;
-
 using namespace llvm;
 using namespace llvm::PARTS;
 
@@ -37,3 +35,60 @@ Value *PartsIntr::pac_code_pointer(Function &F, Instruction &I, Value *V) {
   return pac_code_pointer(F, I, V, "paced_ptr");
 }
 
+Value *PartsIntr::load_aut_pointer(Function &F, Instruction &I, PartsTypeMetadata_ptr partsMD) {
+  assert(partsMD->isPointer());
+
+  IRBuilder<> Builder(&I);
+
+  //auto *mod = Builder.CreateLoad(partsMD->getTypeIdConstant(F.getContext()));
+  auto *mod = partsMD->getTypeIdConstant(F.getContext());
+  auto *ptr = Builder.Insert(I.clone());
+
+  // Insert the unPAC/AUT intrinsic
+
+  Type *arg_types[] = { I.getType() };
+  auto aut = partsMD->isCodePointer() ?
+             Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, arg_types) :
+             Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autda, arg_types);
+
+  Value *args[] { ptr, mod };
+  auto *V = Builder.CreateCall(aut, args, "unPACed_");
+
+  // Replace uses of old instruction with new one
+  I.replaceAllUsesWith(V);
+
+  // Don't remove, optimizer should maybe get rid of this anyway?
+  //I.removeFromParent();
+
+  //return V;
+  return nullptr;
+}
+
+Value *PartsIntr::store_aut_pointer(Function &F, Instruction &I, PartsTypeMetadata_ptr PTMD) {
+  assert(PTMD->isPointer());
+
+  IRBuilder<> Builder(&I);
+
+  //auto *mod = Builder.CreateLoad(partsMD->getTypeIdConstant(F.getContext()));
+  auto *mod = PTMD->getTypeIdConstant(F.getContext());
+  auto *ptr = Builder.Insert(I.clone());
+
+  // Insert the unPAC/AUT intrinsic
+
+  Type *arg_types[] = { I.getType() };
+  auto aut = PTMD->isCodePointer() ?
+             Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_pacia, arg_types) :
+             Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_pacda, arg_types);
+
+  Value *args[] { ptr, mod };
+  Builder.CreateCall(aut, args, "PACed_");
+
+  // Replace uses of old instruction with new one
+  //I.replaceAllUsesWith(V);
+
+  // Don't remove, optimizer should maybe get rid of this anyway?
+  //I.removeFromParent();
+
+  //return V;
+  return nullptr;
+}
