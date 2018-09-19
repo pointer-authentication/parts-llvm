@@ -43,8 +43,8 @@ private:
     ~Stats();
 
     void dump() const;
-    void inc(const std::string var);
-    void dec(const std::string var);
+    void inc(const std::string &var, unsigned num=1);
+    void dec(const std::string &var, unsigned num=1);
   };
 
   const std::string m_name;
@@ -66,8 +66,11 @@ public:
 
   void restrictToFunc(const std::string func);
 
-  PARTS::PartsLogStream inc(const std::string &var, bool b, const std::string &F = "");
-  PARTS::PartsLogStream inc(const std::string &var, const raw_ostream::Colors c = raw_ostream::BLUE, const std::string &F = "");
+  PARTS::PartsLogStream inc(const std::string &var, bool b, const std::string &F = "", unsigned num = 1);
+  PARTS::PartsLogStream inc(const std::string &var,
+                            const raw_ostream::Colors c = raw_ostream::BLUE,
+                            const std::string &F = "",
+                            const unsigned num  = 1);
   PARTS::PartsLogStream dec(const std::string &var, bool b, const std::string &F = "");
   PARTS::PartsLogStream dec(const std::string &var, const raw_ostream::Colors c = raw_ostream::BLUE, const std::string &F = "");
 

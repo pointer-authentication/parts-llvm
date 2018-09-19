@@ -58,6 +58,11 @@ PartsLogStream &PartsLogStream::operator<<(const Module::global_iterator &GV) {
   return *this;
 }
 
+PartsLogStream &PartsLogStream::operator<<(const GlobalVariable &GV) {
+  GV.print(*m_ostream, true);
+  return *this;
+}
+
 PartsLogStream &PartsLogStream::operator<<(const MachineBasicBlock::instr_iterator &MI) {
   MI->print(*m_ostream);
   return *this;
@@ -72,7 +77,6 @@ PartsLogStream &PartsLogStream::changeColor(enum raw_ostream::Colors color, bool
   m_ostream->changeColor(color, bold, bg);
   return *this;
 }
-
 
 
 } // namespace PARTS
