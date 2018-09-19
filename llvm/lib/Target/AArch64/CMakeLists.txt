@@ -60,6 +60,7 @@ add_llvm_target(AArch64CodeGen
   AArch64TargetTransformInfo.cpp
   AArch64SIMDInstrOpt.cpp
   AArch64PARTS/PartsUtils.cpp
+  AArch64PARTS/PartsPassCpi.cpp
   AArch64PARTS/PartsPassDpi.cpp
   AArch64PARTS/PartsPassIntrinsics.cpp
   AArch64PARTS/PartsFrameLowering.cpp

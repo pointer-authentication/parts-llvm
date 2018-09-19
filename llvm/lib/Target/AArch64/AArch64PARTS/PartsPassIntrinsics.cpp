@@ -28,6 +28,7 @@
 #include "PartsUtils.h"
 
 #define DEBUG_TYPE "aarch64-pa-forwardcfi"
+#define TAG "PartsPasSIntrinsics"
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -37,7 +38,12 @@ class PartsPassIntrinsics : public MachineFunctionPass {
 public:
   static char ID;
 
-  PartsPassIntrinsics() : MachineFunctionPass(ID) {}
+  PartsPassIntrinsics() :
+      MachineFunctionPass(ID),
+      log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
+  {
+    DEBUG_PA(log->enable());
+  }
 
   StringRef getPassName() const override { return "parts-intrinsics"; }
 
@@ -45,6 +51,8 @@ public:
   bool runOnMachineFunction(MachineFunction &) override;
 
 private:
+
+  PartsLog_ptr log;
 
   //const TargetMachine *TM = nullptr;
   const AArch64Subtarget *STI = nullptr;
@@ -94,12 +102,16 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
 
           // Insert appropriate PA instruction
           if (MIOpcode == AArch64::PARTS_PACIA) {
+            log->inc(TAG ".pacia", true) << "converting PARTS_PACIA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACIA), DL);
           } else if (MIOpcode == AArch64::PARTS_PACDA) {
+            log->inc(TAG ".pacda", true) << "converting PARTS_PACDA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
           } else if (MIOpcode == AArch64::PARTS_AUTIA) {
+            log->inc(TAG ".autia", true) << "converting PARTS_AUTIA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTIA), DL);
           } else if (MIOpcode == AArch64::PARTS_AUTDA) {
+            log->inc(TAG ".autda", true) << "converting PARTS_AUTDA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTDA), DL);
           }
 

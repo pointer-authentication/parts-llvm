@@ -56,8 +56,8 @@ namespace {
    static char ID;
 
    PartsPassDpi() :
-   MachineFunctionPass(ID),
-   log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
+       MachineFunctionPass(ID),
+       log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
    {
      DEBUG_PA(log->enable());
    }
@@ -107,11 +107,6 @@ bool PartsPassDpi::runOnMachineFunction(MachineFunction &MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
 
-      const auto MIOpcode = MIi->getOpcode();
-
-      if (MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL) {
-        instrumentBranches(MF, MBB, MIi);
-      }
       if (partsUtils->isLoadOrStore(*MIi)) {
         instrumentLoadStore(MF, MBB, MIi);
       }
@@ -200,52 +195,4 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
   }
 
   return false;
-}
-
-bool PartsPassDpi::instrumentBranches(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi) {
-  if (!PARTS::useFeCfi())
-    return false;
-
-  const auto MIOpcode = MIi->getOpcode();
-  auto partsType = PartsTypeMetadata::retrieve(*MIi);
-
-  assert(MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL);
-
-  /* ----------------------------- BL/BLR ---------------------------------------- */
-  DEBUG_PA(log->debug(MF.getName()) << "      found a BL/BLR (" << TII->getName(MIOpcode) << ")\n");
-
-  if (partsType == nullptr) {
-    DEBUG_PA(log->debug(MF.getName()) << "      trying to figure out type_id\n");
-    log->error(MF.getName()) << __FUNCTION__ << ": figuring out NOT IMPLEMENTED!!!\n";
-
-    partsType = PartsTypeMetadata::getUnknown();
-  }
-
-  skipIfB(!partsType->isKnown(), "Branch.Unknown", false, "type_id is unknown!\n");
-  skipIfN(partsType->isIgnored(), "Branch.Ignored", "marked as ignored, skipping!\n");
-  skipIfN(!partsType->isPointer(), "Branch.NotAPointer", "not a pointer, skipping!\n");
-
-  log->inc("StoreLoad.InstrumentedCall", true) << "      instrumenting call " << partsType->toString() << "\n";
-  assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
-
-  // Create the PAC modifier
-  partsUtils->moveTypeIdToReg(MBB, MIi, PARTS::getModifierReg(), partsType->getTypeId(), MIi->getDebugLoc());
-  /*
-  BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi))
-      .addReg(PARTS::getModifierReg())
-      .addImm(partsType->getTypeId())
-      .addImm(0);
-  */
-
-  // Swap out the branch to a auth+branch variant
-  auto BMI = BuildMI(MBB, *MIi, MIi->getDebugLoc(), TII->get(AArch64::BLRAA));
-  BMI.add(MIi->getOperand(0));
-  BMI.addReg(PARTS::getModifierReg());
-
-  // Remove the old instruction!
-  auto &MI = *MIi;
-  MIi--;
-  MI.removeFromParent();
-
-  return true;
 }
