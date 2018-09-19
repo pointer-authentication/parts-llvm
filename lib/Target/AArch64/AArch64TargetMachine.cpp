@@ -528,7 +528,9 @@ void AArch64PassConfig::addPreEmitPass() {
   if (PARTS::useAny()) {
     addPass(createPartsPassIntrinsics());
 
-    if (PARTS::useAny())
+    if (PARTS::useDpi())
       addPass(createPartsPassDpi());
+    if (PARTS::useFeCfi())
+      addPass(createPartsPassCpi());
   }
 }

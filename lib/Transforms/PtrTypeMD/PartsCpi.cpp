@@ -29,12 +29,12 @@ using namespace llvm::PARTS;
 
 namespace {
 
-struct PartsCfi : public FunctionPass {
+struct PartsCpi : public FunctionPass {
   static char ID;
 
   PartsLog_ptr log;
 
-  PartsCfi() : FunctionPass(ID), log(PartsLog::getLogger(DEBUG_TYPE))
+  PartsCpi() : FunctionPass(ID), log(PartsLog::getLogger(DEBUG_TYPE))
   {
     DEBUG_PA(log->enable());
   }
@@ -46,10 +46,10 @@ struct PartsCfi : public FunctionPass {
 
 } // anonymous namespace
 
-char PartsCfi::ID = 0;
-static RegisterPass<PartsCfi> X("parts-fecfi-pass", "PARTS CFI pass");
+char PartsCpi::ID = 0;
+static RegisterPass<PartsCpi> X("parts-fecfi-pass", "PARTS CFI pass");
 
-bool PartsCfi::runOnFunction(Function &F) {
+bool PartsCpi::runOnFunction(Function &F) {
   if (!PARTS::useFeCfi())
     return false;
 
@@ -64,34 +64,41 @@ bool PartsCfi::runOnFunction(Function &F) {
       switch(IOpcode) {
         default:
           break;
-        case Instruction::Store:
-          MD = PartsTypeMetadata::get(I.getOperand(0)->getType());
-          if (MD->isCodePointer()) {
+        case Instruction::Store: {
+          auto SI = dyn_cast<StoreInst>(&I);
+          assert(SI != nullptr);
 
-            auto O = I.getOperand(1);
-            if (PartsTypeMetadata::TyIsCodePointer(O->getType()) && isa<Function>(O)) {
-              log->inc(DEBUG_TYPE ".StoreFunction", true, F.getName()) << "PACing store of function address\n";
-              //auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
-              //I.setOperand(1, paced_arg);
-            } else {
-              // Assume th pointer is already PACed, in which case we need to rePAC
-              log->inc(DEBUG_TYPE ".StoreCodePointer", true, F.getName()) << "PACing store of code-pointer\n";
-              //auto aut_arg = PartsIntr::load_aut_pointer(F, I, MD);
-              //auto paced_arg = PartsIntr::pac_code_pointer(F, I, aut_arg);
-              //I.setOperand(1, paced_arg);
-            }
+          auto PO = SI->getPointerOperand();
+          auto VO = SI->getValueOperand();
+          MD = PartsTypeMetadata::get(PO->getType());
+
+          if (isa<Function>(VO)) {
+            log->inc(DEBUG_TYPE ".StoreFunction", true, F.getName()) << "PACing store of function address\n";
+
+            auto paced_arg = PartsIntr::pac_code_pointer(F, I, VO);
+            SI->setOperand(0, paced_arg);
+
+            break;
           }
+
+          if (isa<Constant>(VO)) {
+            log->inc(DEBUG_TYPE ".StoreConstant", true, F.getName()) << "ignoring store of constant\n";
+            break;
+          }
+
+          // Assume th pointer is already PACed
+          log->inc(DEBUG_TYPE ".StoreCodePointer", true, F.getName()) << "ignoring re-store of code-pointer\n";
           break;
+        }
         case Instruction::Load:
           break;
-        case Instruction::Call:
+        case Instruction::Call: {
           fixDirectFunctionArgs(F, I);
+          break;
 
           auto CI = dyn_cast<CallInst>(&I);
 
           if (CI->getCalledFunction() == nullptr) {
-
-            //auto O = I.getOperand(0);
             auto O = CI->getCalledValue();
 
             if (isa<InlineAsm>(O)) {
@@ -100,13 +107,14 @@ bool PartsCfi::runOnFunction(Function &F) {
               break;
             }
 
-            log->inc(DEBUG_TYPE ".IndirectCall", true, F.getName()) << "      found indirect call!!!!\n";
+            //log->inc(DEBUG_TYPE ".IndirectCall", true, F.getName()) << "      found indirect call!!!!\n";
 
-            auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
-            CI->setOperand(0, paced_arg);
+            //auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
+            //CI->setOperand(0, paced_arg);
           }
 
           break;
+        }
       }
     }
   }
@@ -114,7 +122,7 @@ bool PartsCfi::runOnFunction(Function &F) {
   return true;
 }
 
-void PartsCfi::fixDirectFunctionArgs(Function &F, Instruction &I) {
+void PartsCpi::fixDirectFunctionArgs(Function &F, Instruction &I) {
   if (!PARTS::useFeCfi())
     return;
 

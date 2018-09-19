@@ -56,6 +56,7 @@ createAArch64InstructionSelector(const AArch64TargetMachine &,
 
 FunctionPass *createPartsPassIntrinsics();
 FunctionPass *createPartsPassDpi();
+FunctionPass *createPartsPassCpi();
 
 void initializeAArch64A53Fix835769Pass(PassRegistry&);
 void initializeAArch64A57FPLoadBalancingPass(PassRegistry&);
