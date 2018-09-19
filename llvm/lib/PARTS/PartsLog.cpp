@@ -13,10 +13,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <unistd.h>
-#include <llvm/PARTS/PartsLog.h>
-
 #include "llvm/Support/raw_ostream.h"
-
 
 namespace llvm {
 
@@ -86,23 +83,23 @@ PartsLog_ptr PartsLog::getLogger(const std::string &name)
   }
 }
 
-PartsLogStream PartsLog::inc(const std::string &var, bool b, const std::string &F) {
-  return b ? inc(var, raw_ostream::GREEN, F) : inc(var, raw_ostream::RED, F);
+PartsLogStream PartsLog::inc(const std::string &var, bool b, const std::string &F, unsigned num) {
+  return b ? inc(var, raw_ostream::GREEN, F, num) : inc(var, raw_ostream::RED, F, num);
 }
 
 PartsLogStream PartsLog::dec(const std::string &var, bool b, const std::string &F) {
   return b ? dec(var, raw_ostream::GREEN, F) : dec(var, raw_ostream::RED, F);
 }
 
-PartsLogStream PartsLog::inc(const std::string &var, const raw_ostream::Colors c, const std::string &F) {
+PartsLogStream PartsLog::inc(const std::string &var, const raw_ostream::Colors c, const std::string &F, unsigned num) {
   auto &s = getStats();
-  s.inc(var);
+  s.inc(var, num);
   return PartsLogStream(get_ostream(m_enabled, F, c));
 }
 
 PartsLogStream PartsLog::dec(const std::string &var, const raw_ostream::Colors c, const std::string &F) {
   auto &s = getStats();
-  s.inc(var);
+  s.dec(var);
   return PartsLogStream(get_ostream(m_enabled, F, c));
 }
 
@@ -132,19 +129,19 @@ void PartsLog::Stats::dump() const {
   errs() << "//---------------- done ---------------------------------------//\n\n";
 }
 
-void PartsLog::Stats::inc(const std::string var) {
+void PartsLog::Stats::inc(const std::string &var, const unsigned num) {
   auto found = m_stats.find(var);
   if (found == m_stats.end()) {
-    m_stats.insert({var, 1});
+    m_stats.insert({var, num});
   } else {
     found->second++;
   }
 }
 
-void PartsLog::Stats::dec(const std::string var) {
+void PartsLog::Stats::dec(const std::string &var, const unsigned num) {
   auto found = m_stats.find(var);
   if (found == m_stats.end()) {
-    m_stats.insert({var, -1});
+    m_stats.insert({var, -num});
   } else {
     found->second--;
   }
