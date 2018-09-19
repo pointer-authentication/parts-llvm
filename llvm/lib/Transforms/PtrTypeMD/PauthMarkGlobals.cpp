@@ -36,22 +36,37 @@ using namespace llvm;
 
 namespace {
 
-struct PauthMarkGlobals: public ModulePass {
+struct PauthMarkGlobals: public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
 
   PartsLog_ptr log;
 
+  std::list<PARTS::type_id_t> data_type_ids = std::list<PARTS::type_id_t>(0);
+  std::list<PARTS::type_id_t> code_type_ids = std::list<PARTS::type_id_t>(0);
+  int marked_data_pointers = 0;
+  int marked_code_pointers = 0;
+  bool need_fix_globals_call = false;
+
+  IRBuilder<> *builder;
+
+  Function *funcFixGlobals = nullptr;
+
   PauthMarkGlobals() :
-      ModulePass(ID),
+      FunctionPass(ID),
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
     DEBUG_PA(log->enable());
+    log->enable();
   }
 
-  bool runOnModule(Module &M) override;
+  bool doInitialization(Module &M) override;
+  bool runOnFunction(Function &M) override;
+
+  bool handleGlobal(GlobalVariable &GV);
 
 private:
   void writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName);
+
 };
 
 } // anonymous namespace
@@ -59,50 +74,26 @@ private:
 char PauthMarkGlobals::ID = 0;
 static RegisterPass<PauthMarkGlobals> X("pauth-markglobals", "PAC argv for main call");
 
-bool PauthMarkGlobals::runOnModule(Module &M)
-{
-  if ( !(PARTS::useFeCfi() || PARTS::useDpi()))
+bool PauthMarkGlobals::doInitialization(Module &M) {
+  if ( !(PARTS::useFeCfi() || PARTS::useDpi())) // We don't need to do anything unless we use PI
     return false;
 
-  int marked_data_pointers = 0;
-  int marked_code_pointers = 0;
+  auto &C = M.getContext();
 
-  auto data_type_ids = std::list<PARTS::type_id_t>(0);
-  auto code_type_ids = std::list<PARTS::type_id_t>(0);
+  auto result = Type::getVoidTy(C);
+  FunctionType* signature = FunctionType::get(result, false);
+  funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
 
-  // Automatically annotate pointer globals
+  auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
+  IRBuilder<> localBuilder(BB);
+  builder = &localBuilder;
+
+  // Then, iterate through globals and fill __pauth_pac_globals with needed instructions
+
+  log->disable();
+
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
-    DEBUG_PA(log->info() << "inspecting " << GI << "\n");
-    errs();
-    //DEBUG_DO(errs() << TAG << "inspecting "; GI->dump(););
-    if (GI->getNumOperands() == 0) {
-      DEBUG_PA(log->info() << "skipping\n");
-      continue;
-    }
-
-    auto Ty = GI->getOperand(0)->getType();
-
-    if (Ty->isPointerTy()) {
-      auto type_id = PartsTypeMetadata::idFromType(Ty);
-
-      if (PartsTypeMetadata::TyIsCodePointer(Ty)) {
-
-        if (PARTS::useFeCfi()) {
-          marked_code_pointers++;
-          GI->setSection(".code_pauth");
-          code_type_ids.push_back(type_id);
-        }
-      } else {
-
-        if (PARTS::useDpi()) {
-          marked_data_pointers++;
-          GI->setSection(".data_pauth");
-          data_type_ids.push_back(type_id);
-        }
-      }
-    } else {
-      DEBUG_PA(log->info() << "skipping\n");
-    }
+    handleGlobal(*GI);
   }
 
   if (PARTS::useFeCfi()) {
@@ -115,7 +106,83 @@ bool PauthMarkGlobals::runOnModule(Module &M)
     writeTypeIds(M, data_type_ids, ".data_type_id");
   }
 
+
+  builder->CreateRetVoid();
+  builder = nullptr;
+
   return (marked_code_pointers+marked_code_pointers) > 0;
+}
+
+bool PauthMarkGlobals::runOnFunction(Function &F) {
+  if (!(need_fix_globals_call && PARTS::useDpi() && F.getName().equals("main")))
+    return false;
+
+  assert(F.getName().equals("main"));
+
+  auto &B = F.getEntryBlock();
+  auto &I = *B.begin();
+
+  IRBuilder<> Builder(&I);
+  Builder.CreateCall(funcFixGlobals);
+
+  DEBUG_PA(log->info() << "Adding call to __pauth_pac_globals\n");
+  return true;
+}
+
+bool PauthMarkGlobals::handleGlobal(GlobalVariable &GV) {
+  if (GV.getValueName()->first() == "funcpointer")
+    log->enable();
+
+  log->info() << "inspecting " << GV << "\n";
+
+  if (GV.getNumOperands() == 0) {
+    log->info() << "skipping empty\n";
+    return false;
+  }
+
+  auto O = GV.getOperand(0);
+  auto Ty = O->getType();
+
+  if (Ty->isArrayTy() && Ty->getArrayElementType()->isPointerTy()) {
+    errs() << "FIXME: global pointer arrays are un-instrumented!!!";
+    //llvm_unreachable("unimplemented");
+
+    assert(isa<User>(O));
+    auto U = dyn_cast<User>(O);
+
+    for (auto i = 0U; i < U->getNumOperands(); i++) {
+      //auto ptrOp = U->getOperand(i);
+      //auto loaded = builder->CreateLoad(ptrOp);
+      //auto paced = loaded; // TODO
+
+      //builder->CreateStore(paced, )
+    }
+    return false;
+  }
+
+  if (Ty->isPointerTy()) {
+    auto type_id = PartsTypeMetadata::idFromType(Ty);
+
+    if (PartsTypeMetadata::TyIsCodePointer(Ty)) {
+      if (PARTS::useFeCfi()) {
+        marked_code_pointers++;
+        GV.setSection(".code_pauth");
+        code_type_ids.push_back(type_id);
+      }
+    } else {
+      if (PARTS::useDpi()) {
+        marked_data_pointers++;
+        GV.setSection(".data_pauth");
+        data_type_ids.push_back(type_id);
+      }
+    }
+    return true;
+  }
+
+  log->info() << "skipping\n";
+
+  log->disable();
+  return false;
 }
 
 void PauthMarkGlobals::writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName)
