@@ -148,10 +148,9 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
     auto arrayType = dyn_cast<ArrayType>(O->getType());
     auto elementType = arrayType->getElementType();
 
-    auto PTMD = PartsTypeMetadata::get(elementType);
+    const auto isCodePtr = PartsTypeMetadata::TyIsCodePointer(elementType);
 
-    if ((PARTS::useDpi() && PTMD->isDataPointer()) ||
-        (PARTS::useFeCfi() && PTMD->isCodePointer())) {
+    if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
       // Only PAC if feature enabled
 
       for (auto i = 0U; i < dyn_cast<User>(O)->getNumOperands(); i++) {
@@ -163,7 +162,7 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
         auto loaded = builder->CreateLoad(elPtr);
         auto paced = PartsIntr::pac_pointer(builder, M, loaded);
 
-        if (PTMD->isCodePointer()) {
+        if (isCodePtr) {
           fixed_cp++;
         } else {
           fixed_dp++;

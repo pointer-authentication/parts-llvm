@@ -30,8 +30,7 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII,
 }
 
 void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII,
-                        MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                        const DebugLoc &DL)
-{
+                                            MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
+                                            const DebugLoc &DL) {
   BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
 }
