@@ -34,12 +34,17 @@ PartsLogStream &PartsLogStream::operator<<(const unsigned long &str) {
 }
 
 PartsLogStream &PartsLogStream::operator<<(const long &str) {
-  *m_ostream << std::to_string(str);
+  *m_ostream << str;
+  return *this;
+}
+
+PartsLogStream &PartsLogStream::operator<<(const int &str) {
+  *m_ostream << str;
   return *this;
 }
 
 PartsLogStream &PartsLogStream::operator<<(const unsigned &str) {
-  *m_ostream << std::to_string(str);
+  *m_ostream << str;
   return *this;
 }
 

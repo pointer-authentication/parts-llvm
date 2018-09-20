@@ -38,6 +38,7 @@ public:
   PartsLogStream &operator<<(const unsigned long &str);
   PartsLogStream &operator<<(const char *str);
   PartsLogStream &operator<<(const long &str);
+  PartsLogStream &operator<<(const int &str);
   PartsLogStream &operator<<(const unsigned &str);
   PartsLogStream &operator<<(const Instruction &I);
   PartsLogStream &operator<<(const Module::global_iterator &GV);
