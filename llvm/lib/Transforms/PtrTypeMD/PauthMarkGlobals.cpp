@@ -9,6 +9,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/PARTS/PartsIntr.h>
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
@@ -45,6 +46,8 @@ struct PauthMarkGlobals: public FunctionPass {
   std::list<PARTS::type_id_t> code_type_ids = std::list<PARTS::type_id_t>(0);
   int marked_data_pointers = 0;
   int marked_code_pointers = 0;
+  int fixed_dp = 0;
+  int fixed_cp = 0;
   bool need_fix_globals_call = false;
 
   IRBuilder<> *builder;
@@ -56,13 +59,12 @@ struct PauthMarkGlobals: public FunctionPass {
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
     DEBUG_PA(log->enable());
-    log->enable();
   }
 
   bool doInitialization(Module &M) override;
   bool runOnFunction(Function &M) override;
 
-  bool handleGlobal(GlobalVariable &GV);
+  bool handleGlobal(Module &M, GlobalVariable &GV);
 
 private:
   void writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName);
@@ -87,34 +89,32 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
   auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
   IRBuilder<> localBuilder(BB);
   builder = &localBuilder;
-
-  // Then, iterate through globals and fill __pauth_pac_globals with needed instructions
-
-  log->disable();
-
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
-    handleGlobal(*GI);
+    handleGlobal(M, *GI);
   }
+  builder->CreateRetVoid();
+  builder = nullptr;
 
+  // FIXME: There's something wrong with this reporting!?!
   if (PARTS::useFeCfi()) {
-    log->inc(DEBUG_TYPE ".CodePointers") << "annotating " << code_type_ids.size() << " pointer for PACing\n";
+    log->inc(DEBUG_TYPE ".CodePointersFixed") << "\"fixed\" " << fixed_cp << " code pointers for PACing\n";
+    log->inc(DEBUG_TYPE ".CodePointersMarked") << "annotating " << marked_code_pointers << " code pointers for PACing\n";
+    errs() << fixed_cp << " and " << marked_code_pointers << "\n";
     writeTypeIds(M, code_type_ids, ".code_type_id");
   }
 
   if (PARTS::useDpi()) {
-    log->inc(DEBUG_TYPE ".DataPointers") << "annotating " << data_type_ids.size() << " pointer for PACing\n";
+    log->inc(DEBUG_TYPE ".DataPointersFixed") << "\"fixed\" " << fixed_dp << " data pointers for PACing\n";
+    log->inc(DEBUG_TYPE ".DataPointersMarked") << "annotating " << marked_data_pointers << " data pointers for PACing\n";
     writeTypeIds(M, data_type_ids, ".data_type_id");
   }
 
-
-  builder->CreateRetVoid();
-  builder = nullptr;
-
-  return (marked_code_pointers+marked_code_pointers) > 0;
+  need_fix_globals_call = (marked_code_pointers+marked_code_pointers+fixed_cp+fixed_dp) > 0;
+  return need_fix_globals_call;
 }
 
 bool PauthMarkGlobals::runOnFunction(Function &F) {
-  if (!(need_fix_globals_call && PARTS::useDpi() && F.getName().equals("main")))
+  if (!(need_fix_globals_call && PARTS::useAny() && F.getName().equals("main")))
     return false;
 
   assert(F.getName().equals("main"));
@@ -129,9 +129,8 @@ bool PauthMarkGlobals::runOnFunction(Function &F) {
   return true;
 }
 
-bool PauthMarkGlobals::handleGlobal(GlobalVariable &GV) {
-  if (GV.getValueName()->first() == "funcpointer")
-    log->enable();
+bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
+  auto &C = M.getContext();
 
   log->info() << "inspecting " << GV << "\n";
 
@@ -144,20 +143,42 @@ bool PauthMarkGlobals::handleGlobal(GlobalVariable &GV) {
   auto Ty = O->getType();
 
   if (Ty->isArrayTy() && Ty->getArrayElementType()->isPointerTy()) {
-    errs() << "FIXME: global pointer arrays are un-instrumented!!!";
-    //llvm_unreachable("unimplemented");
-
     assert(isa<User>(O));
-    auto U = dyn_cast<User>(O);
 
-    for (auto i = 0U; i < U->getNumOperands(); i++) {
-      //auto ptrOp = U->getOperand(i);
-      //auto loaded = builder->CreateLoad(ptrOp);
-      //auto paced = loaded; // TODO
+    auto arrayType = dyn_cast<ArrayType>(O->getType());
+    auto elementType = arrayType->getElementType();
 
-      //builder->CreateStore(paced, )
+    auto PTMD = PartsTypeMetadata::get(elementType);
+
+    if ((PARTS::useDpi() && PTMD->isDataPointer()) ||
+        (PARTS::useFeCfi() && PTMD->isCodePointer())) {
+      // Only PAC if feature enabled
+
+      for (auto i = 0U; i < dyn_cast<User>(O)->getNumOperands(); i++) {
+        auto elPtr = builder->CreateGEP(&GV, {
+            ConstantInt::get(Type::getInt64Ty(C), 0),
+            ConstantInt::get(Type::getInt64Ty(C), i),
+        });
+
+        auto loaded = builder->CreateLoad(elPtr);
+        auto paced = PartsIntr::pac_pointer(builder, M, loaded);
+
+        if (PTMD->isCodePointer()) {
+          fixed_cp++;
+        } else {
+          fixed_dp++;
+        }
+
+        builder->CreateStore(paced, elPtr);
+      }
     }
-    return false;
+
+    if (PARTS::useDpi()) {
+      marked_data_pointers++;
+      GV.setSection(".data_pauth");
+      data_type_ids.push_back(PartsTypeMetadata::idFromType(Ty));
+    }
+    return true;
   }
 
   if (Ty->isPointerTy()) {
@@ -180,8 +201,6 @@ bool PauthMarkGlobals::handleGlobal(GlobalVariable &GV) {
   }
 
   log->info() << "skipping\n";
-
-  log->disable();
   return false;
 }
 

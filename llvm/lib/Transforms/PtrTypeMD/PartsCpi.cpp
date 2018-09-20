@@ -75,7 +75,7 @@ bool PartsCpi::runOnFunction(Function &F) {
           if (isa<Function>(VO)) {
             log->inc(DEBUG_TYPE ".StoreFunction", true, F.getName()) << "PACing store of function address\n";
 
-            auto paced_arg = PartsIntr::pac_code_pointer(F, I, VO);
+            auto paced_arg = PartsIntr::pac_pointer(F, I, VO);
             SI->setOperand(0, paced_arg);
 
             break;
@@ -132,7 +132,7 @@ void PartsCpi::fixDirectFunctionArgs(Function &F, Instruction &I) {
     auto O = CI->getOperand(i);
 
     if (PartsTypeMetadata::TyIsCodePointer(O->getType()) && isa<Function>(O)) {
-      auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
+      auto paced_arg = PartsIntr::pac_pointer(F, I, O);
       CI->setOperand(i, paced_arg);
     }
   }
