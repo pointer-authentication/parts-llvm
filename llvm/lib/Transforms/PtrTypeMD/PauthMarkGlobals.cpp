@@ -44,10 +44,10 @@ struct PauthMarkGlobals: public FunctionPass {
 
   std::list<PARTS::type_id_t> data_type_ids = std::list<PARTS::type_id_t>(0);
   std::list<PARTS::type_id_t> code_type_ids = std::list<PARTS::type_id_t>(0);
-  int marked_data_pointers = 0;
-  int marked_code_pointers = 0;
-  int fixed_dp = 0;
-  int fixed_cp = 0;
+  unsigned marked_data_pointers = 0;
+  unsigned marked_code_pointers = 0;
+  unsigned fixed_dp = 0;
+  unsigned fixed_cp = 0;
   bool need_fix_globals_call = false;
 
   IRBuilder<> *builder;
@@ -97,15 +97,15 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
 
   // FIXME: There's something wrong with this reporting!?!
   if (PARTS::useFeCfi()) {
-    log->inc(DEBUG_TYPE ".CodePointersFixed") << "\"fixed\" " << fixed_cp << " code pointers for PACing\n";
-    log->inc(DEBUG_TYPE ".CodePointersMarked") << "annotating " << marked_code_pointers << " code pointers for PACing\n";
+    log->inc(DEBUG_TYPE ".CodePointersFixed", fixed_cp) << "\"fixed\" " << fixed_cp << " code pointers for PACing\n";
+    log->inc(DEBUG_TYPE ".CodePointersMarked", marked_code_pointers) << "annotating " << marked_code_pointers << " code pointers for PACing\n";
     errs() << fixed_cp << " and " << marked_code_pointers << "\n";
     writeTypeIds(M, code_type_ids, ".code_type_id");
   }
 
   if (PARTS::useDpi()) {
-    log->inc(DEBUG_TYPE ".DataPointersFixed") << "\"fixed\" " << fixed_dp << " data pointers for PACing\n";
-    log->inc(DEBUG_TYPE ".DataPointersMarked") << "annotating " << marked_data_pointers << " data pointers for PACing\n";
+    log->inc(DEBUG_TYPE ".DataPointersFixed", fixed_dp) << "\"fixed\" " << fixed_dp << " data pointers for PACing\n";
+    log->inc(DEBUG_TYPE ".DataPointersMarked", marked_data_pointers) << "annotating " << marked_data_pointers << " data pointers for PACing\n";
     writeTypeIds(M, data_type_ids, ".data_type_id");
   }
 
@@ -170,12 +170,6 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
 
         builder->CreateStore(paced, elPtr);
       }
-    }
-
-    if (PARTS::useDpi()) {
-      marked_data_pointers++;
-      GV.setSection(".data_pauth");
-      data_type_ids.push_back(PartsTypeMetadata::idFromType(Ty));
     }
     return true;
   }

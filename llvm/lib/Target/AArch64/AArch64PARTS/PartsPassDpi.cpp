@@ -169,6 +169,7 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
         return true;
       }
     } else {
+      return false;
       if (PARTS::useFeCfi()) {
         log->inc("StoreLoad.InstrumentedCodeStore", true) << "instrumenting store" << partsType->toString() << "\n";
         partsUtils->pacCodePointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
@@ -186,6 +187,7 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
         return true;
       }
     } else {
+      return false;
       if (PARTS::useFeCfi()) {
         log->inc("StoreLoad.InstrumentedCodeLoad", true) << "instrumenting load" << partsType->toString() << "\n";
         partsUtils->autCodePointer(MBB, loc, reg, modReg, type_id, MIi->getDebugLoc());

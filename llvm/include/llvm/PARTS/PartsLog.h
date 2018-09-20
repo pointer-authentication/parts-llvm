@@ -66,6 +66,7 @@ public:
 
   void restrictToFunc(const std::string func);
 
+  PARTS::PartsLogStream inc(const std::string &var, unsigned num) { return inc(var, raw_ostream::BLUE, "", num); }
   PARTS::PartsLogStream inc(const std::string &var, bool b, const std::string &F = "", unsigned num = 1);
   PARTS::PartsLogStream inc(const std::string &var,
                             const raw_ostream::Colors c = raw_ostream::BLUE,
