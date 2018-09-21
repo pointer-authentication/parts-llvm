@@ -77,6 +77,9 @@ char PauthMarkGlobals::ID = 0;
 static RegisterPass<PauthMarkGlobals> X("pauth-markglobals", "PAC argv for main call");
 
 bool PauthMarkGlobals::doInitialization(Module &M) {
+#ifdef USE_DUMMY_INSTRUCTIONS
+  return false;
+#endif
   if ( !(PARTS::useFeCfi() || PARTS::useDpi())) // We don't need to do anything unless we use PI
     return false;
 
@@ -114,6 +117,9 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
 }
 
 bool PauthMarkGlobals::runOnFunction(Function &F) {
+#ifdef USE_DUMMY_INSTRUCTIONS
+  return false;
+#endif
   if (!(need_fix_globals_call && PARTS::useAny() && F.getName().equals("main")))
     return false;
 

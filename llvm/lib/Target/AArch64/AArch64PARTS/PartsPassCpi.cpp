@@ -155,6 +155,7 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   */
 
   // Swap out the branch to a auth+branch variant
+#ifndef USE_DUMMY_INSTRUCTIONS
   auto BMI = BuildMI(MBB, *MIi, MIi->getDebugLoc(), TII->get(AArch64::BLRAA));
   BMI.add(MIi->getOperand(0));
   BMI.addReg(PARTS::getModifierReg());
@@ -163,6 +164,9 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   auto &MI = *MIi;
   MIi--;
   MI.removeFromParent();
+#else
+  partsUtils->addNops(MBB, MIi == MBB.instr_end() ? nullptr : &*MIi, PARTS::getModifierReg(), MIi->getDebugLoc());
+#endif // USE_DUMMY_INSTRUCTIONS
 
   return true;
 }

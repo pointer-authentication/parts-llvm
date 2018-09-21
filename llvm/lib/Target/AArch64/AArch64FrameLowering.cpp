@@ -887,7 +887,7 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   if (PARTS::useBeCfi()) // Insert pauth for LR
-    PARTS->instrumentPrologue(TII, MBB, MBBI, DebugLoc());
+    PARTS->instrumentPrologue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DebugLoc());
 
   bool IsWin64 =
       Subtarget.isCallingConvWin64(MF.getFunction().getCallingConv());
@@ -1387,7 +1387,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     // Insert pauth instruction to authenticate LR
     if (PARTS::useBeCfi() && (MF.getInfo<AArch64FunctionInfo>()->hasStackFrame() ||
                                windowsRequiresStackProbe(MF, NumBytes))) {
-      PARTS->instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+      PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
     }
     return;
   }
@@ -1468,7 +1468,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     BuildMI(MBB, MBB.getFirstTerminator(), DL, TII->get(AArch64::SEH_EpilogEnd))
         .setMIFlag(MachineInstr::FrameDestroy);
   if (PARTS::useBeCfi())
-    PARTS->instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
+    PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for

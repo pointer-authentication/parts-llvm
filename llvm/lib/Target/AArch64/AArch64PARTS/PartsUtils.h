@@ -32,15 +32,15 @@ static inline unsigned getModifierReg() { return AArch64::X23; }
 class PartsUtils {
   PartsLog_ptr log;
 
-  const AArch64InstrInfo *TII;
-  const AArch64RegisterInfo *TRI;
+  const TargetInstrInfo *TII;
+  const TargetRegisterInfo *TRI;
 
   PartsUtils() = delete;
 
 public:
-  PartsUtils(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII);
+  PartsUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII);
 
-  static inline PartsUtils_ptr get(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII) {
+  static inline PartsUtils_ptr get(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII) {
     return std::make_shared<PartsUtils>(TRI, TII);
   };
 
@@ -90,8 +90,16 @@ public:
   void moveTypeIdToReg(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned modReg,
                        type_id_t type_id, const DebugLoc &DL);
 
+  void moveTypeIdToReg(MachineBasicBlock &MBB, MachineInstr *MI, unsigned modReg,
+                       type_id_t type_id, const DebugLoc &DL);
+
   void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                      unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
+
+  void insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg,
+                     unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
+
+  void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned reg, const DebugLoc &DL);
 
   void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned srcReg,
                      unsigned dstReg, unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
