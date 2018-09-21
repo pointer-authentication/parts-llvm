@@ -14,6 +14,7 @@
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "AArch64InstrInfo.h"
 #include "llvm/PARTS/PartsLog.h"
+#include "PartsUtils.h"
 
 namespace llvm {
 
@@ -30,11 +31,11 @@ public:
 
   static PartsFrameLowering_ptr get();
 
-  void instrumentEpilogue(const TargetInstrInfo *TII,
+  void instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                           MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                           const DebugLoc &DL, bool IsTailCallReturn);
 
-  void instrumentPrologue(const TargetInstrInfo *TII,
+  void instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                           MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                           const DebugLoc &DL);
 };

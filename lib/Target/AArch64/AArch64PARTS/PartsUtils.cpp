@@ -10,12 +10,13 @@
 
 #include "PartsUtils.h"
 
+#include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;
 
-PartsUtils::PartsUtils(const AArch64RegisterInfo *TRI, const AArch64InstrInfo *TII) :
+PartsUtils::PartsUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII) :
     log(PartsLog::getLogger("PartsUtils")),
     TII(TII),
     TRI(TRI)
@@ -232,20 +233,37 @@ bool PartsUtils::isLoad(const unsigned opCode) {
 
 void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned modReg,
                                  type_id_t type_id, const DebugLoc &DL) {
-  if (MIi == MBB.instr_end()) {
+  moveTypeIdToReg(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), modReg, type_id, DL);
+}
+
+void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg,
+                                 type_id_t type_id, const DebugLoc &DL) {
+  if (MIi == nullptr) {
+    // FIXME: This should be properly done, but for now should cause correct runtime overhead
+    BuildMI(&MBB, DL, TII->get(AArch64::MOVZXi)).addReg(modReg).addImm(type_id).addImm(0);
     BuildMI(&MBB, DL, TII->get(AArch64::MOVZXi)).addReg(modReg).addImm(type_id).addImm(0);
   } else {
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVZXi), modReg).addImm(type_id).addImm(0);
     BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVZXi), modReg).addImm(type_id).addImm(0);
   }
 }
 
 void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                                unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
-  if (MIi == MBB.instr_end()) {
+  insertPAInstr(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), ptrReg, modReg, MCID, DL);
+}
+
+void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
+                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
+#ifndef USE_DUMMY_INSTRUCTIONS
+  if (MIi == nullptr) {
     BuildMI(&MBB, DL, MCID).addReg(ptrReg).addReg(modReg);
   } else {
     BuildMI(MBB, MIi, DL, MCID, ptrReg).addReg(modReg);
   }
+#else
+  addNops(MBB, MIi, modReg, DL);
+#endif // !USE_DUMMY_INSTRUCITONS
 }
 
 void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
@@ -293,6 +311,20 @@ void PartsUtils::autDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr
                                 unsigned modReg, type_id_t type_id, const DebugLoc &DL) {
   moveTypeIdToReg(MBB, MIi, modReg, type_id, DL);
   insertPAInstr(MBB, MIi, ptrReg, modReg, TII->get(AArch64::AUTDA), DL);
+}
+
+void PartsUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned reg, const DebugLoc &DL) {
+  if (MI == nullptr) {
+    BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(reg).addReg(reg).addImm(2).addImm(0);
+    BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(reg).addReg(reg).addImm(3).addImm(0);
+    BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(reg).addReg(reg).addImm(5).addImm(0);
+    BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(reg).addReg(reg).addImm(7).addImm(0);
+  } else {
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), reg).addReg(reg).addImm(2).addImm(0);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), reg).addReg(reg).addImm(3).addImm(0);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), reg).addReg(reg).addImm(5).addImm(0);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), reg).addReg(reg).addImm(7).addImm(0);
+  }
 }
 
 
