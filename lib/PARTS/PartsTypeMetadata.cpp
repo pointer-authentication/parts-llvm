@@ -165,7 +165,7 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   mbedtls_sha3_init(&sha3_context);
 
   // Prepare input and output variables
-  auto *input = reinterpret_cast<const unsigned char*>(type_str.c_str());
+  auto *input = reinterpret_cast<const unsigned char*>(rso.str().c_str());
   auto *output= new unsigned char[32]();
 
   // Generate hash
@@ -173,10 +173,10 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   if (result != 0)
     llvm_unreachable("SHA3 hashing failed :(");
 
-  // Use as many bytes as possible
   memcpy(&type_id, output, sizeof(type_id_t));
 
   // FIXME: Support proper PA modifiers (this is a workaround for PartsUtils inability to move larger immediate value)
+  const auto original_type_id = type_id;
   type_id = type_id % UINT8_MAX;
 
   return type_id;
