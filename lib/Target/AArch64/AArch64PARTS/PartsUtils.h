@@ -99,7 +99,7 @@ public:
   void insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg,
                      unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
 
-  void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned reg, const DebugLoc &DL);
+  void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
 
   void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned srcReg,
                      unsigned dstReg, unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);

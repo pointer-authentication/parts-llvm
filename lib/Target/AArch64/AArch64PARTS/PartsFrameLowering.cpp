@@ -31,13 +31,10 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
     partsUtils->moveTypeIdToReg(MBB, &*MBBI, Pauth_ModifierReg, 0, DebugLoc());
     BuildMI(MBB, MBBI, DL, TII->get(AArch64::ADDXri), Pauth_ModifierReg).addReg(AArch64::SP).addImm(0).addImm(0);
     partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, Pauth_ModifierReg, TII->get(AArch64::AUTIB), DebugLoc());
-    //BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::RETAA));
-    //MBB.erase(MBBI);
   } else {
     partsUtils->moveTypeIdToReg(MBB, &*MBBI, Pauth_ModifierReg, 0, DebugLoc());
     BuildMI(MBB, MBBI, DL, TII->get(AArch64::ADDXri), Pauth_ModifierReg).addReg(AArch64::SP).addImm(0).addImm(0);
     partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, Pauth_ModifierReg, TII->get(AArch64::AUTIB), DebugLoc());
-    //BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::AUTIASP));
   }
 }
 
@@ -49,5 +46,4 @@ void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const Ta
   partsUtils->moveTypeIdToReg(MBB, &*MBBI, Pauth_ModifierReg, 0, DebugLoc());
   BuildMI(MBB, MBBI, DL, TII->get(AArch64::ADDXri), Pauth_ModifierReg).addReg(AArch64::SP).addImm(0).addImm(0);
   partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, Pauth_ModifierReg, TII->get(AArch64::PACIB), DebugLoc());
-  //BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::PACIASP));
 }
