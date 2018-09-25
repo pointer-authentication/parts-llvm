@@ -145,8 +145,13 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   log->inc("StoreLoad.InstrumentedCall", true) << "      instrumenting call " << partsType->toString() << "\n";
   assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
 
+  const auto ptrRegOperand = MIi->getOperand(0);
+  const auto ptrReg = ptrRegOperand.getReg();
+  const auto DL = MIi->getDebugLoc();
+  const auto modReg = PARTS::getModifierReg();
+
   // Create the PAC modifier
-  partsUtils->moveTypeIdToReg(MBB, MIi, PARTS::getModifierReg(), partsType->getTypeId(), MIi->getDebugLoc());
+  partsUtils->moveTypeIdToReg(MBB, MIi, modReg, partsType->getTypeId(), DL);
   /*
   BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi))
       .addReg(PARTS::getModifierReg())
@@ -156,16 +161,17 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
 
   // Swap out the branch to a auth+branch variant
 #ifndef USE_DUMMY_INSTRUCTIONS
-  auto BMI = BuildMI(MBB, *MIi, MIi->getDebugLoc(), TII->get(AArch64::BLRAA));
-  BMI.add(MIi->getOperand(0));
-  BMI.addReg(PARTS::getModifierReg());
+  auto BMI = BuildMI(MBB, *MIi, DL, TII->get(AArch64::BLRAA));
+  BMI.add(ptrRegOperand);
+  BMI.addReg(modReg);
 
   // Remove the old instruction!
   auto &MI = *MIi;
   MIi--;
   MI.removeFromParent();
 #else
-  partsUtils->addNops(MBB, MIi == MBB.instr_end() ? nullptr : &*MIi, PARTS::getModifierReg(), MIi->getDebugLoc());
+  MIi->dump();
+  partsUtils->addNops(MBB, MIi == MBB.instr_end() ? nullptr : &*MIi, ptrReg, modReg, DL);
 #endif // USE_DUMMY_INSTRUCTIONS
 
   return true;
