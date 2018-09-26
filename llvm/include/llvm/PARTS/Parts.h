@@ -13,8 +13,6 @@
 
 #define Pauth_ModifierReg AArch64::X23
 
-//#define USE_DUMMY_INSTRUCTIONS
-
 namespace llvm {
 
 namespace PARTS {
@@ -23,6 +21,7 @@ bool useBeCfi();
 bool useFeCfi();
 bool useDpi();
 bool useAny();
+bool useDummy();
 
 } // PARTS
 

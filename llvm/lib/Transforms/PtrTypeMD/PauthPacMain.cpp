@@ -52,9 +52,9 @@ static RegisterPass<PauthPacMain> X("pauth-pacmain", "PAC argv for main call");
 
 bool PauthPacMain::doInitialization(Module &M)
 {
-#ifdef USE_DUMMY_INSTRUCTIONS
-  return false;
-#endif
+  if (PARTS::useDummy())
+    return false;
+
   if (!PARTS::useDpi())
     return false;
 
@@ -79,9 +79,9 @@ bool PauthPacMain::doFinalization(Module &M) {
 }
 
 bool PauthPacMain::runOnFunction(Function &F) {
-#ifdef USE_DUMMY_INSTRUCTIONS
-  return false;
-#endif
+  if (PARTS::useDummy())
+    return false;
+
   if (!(PARTS::useDpi() &&F.getName().equals("main")))
     return false;
 
