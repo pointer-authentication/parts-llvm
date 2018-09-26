@@ -237,12 +237,14 @@ void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineBasicBlock::inst
   moveTypeIdToReg(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), modReg, type_id, DL);
 }
 
+#include <iomanip>
+
 void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg,
                                  type_id_t type_id, const DebugLoc &DL) {
-  const auto t1 = ((type_id) % UINT16_MAX);
-  const auto t2 = ((type_id << 16) % UINT16_MAX);
-  const auto t3 = ((type_id << 32) % UINT16_MAX);
-  const auto t4 = ((type_id << 48) % UINT16_MAX);
+  const auto t1 = type_id & UINT16_MAX;
+  const auto t2 = (type_id >> 16) & UINT16_MAX;
+  const auto t3 = (type_id >> 32) & UINT16_MAX;
+  const auto t4 = (type_id >> 48) & UINT16_MAX;
 
   if (MIi == nullptr) {
     BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t1).addImm(0);
