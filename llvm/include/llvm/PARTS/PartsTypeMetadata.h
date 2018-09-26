@@ -40,8 +40,9 @@ class PartsTypeMetadata {
   bool m_pointer = false;
   bool m_data = false;
   bool m_ignored = false;
+  bool m_isPACed = false;
 
-  static constexpr const int numNodes = 6;
+  static constexpr const int numNodes = 7;
 
   static constexpr auto MetadataKindString = "PartsTypeMetadata";
 
@@ -65,6 +66,8 @@ public:
 
   /*! Return true if the associated Value should be ignored */
   inline bool isIgnored() const { return m_ignored; }
+  /*! Return true if the associated Value is already PACed */
+  inline bool isPACed() const { return m_isPACed; }
   /*! Return true if type is known */
   inline bool isKnown() const { return m_known; }
   /*! Return true if type is a pointer */
@@ -75,6 +78,7 @@ public:
   inline bool isCodePointer() const { return m_pointer && !m_data; }
 
   inline void setIgnored(bool ignored);
+  inline void setIsPACed(bool isPACed);
   inline void setIsKnown(bool known);
   inline void setIsPointer(bool pointer);
   inline void setIsDataPointer(bool data);
@@ -117,6 +121,10 @@ inline bool PartsTypeMetadata::TyIsPointer(const Type *const type)
 inline void PartsTypeMetadata::setIgnored(bool ignored)
 {
   m_ignored = ignored;
+}
+
+inline void PartsTypeMetadata::setIsPACed(bool isPACed) {
+  m_isPACed = isPACed;
 }
 
 inline void PartsTypeMetadata::setIsKnown(bool known)

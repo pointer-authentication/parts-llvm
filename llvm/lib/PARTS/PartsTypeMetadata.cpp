@@ -37,6 +37,7 @@ PartsTypeMetadata::PartsTypeMetadata(const MDNode *MDN) {
   m_pointer = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
   m_data = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
   m_ignored = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
+  m_isPACed = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
 }
 
 PartsTypeMetadata::~PartsTypeMetadata() {
@@ -51,6 +52,7 @@ MDNode *PartsTypeMetadata::getMDNode(LLVMContext &C) {
       ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_pointer ? 1 : 0))),
       ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_data ? 1 : 0))),
       ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_ignored ? 1 : 0))),
+      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_isPACed ? 1 : 0))),
   };
   return MDNode::get(C, vals);
 }
@@ -61,6 +63,7 @@ void PartsTypeMetadata::attach(LLVMContext &C, Instruction &I) {
 
 std::string PartsTypeMetadata::toString() {
   return "[ignored:" + std::to_string((isIgnored() ? 1 : 0)) +
+         "[PACed:" + std::to_string((isPACed() ? 1 : 0)) +
          "," + (isPointer() ? (isCodePointer() ? "codePointer" : "dataPointer") : "not-a-pointer") +
          ",id:" + std::to_string(getTypeId()) + "]";
 }
