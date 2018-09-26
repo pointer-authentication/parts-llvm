@@ -78,6 +78,8 @@ namespace {
    const AArch64InstrInfo *TII = nullptr;
    const AArch64RegisterInfo *TRI = nullptr;
    PartsUtils_ptr  partsUtils = nullptr;
+   int m_PACed_me_a_live_one = false; // FIXME: horrible hack!
+   MachineOperand *m_the_live_one = nullptr;
  };
 } // end anonymous namespace
 
@@ -109,6 +111,14 @@ bool PartsPassDpi::runOnMachineFunction(MachineFunction &MF) {
 
       if (partsUtils->isLoadOrStore(*MIi)) {
         instrumentLoadStore(MF, MBB, MIi);
+      }
+
+      if (m_PACed_me_a_live_one > 1) {
+        // llvm_unreachable("didn't immediately get rid of un-killed PACed store");
+        m_PACed_me_a_live_one = 0;
+        m_the_live_one = nullptr;
+      } else if (m_PACed_me_a_live_one > 0) {
+        m_PACed_me_a_live_one++;
       }
     }
   }
@@ -165,7 +175,21 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     if (partsType->isDataPointer()) {
       if (PARTS::useDpi()) {
         log->inc("StoreLoad.InstrumentedDataStore", true) << "instrumenting store" << partsType->toString() << "\n";
-        partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
+
+        // FIXME: Horrible hack for double define!
+        if (m_PACed_me_a_live_one == 0) {
+          partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
+        } else {
+          assert(m_the_live_one->getReg() == MIi->getOperand(0).getReg());
+        }
+
+        if (MIi->getOperand(0).isKill()) {
+          m_PACed_me_a_live_one = 0;
+        } else {
+          m_PACed_me_a_live_one = 1;
+          m_the_live_one = &(MIi->getOperand(0));
+        }
+
         return true;
       }
     } else {
