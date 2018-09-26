@@ -146,18 +146,11 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
 
   const auto ptrRegOperand = MIi->getOperand(0);
-  const auto ptrReg = ptrRegOperand.getReg();
   const auto DL = MIi->getDebugLoc();
   const auto modReg = PARTS::getModifierReg();
 
   // Create the PAC modifier
   partsUtils->moveTypeIdToReg(MBB, MIi, modReg, partsType->getTypeId(), DL);
-  /*
-  BuildMI(MBB, *MIi, DebugLoc(), TII->get(AArch64::MOVZXi))
-      .addReg(PARTS::getModifierReg())
-      .addImm(partsType->getTypeId())
-      .addImm(0);
-  */
 
   // Swap out the branch to a auth+branch variant
 #ifndef USE_DUMMY_INSTRUCTIONS
@@ -170,6 +163,7 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   MIi--;
   MI.removeFromParent();
 #else
+  const auto ptrReg = ptrRegOperand.getReg();
   MIi->dump();
   partsUtils->addNops(MBB, MIi == MBB.instr_end() ? nullptr : &*MIi, ptrReg, modReg, DL);
 #endif // USE_DUMMY_INSTRUCTIONS
