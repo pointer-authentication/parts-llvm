@@ -8,6 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <llvm/IR/Constants.h>
 #include "PartsUtils.h"
 
 #include "llvm/PARTS/Parts.h"
@@ -238,13 +239,42 @@ void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineBasicBlock::inst
 
 void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg,
                                  type_id_t type_id, const DebugLoc &DL) {
+  const auto t1 = ((type_id) % UINT16_MAX);
+  const auto t2 = ((type_id << 16) % UINT16_MAX);
+  const auto t3 = ((type_id << 32) % UINT16_MAX);
+  const auto t4 = ((type_id << 48) % UINT16_MAX);
+
   if (MIi == nullptr) {
-    // FIXME: This should be properly done, but for now should cause correct runtime overhead
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVZXi)).addReg(modReg).addImm(type_id).addImm(0);
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVZXi)).addReg(modReg).addImm(type_id).addImm(0);
+    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t1).addImm(0);
+    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t2).addImm(16);
+    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t3).addImm(32);
+    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t4).addImm(48);
   } else {
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVZXi), modReg).addImm(type_id).addImm(0);
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVZXi), modReg).addImm(type_id).addImm(0);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t1).addImm(0);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t2).addImm(16);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t3).addImm(32);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t4).addImm(48);
+  }
+}
+
+void PartsUtils::createBeCfiModifier(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg, const DebugLoc &DL) {
+  auto &F = MBB.getParent()->getFunction();
+  auto type_id = PartsTypeMetadata::idFromType(F.getType());
+
+  const auto f1 = 1234;
+  const auto t1 = ((type_id) % UINT16_MAX);
+  const auto t2 = ((type_id << 16) % UINT16_MAX);
+
+  if (MIi == nullptr) {
+    BuildMI(&MBB, DL, TII->get(AArch64::ADDXri)).addReg(modReg).addReg(AArch64::SP).addImm(0).addImm(0);
+    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(f1).addImm(16);
+    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t1).addImm(32);
+    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t2).addImm(48);
+  } else {
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), modReg).addReg(AArch64::SP).addImm(0).addImm(0);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(f1).addImm(16);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t1).addImm(32);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t2).addImm(48);
   }
 }
 
@@ -314,23 +344,22 @@ void PartsUtils::autDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr
 }
 
 void PartsUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
-  // FIXME: This fails for anything else than backward edge CFI!!!
-  //if (ptrReg != 2) return;
-
-  //errs() << "adding EORXrr "
-  //       << ptrReg  << " = " << TRI->getRegAsmName(ptrReg)<< " , "
-  //       << modReg << " = " << TRI->getRegAsmName(modReg) << "\n";
+  errs() << "adding EORXrr "
+         << ptrReg  << " = " << TRI->getRegAsmName(ptrReg)<< " , "
+         << modReg << " = " << TRI->getRegAsmName(modReg) << "\n";
 
   if (MI == nullptr) {
     BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(2).addImm(0);
     BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(3).addImm(0);
     BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(5).addImm(0);
-    BuildMI(&MBB, DL, TII->get(AArch64::EORXrr)).addReg(ptrReg).addReg(ptrReg).addReg(modReg);
+    BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(5).addImm(0);
+    //BuildMI(&MBB, DL, TII->get(AArch64::EORXrr)).addReg(ptrReg).addReg(ptrReg).addReg(modReg);
   } else {
     BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(2).addImm(0);
     BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(3).addImm(0);
     BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(5).addImm(0);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrr), ptrReg).addReg(ptrReg).addReg(modReg);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(5).addImm(0);
+    //BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrr), ptrReg).addReg(ptrReg).addReg(modReg);
   }
 }
 
