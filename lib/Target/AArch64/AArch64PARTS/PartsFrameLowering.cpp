@@ -25,16 +25,15 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
                                   MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                                   const DebugLoc &DL, const bool IsTailCallReturn) {
   auto partsUtils = PartsUtils::get(TRI, TII);
+  auto modReg = PARTS::getModifierReg();
 
   if (!IsTailCallReturn) {
     assert(MBBI != MBB.end());
-    partsUtils->moveTypeIdToReg(MBB, &*MBBI, Pauth_ModifierReg, 0, DebugLoc());
-    BuildMI(MBB, MBBI, DL, TII->get(AArch64::ADDXri), Pauth_ModifierReg).addReg(AArch64::SP).addImm(0).addImm(0);
-    partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, Pauth_ModifierReg, TII->get(AArch64::AUTIB), DebugLoc());
+    partsUtils->createBeCfiModifier(MBB, &*MBBI, modReg, DebugLoc());
+    partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DebugLoc());
   } else {
-    partsUtils->moveTypeIdToReg(MBB, &*MBBI, Pauth_ModifierReg, 0, DebugLoc());
-    BuildMI(MBB, MBBI, DL, TII->get(AArch64::ADDXri), Pauth_ModifierReg).addReg(AArch64::SP).addImm(0).addImm(0);
-    partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, Pauth_ModifierReg, TII->get(AArch64::AUTIB), DebugLoc());
+    partsUtils->createBeCfiModifier(MBB, &*MBBI, modReg, DebugLoc());
+    partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DebugLoc());
   }
 }
 
@@ -42,8 +41,8 @@ void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const Ta
                                             MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                                             const DebugLoc &DL) {
   auto partsUtils = PartsUtils::get(TRI, TII);
+  auto modReg = PARTS::getModifierReg();
 
-  partsUtils->moveTypeIdToReg(MBB, &*MBBI, Pauth_ModifierReg, 0, DebugLoc());
-  BuildMI(MBB, MBBI, DL, TII->get(AArch64::ADDXri), Pauth_ModifierReg).addReg(AArch64::SP).addImm(0).addImm(0);
-  partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, Pauth_ModifierReg, TII->get(AArch64::PACIB), DebugLoc());
+  partsUtils->createBeCfiModifier(MBB, &*MBBI, modReg, DebugLoc());
+  partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::PACIB), DebugLoc());
 }

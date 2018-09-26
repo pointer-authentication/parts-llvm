@@ -93,6 +93,8 @@ public:
   void moveTypeIdToReg(MachineBasicBlock &MBB, MachineInstr *MI, unsigned modReg,
                        type_id_t type_id, const DebugLoc &DL);
 
+  void createBeCfiModifier(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg, const DebugLoc &DL);
+
   void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                      unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
 
