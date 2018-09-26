@@ -153,20 +153,20 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   partsUtils->moveTypeIdToReg(MBB, MIi, modReg, partsType->getTypeId(), DL);
 
   // Swap out the branch to a auth+branch variant
-#ifndef USE_DUMMY_INSTRUCTIONS
-  auto BMI = BuildMI(MBB, *MIi, DL, TII->get(AArch64::BLRAA));
-  BMI.add(ptrRegOperand);
-  BMI.addReg(modReg);
+  if (!PARTS::useDummy()) {
+    auto BMI = BuildMI(MBB, *MIi, DL, TII->get(AArch64::BLRAA));
+    BMI.add(ptrRegOperand);
+    BMI.addReg(modReg);
 
-  // Remove the old instruction!
-  auto &MI = *MIi;
-  MIi--;
-  MI.removeFromParent();
-#else
-  const auto ptrReg = ptrRegOperand.getReg();
-  MIi->dump();
-  partsUtils->addNops(MBB, MIi == MBB.instr_end() ? nullptr : &*MIi, ptrReg, modReg, DL);
-#endif // USE_DUMMY_INSTRUCTIONS
+    // Remove the old instruction!
+    auto &MI = *MIi;
+    MIi--;
+    MI.removeFromParent();
+  } else {
+    const auto ptrReg = ptrRegOperand.getReg();
+    MIi->dump();
+    partsUtils->addNops(MBB, MIi == MBB.instr_end() ? nullptr : &*MIi, ptrReg, modReg, DL);
+  }
 
   return true;
 }
