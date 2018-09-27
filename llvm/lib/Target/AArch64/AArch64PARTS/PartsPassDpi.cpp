@@ -35,16 +35,16 @@
 using namespace llvm;
 using namespace llvm::PARTS;
 
-#define skipIfB(ifx, stat, b, string) do {  \
+#define skipIfB(ifx, fName, stat, b, string) do {  \
     if ((ifx)) {                            \
-      log->inc(stat, b) << string;          \
+      log->inc(stat, b, fName) << string;          \
       return false;                         \
     }                                       \
 } while(false)
 
-#define skipIfN(ifx, stat, string) do {     \
+#define skipIfN(ifx, fName, stat, string) do {     \
     if ((ifx)) {                            \
-      log->inc(stat) << string;             \
+      log->inc(stat, fName) << string;             \
       return false;                         \
     }                                       \
 } while (false)
@@ -95,8 +95,6 @@ bool PartsPassDpi::doInitialization(Module &M) {
 
 bool PartsPassDpi::runOnMachineFunction(MachineFunction &MF) {
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
-  DEBUG_PA(log->debug() << "function " << MF.getName() << "\n");
-
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
@@ -104,10 +102,8 @@ bool PartsPassDpi::runOnMachineFunction(MachineFunction &MF) {
   partsUtils = PartsUtils::get(TRI, TII);
 
   for (auto &MBB : MF) {
-    DEBUG_PA(log->debug(MF.getName()) << "  block " << MBB.getName() << "\n");
-
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
+      DEBUG_PA(log->debug(MF.getName()) << MF.getName() << "->" << MBB.getName() << "->" << MIi);
 
       if (partsUtils->isLoadOrStore(*MIi)) {
         instrumentLoadStore(MF, MBB, MIi);
@@ -132,11 +128,12 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
 
   auto partsType = PartsTypeMetadata::retrieve(*MIi);
   auto &C = MF.getFunction().getContext();
+  const auto fName = MF.getName();
 
-  DEBUG_PA(log->debug(MF.getName()) << "      found a load/store (" << TII->getName(MIi->getOpcode()) << ")\n");
+  DEBUG_PA(log->debug(fName) << "found a load/store (" << TII->getName(MIi->getOpcode()) << ")\n");
 
   if (partsType == nullptr) {
-    DEBUG_PA(log->debug(MF.getName()) << "      trying to figure out type_id\n");
+    DEBUG_PA(log->debug(fName) << "trying to figure out type_id\n");
     auto Op = MIi->getOperand(0);
     const auto targetReg = Op.getReg();
 
@@ -163,60 +160,43 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     log->inc("StoreLoad.Inferred") << "      storing type_id " << partsType->toString() << ") in current MI\n";
   }
 
-  skipIfB(!partsType->isKnown(), "StoreLoad.Unknown", false, "type_id is unknown!\n");
-  skipIfN(partsType->isIgnored(), "StoreLoad.Ignored", "marked as ignored, skipping!\n");
-  skipIfN(!partsType->isPointer(), "StoreLoad.NotAPointer", "not a pointer, skipping!\n");
+  skipIfB(!partsType->isKnown(), fName, "StoreLoad.Unknown", false, "type_id is unknown!\n");
+  skipIfN(partsType->isIgnored(), fName, "StoreLoad.Ignored", "marked as ignored, skipping!\n");
+  skipIfN(!partsType->isPointer(), fName, "StoreLoad.NotAPointer", "not a pointer, skipping!\n");
+  skipIfN(partsType->isCodePointer(), fName, "PartsPassDpi" ".StoreLoad.IgnoringCodePointer", "ignoring code pointer\n");
 
   auto reg = MIi->getOperand(0).getReg();
   const auto modReg = PARTS::getModifierReg();
   const auto type_id = partsType->getTypeId();
 
   if (partsUtils->isStore(*MIi)) {
-    if (partsType->isDataPointer()) {
-      if (PARTS::useDpi()) {
-        log->inc("StoreLoad.InstrumentedDataStore", true) << "instrumenting store" << partsType->toString() << "\n";
+    if (PARTS::useDpi()) {
+      log->inc("StoreLoad.InstrumentedDataStore", true) << "instrumenting store" << partsType->toString() << "\n";
 
-        // FIXME: Horrible hack for double define!
-        if (m_PACed_me_a_live_one == 0) {
-          partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
-        } else {
-          assert(m_the_live_one->getReg() == MIi->getOperand(0).getReg());
-        }
-
-        if (MIi->getOperand(0).isKill()) {
-          m_PACed_me_a_live_one = 0;
-        } else {
-          m_PACed_me_a_live_one = 1;
-          m_the_live_one = &(MIi->getOperand(0));
-        }
-
-        return true;
+      // FIXME: Horrible hack for double define!
+      if (m_PACed_me_a_live_one == 0) {
+        partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
+      } else {
+        assert(m_the_live_one->getReg() == MIi->getOperand(0).getReg());
       }
-    } else {
-      return false;
-      if (PARTS::useFeCfi()) {
-        log->inc("StoreLoad.InstrumentedCodeStore", true) << "instrumenting store" << partsType->toString() << "\n";
-        partsUtils->pacCodePointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
-        return true;
+
+      if (MIi->getOperand(0).isKill()) {
+        m_PACed_me_a_live_one = 0;
+      } else {
+        m_PACed_me_a_live_one = 1;
+        m_the_live_one = &(MIi->getOperand(0));
       }
+
+      return true;
     }
   } else {
     auto loc = MIi;
     MIi->getDebugLoc();
     loc++;
-    if (partsType->isDataPointer()) {
-      if (PARTS::useDpi()) {
-        log->inc("StoreLoad.InstrumentedDataLoad", true) << "instrumenting load" << partsType->toString() << "\n";
-        partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id, MIi->getDebugLoc());
-        return true;
-      }
-    } else {
-      return false;
-      if (PARTS::useFeCfi()) {
-        log->inc("StoreLoad.InstrumentedCodeLoad", true) << "instrumenting load" << partsType->toString() << "\n";
-        partsUtils->autCodePointer(MBB, loc, reg, modReg, type_id, MIi->getDebugLoc());
-        return true;
-      }
+    if (PARTS::useDpi()) {
+      log->inc("StoreLoad.InstrumentedDataLoad", true) << "instrumenting load" << partsType->toString() << "\n";
+      partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id, MIi->getDebugLoc());
+      return true;
     }
   }
 

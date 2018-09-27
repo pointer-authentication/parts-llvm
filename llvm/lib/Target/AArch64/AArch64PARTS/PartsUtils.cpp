@@ -30,7 +30,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
                                                                  MachineInstr &MI, unsigned targetReg,
                                                                  unsigned reg, int64_t imm) {
   const auto fName = MF.getName();
-  DEBUG_PA(log->info(fName) << "      trying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n");
+  DEBUG_PA(log->info(fName) << "trying to look for [" << TRI->getName(reg) << ", #" << imm << "]\n");
 
   auto mbb = MBB.getReverseIterator();
   auto MIi = MI.getReverseIterator();
@@ -48,7 +48,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
           if (Op1.isReg() && Op2.isImm() && Op1.getReg() == reg && Op2.getImm() == imm) {
             // Found a store targeting the same location!
             const auto PTMD = PartsTypeMetadata::retrieve(*MIi);
-            log->inc("PartsUtils.BackwardsLookupOk", true, fName) << "      found matching store " << PTMD->toString() << "\n";
+            log->inc("PartsUtils.BackwardsLookupOk", true, fName) << "found matching store " << PTMD->toString() << "\n";
             return PTMD;
           }
         }
@@ -66,7 +66,7 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdStackBackwards(MachineFunction
     MIi = mbb->instr_rbegin();
   }
 
-  log->inc("PartsUtils.BackwardsLookupFail", false, fName) << "      failed to infer type_id\n";
+  log->inc("PartsUtils.BackwardsLookupFail", false, fName) << "failed to infer type_id\n";
   return PartsTypeMetadata::getUnknown();
 }
 
@@ -78,10 +78,11 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
   const auto fName = MF.getName();
   auto iter = MI.getIterator();
 
-  DEBUG_PA(log->info(fName) << "      trying to look for " << TRI->getName(targetReg) << " load\n");
+  DEBUG_PA(log->info(fName) << "trying to look for " << TRI->getName(targetReg) << " load\n");
 
   // Look through current MBB
-  while (iter != MBB.begin()) {
+  log->error(fName) << __FUNCTION__ << ": backward MBB lookup UNIMPLEMENTED!!!!\n";
+  while (false && iter != MBB.begin()) {
     iter--;
 
     for (unsigned i = 0; i < iter->getNumOperands(); i++) {
@@ -90,7 +91,6 @@ PartsTypeMetadata_ptr PartsUtils::inferPauthTypeIdRegBackwards(MachineFunction &
       if (MO.isReg()) {
         if (MO.getReg() == targetReg) {
           DEBUG_PA(log->info(fName) << "      used in " << TII->getName(iter->getOpcode()) << "\n");
-          log->error(fName) << "      " << "PartsUtils::" << __FUNCTION__ << " UNIMPLEMENTED!!!!\n";
           // TODO: unimplemented!
           //llvm_unreachable_internal("unimplemented");
         }
@@ -350,10 +350,6 @@ void PartsUtils::autDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr
 }
 
 void PartsUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
-  errs() << "adding EORXrr "
-         << ptrReg  << " = " << TRI->getRegAsmName(ptrReg)<< " , "
-         << modReg << " = " << TRI->getRegAsmName(modReg) << "\n";
-
   if (MI == nullptr) {
     //BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(2).addImm(0);
     //BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(3).addImm(0);
