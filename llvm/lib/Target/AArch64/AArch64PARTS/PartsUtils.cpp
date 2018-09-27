@@ -298,6 +298,7 @@ void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsign
   }
 }
 
+/*
 void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
                                unsigned srcReg, unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
   if (dstReg != srcReg) {
@@ -311,7 +312,9 @@ void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_
     BuildMI(MBB, MIi, DL, MCID, dstReg).addReg(modReg);
   }
 }
+*/
 
+/*
 void PartsUtils::pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
                                 unsigned srcReg, unsigned modReg, type_id_t type_id, const DebugLoc &DL) {
   // Move src to dst
@@ -319,6 +322,7 @@ void PartsUtils::pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr
   // Then PAC only the dst
   pacCodePointer(MBB, MIi, dstReg, modReg, type_id, DL);
 }
+*/
 
 void PartsUtils::pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                                 unsigned modReg, type_id_t type_id, const DebugLoc &DL) {
@@ -351,14 +355,20 @@ void PartsUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrR
          << modReg << " = " << TRI->getRegAsmName(modReg) << "\n";
 
   if (MI == nullptr) {
-    BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(2).addImm(0);
-    BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(3).addImm(0);
-    BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(5).addImm(0);
+    //BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(2).addImm(0);
+    //BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(3).addImm(0);
+    //BuildMI(&MBB, DL, TII->get(AArch64::ADDWri)).addReg(modReg).addReg(modReg).addImm(5).addImm(0);
+    BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(17);
+    BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(37);
+    BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(97);
     BuildMI(&MBB, DL, TII->get(AArch64::EORXrs)).addReg(ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
   } else {
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(2).addImm(0);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(3).addImm(0);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(5).addImm(0);
+    //BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(2).addImm(0);
+    //BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(3).addImm(0);
+    //BuildMI(MBB, MI, DL, TII->get(AArch64::ADDWri), modReg).addReg(modReg).addImm(5).addImm(0);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
     BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
   }
 }
