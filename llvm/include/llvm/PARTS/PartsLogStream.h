@@ -40,6 +40,7 @@ public:
   PartsLogStream &operator<<(const long &str);
   PartsLogStream &operator<<(const int &str);
   PartsLogStream &operator<<(const unsigned &str);
+  PartsLogStream &operator<<(const Value *I);
   PartsLogStream &operator<<(const Instruction &I);
   PartsLogStream &operator<<(const Module::global_iterator &GV);
   PartsLogStream &operator<<(const GlobalVariable &GV);

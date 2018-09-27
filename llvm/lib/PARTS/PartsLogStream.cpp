@@ -83,6 +83,11 @@ PartsLogStream &PartsLogStream::changeColor(enum raw_ostream::Colors color, bool
   return *this;
 }
 
+PartsLogStream &PartsLogStream::operator<<(const Value *I) {
+  I->print(*m_ostream);
+  return *this;
+}
+
 
 } // namespace PARTS
 
