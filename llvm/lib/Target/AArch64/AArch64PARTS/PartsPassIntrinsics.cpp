@@ -97,8 +97,14 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
           const auto &DL = MIi->getDebugLoc();
           const unsigned dst = MIi->getOperand(0).getReg();
           const unsigned src = MIi->getOperand(1).getReg();
-          const unsigned mod = MIi->getOperand(2).getReg();
+          unsigned mod = MIi->getOperand(2).getReg();
 
+          // Save the mod register if it is marked as killable!
+          if (MIi->getOperand(2).isKill()) {
+            unsigned oldMod = mod;
+            mod = PARTS::getModifierReg();
+            BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
+          }
           // Move the pointer to destination register
           BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
 
