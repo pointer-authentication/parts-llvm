@@ -151,6 +151,8 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
     const auto isCodePtr = PartsTypeMetadata::TyIsCodePointer(elementType);
 
     if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
+      log->debug() << "looking to PAC: " << GV << "\n";
+
       // Only PAC if feature enabled
 
       for (auto i = 0U; i < dyn_cast<User>(O)->getNumOperands(); i++) {
@@ -161,6 +163,7 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
 
         auto loaded = builder->CreateLoad(elPtr);
         auto paced = PartsIntr::pac_pointer(builder, M, loaded);
+        log->debug() << "inserted: " << paced << "\n";
 
         if (isCodePtr) {
           fixed_cp++;
@@ -170,6 +173,7 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
 
         builder->CreateStore(paced, elPtr);
       }
+      log->debug() << GV << " DONE\n";
     }
     return true;
   }
