@@ -17,6 +17,7 @@
 #include "llvm/PARTS/PartsLogStream.h"
 
 #define DISABLE_PA_DEBUG 1
+//#define PA_DEBUG_ONLY_FUNC "printer1"
 
 #ifdef DISABLE_PA_DEBUG
 #define DEBUG_PA(x)
@@ -49,8 +50,13 @@ private:
 
   const std::string m_name;
   bool m_enabled = false;
+#ifndef PA_DEBUG_ONLY_FUNC
   bool m_onlyFunc = false;
   std::string m_onlyFuncName = "";
+#else
+  bool m_onlyFunc = true;
+  std::string m_onlyFuncName = PA_DEBUG_ONLY_FUNC;
+#endif
 
   static Stats &getStats();
   inline raw_ostream &get_ostream(bool enabled, const raw_ostream::Colors c) const;
@@ -67,6 +73,7 @@ public:
   void restrictToFunc(const std::string func);
 
   PARTS::PartsLogStream inc(const std::string &var, unsigned num) { return inc(var, raw_ostream::BLUE, "", num); }
+  PARTS::PartsLogStream inc(const std::string &var, const std::string &F, unsigned num = 1) { return inc(var, raw_ostream::BLUE, F, num); }
   PARTS::PartsLogStream inc(const std::string &var, bool b, const std::string &F = "", unsigned num = 1);
   PARTS::PartsLogStream inc(const std::string &var,
                             const raw_ostream::Colors c = raw_ostream::BLUE,
