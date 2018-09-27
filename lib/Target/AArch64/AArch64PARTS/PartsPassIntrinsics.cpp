@@ -27,7 +27,7 @@
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "PartsUtils.h"
 
-#define DEBUG_TYPE "aarch64-pa-forwardcfi"
+#define DEBUG_TYPE "aarch64-parts-intrinsics"
 #define TAG "PartsPasSIntrinsics"
 
 using namespace llvm;
@@ -83,6 +83,8 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
 
   for (auto &MBB : MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
+      DEBUG_PA(log->debug(MF.getName()) << MF.getName() << "->" << MBB.getName() << "->" << MIi);
+
       const auto MIOpcode = MIi->getOpcode();
 
       switch(MIOpcode) {

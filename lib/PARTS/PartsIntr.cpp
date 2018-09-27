@@ -27,8 +27,10 @@ Value *PartsIntr::pac_pointer(IRBuilder<> *builder, Module &M, Value *V, const s
                                          (PTMD->isCodePointer() ? Intrinsic::pa_pacia : Intrinsic::pa_pacda),
                                          arg_types);
 
+  auto typeIdConstant = PTMD->getTypeIdConstant(M.getContext());
+
   // Create the arguments for the intrinsic call (i.e., original pointer + modifier/type_id)
-  Value *args[] = { V, PTMD->getTypeIdConstant(M.getContext()) };
+  Value *args[] = { V, typeIdConstant };
   return builder->CreateCall(pacia, args, name);
 }
 
