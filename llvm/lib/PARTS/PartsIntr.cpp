@@ -21,10 +21,14 @@ using namespace llvm::PARTS;
 Value *PartsIntr::pac_pointer(IRBuilder<> *builder, Module &M, Value *V, const std::string &name) {
   // Get the intrinsic declaration based on our specific pointer type
   Type *arg_types[] = { V->getType() };
-  auto pacia = Intrinsic::getDeclaration(&M, Intrinsic::pa_pacia, arg_types);
+  auto PTMD = PartsTypeMetadata::get(V->getType());
+
+  auto pacia = Intrinsic::getDeclaration(&M,
+                                         (PTMD->isCodePointer() ? Intrinsic::pa_pacia : Intrinsic::pa_pacda),
+                                         arg_types);
 
   // Create the arguments for the intrinsic call (i.e., original pointer + modifier/type_id)
-  Value *args[] = { V, PartsTypeMetadata::idConstantFromType(M.getContext(), V->getType()) };
+  Value *args[] = { V, PTMD->getTypeIdConstant(M.getContext()) };
   return builder->CreateCall(pacia, args, name);
 }
 
