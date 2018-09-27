@@ -132,7 +132,7 @@ bool PauthMarkGlobals::runOnFunction(Function &F) {
 bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
   auto &C = M.getContext();
 
-  log->info() << "inspecting " << GV << "\n";
+  DEBUG_PA(log->info() << "inspecting " << GV << "\n");
 
   if (GV.getNumOperands() == 0) {
     log->info() << "skipping empty\n";
@@ -151,7 +151,7 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
     const auto isCodePtr = PartsTypeMetadata::TyIsCodePointer(elementType);
 
     if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
-      log->debug() << "looking to PAC: " << GV << "\n";
+      DEBUG_PA(log->debug() << "looking to PAC: " << GV << "\n");
 
       // Only PAC if feature enabled
 
@@ -163,7 +163,7 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
 
         auto loaded = builder->CreateLoad(elPtr);
         auto paced = PartsIntr::pac_pointer(builder, M, loaded);
-        log->debug() << "inserted: " << paced << "\n";
+        DEBUG_PA(log->debug() << "found array elemnt, PACed " << paced << " with id " << PartsTypeMetadata::idFromType(elementType) << "\n");
 
         if (isCodePtr) {
           fixed_cp++;

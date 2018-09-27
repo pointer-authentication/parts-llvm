@@ -194,7 +194,7 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     MIi->getDebugLoc();
     loc++;
     if (PARTS::useDpi()) {
-      log->inc("StoreLoad.InstrumentedDataLoad", true) << "instrumenting load" << partsType->toString() << "\n";
+      log->inc("StoreLoad.InstrumentedDataLoad", true, fName) << "instrumenting load with " << partsType->toString() << "\n";
       partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id, MIi->getDebugLoc());
       return true;
     }
