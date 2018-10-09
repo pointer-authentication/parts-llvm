@@ -160,8 +160,8 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     log->inc("StoreLoad.Inferred") << "      storing type_id " << partsType->toString() << ") in current MI\n";
   }
 
-  skipIfB(!partsType->isKnown(), fName, "StoreLoad.Unknown", false, "type_id is unknown!\n");
   skipIfN(partsType->isIgnored(), fName, "StoreLoad.Ignored", "marked as ignored, skipping!\n");
+  skipIfB(!partsType->isKnown(), fName, "StoreLoad.Unknown", false, "type_id is unknown!\n");
   skipIfN(!partsType->isPointer(), fName, "StoreLoad.NotAPointer", "not a pointer, skipping!\n");
   skipIfN(partsType->isCodePointer(), fName, "PartsPassDpi" ".StoreLoad.IgnoringCodePointer", "ignoring code pointer\n");
 
