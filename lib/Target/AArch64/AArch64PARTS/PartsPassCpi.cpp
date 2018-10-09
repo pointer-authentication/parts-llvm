@@ -142,11 +142,41 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
 
   if (partsType == nullptr) {
     DEBUG_PA(log->debug(MF.getName()) << "      trying to figure out type_id\n");
-    log->error(MF.getName()) << __FUNCTION__ << ": figuring out NOT IMPLEMENTED!!!\n";
 
-    partsType = PartsTypeMetadata::getUnknown();
+    assert(MIi->getNumOperands() == 1);
+    assert(MIi->getOperand(0).isReg());
+
+    const auto reg = MIi->getOperand(0).getReg();
+
+    // Only look within same basic block
+    if (MBB.instr_begin() != MIi) {
+      auto iter = MIi;
+
+      do {
+        iter--;
+
+        for (unsigned i = 0; i < iter->getNumOperands(); i++) {
+          auto foundOp = MIi->getOperand(i);
+          if (foundOp.isReg() && foundOp.getReg() == reg) {
+
+            if (AArch64::LDRXroX == iter->getOpcode()) {
+              // FIXME: is this actually true!??
+              // This is probably a jump-table, either way, it is marked RO...
+              partsType = PartsTypeMetadata::getIgnored();
+            }
+
+            // Just a stupid way to exit the do loop...
+            i = UINT_MAX/2;
+            iter = MBB.instr_begin();
+          }
+        }
+      } while (MBB.instr_begin() != iter);
+    }
+
+
+    if (partsType == nullptr)
+      partsType = PartsTypeMetadata::getUnknown();
   }
-
 
   skipIfN(partsType->isIgnored(), "Branch.Ignored_" + MIName, "marked as ignored, skipping!\n");
   skipIfB(!partsType->isKnown(), "Branch.Unknown_" + MIName, false, "type_id is unknown!\n");
