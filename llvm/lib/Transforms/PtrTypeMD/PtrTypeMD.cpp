@@ -44,7 +44,6 @@ struct PtrTypeMDPass : public FunctionPass {
 
   bool runOnFunction(Function &F) override;
 
-  PartsTypeMetadata_ptr createCallMetadata(Function &F, Instruction &I);
   PartsTypeMetadata_ptr createLoadMetadata(Function &F, Instruction &I);
   PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
 };
@@ -74,9 +73,6 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
           break;
         case Instruction::Load:
           MD = createLoadMetadata(F, I);
-          break;
-        case Instruction::Call:
-          MD = createCallMetadata(F, I);
           break;
         default:
           break;
@@ -121,23 +117,6 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createStoreMetadata(Function &F, Instructio
   } else if (MD->isDataPointer()) {
     if (!PARTS::useDpi())
       MD->setIgnored(true);
-  }
-
-  return MD;
-}
-
-PartsTypeMetadata_ptr PtrTypeMDPass::createCallMetadata(Function &F, Instruction &I) {
-  assert(isa<CallInst>(I));
-
-  PartsTypeMetadata_ptr MD;
-
-  auto CI = dyn_cast<CallInst>(&I);
-
-  if (CI->getCalledFunction() == nullptr) {
-    log->inc(DEBUG_TYPE ".IndirectCallMetadataFound", true, F.getName()) << "      found indirect call!!!!\n";
-    MD = PartsTypeMetadata::get(I.getOperand(0)->getType());
-  } else {
-    MD = PartsTypeMetadata::getIgnored();
   }
 
   return MD;

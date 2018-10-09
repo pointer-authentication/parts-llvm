@@ -41,6 +41,7 @@ struct PartsCpi : public FunctionPass {
 
   bool runOnFunction(Function &F) override;
 
+  PartsTypeMetadata_ptr createCallMetadata(Function &F, Instruction &I);
   void fixDirectFunctionArgs(Function &F, Instruction &I);
 };
 
@@ -52,6 +53,8 @@ static RegisterPass<PartsCpi> X("parts-fecfi-pass", "PARTS CFI pass");
 bool PartsCpi::runOnFunction(Function &F) {
   if (!PARTS::useFeCfi())
     return false;
+
+  auto &C = F.getContext();
 
   for (auto &BB:F){
     for (auto &I: BB) {
@@ -94,8 +97,17 @@ bool PartsCpi::runOnFunction(Function &F) {
           break;
         case Instruction::Call: {
           fixDirectFunctionArgs(F, I);
-          break;
 
+          MD = createCallMetadata(F, I);
+
+          if (MD != nullptr) {
+            MD->attach(C, I);
+            log->inc(DEBUG_TYPE ".MetadataAdded", !MD->isIgnored()) << "adding metadata: " << MD->toString() << "\n";
+          } else {
+            log->inc(DEBUG_TYPE ".MetadataMissing") << "missing metadata\n";
+          }
+
+#ifdef REMOVE_THIS_MAYBE
           auto CI = dyn_cast<CallInst>(&I);
 
           if (CI->getCalledFunction() == nullptr) {
@@ -112,7 +124,7 @@ bool PartsCpi::runOnFunction(Function &F) {
             //auto paced_arg = PartsIntr::pac_code_pointer(F, I, O);
             //CI->setOperand(0, paced_arg);
           }
-
+#endif
           break;
         }
       }
@@ -138,3 +150,19 @@ void PartsCpi::fixDirectFunctionArgs(Function &F, Instruction &I) {
   }
 }
 
+PartsTypeMetadata_ptr PartsCpi::createCallMetadata(Function &F, Instruction &I) {
+  assert(isa<CallInst>(I));
+
+  PartsTypeMetadata_ptr MD;
+
+  auto CI = dyn_cast<CallInst>(&I);
+
+  if (CI->getCalledFunction() == nullptr) {
+    log->inc(DEBUG_TYPE ".IndirectCallMetadataFound", true, F.getName()) << "      found indirect call!!!!\n";
+    MD = PartsTypeMetadata::get(I.getOperand(0)->getType());
+  } else {
+    MD = PartsTypeMetadata::getIgnored();
+  }
+
+  return MD;
+}
