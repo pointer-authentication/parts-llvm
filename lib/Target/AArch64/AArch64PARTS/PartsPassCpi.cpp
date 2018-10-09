@@ -106,9 +106,9 @@ bool PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
 
-      const auto MIOpcode = MIi->getOpcode();
-
-      if (MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL) {
+      if (MIi->isCall() || MIi->isIndirectBranch()) {
+        /* We don't expect to be instrumenting all branches, but lets just keep them here
+         * to make sure we are aware of anything that might need to be instrumented. */
         instrumentBranches(MF, MBB, MIi);
       }
     }
@@ -124,9 +124,18 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
     return false;
 
   const auto MIOpcode = MIi->getOpcode();
+  const auto MIName = TII->getName(MIOpcode).str();
   auto partsType = PartsTypeMetadata::retrieve(*MIi);
 
-  assert(MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL);
+  skipIfN(MIOpcode == AArch64::BL ||
+          //MIOpcode == AArch64::Bcc ||
+          //MIOpcode == AArch64::TBZW ||
+          //MIOpcode == AArch64::TBZX ||
+          MIi->isReturn(),
+          "Branch.Skipped_" + MIName, "skipping branch '" + MIName + "'!\n");
+
+  /* Assume that only these are left... */
+  assert(MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL || MIOpcode == AArch64::BR);
 
   /* ----------------------------- BL/BLR ---------------------------------------- */
   DEBUG_PA(log->debug(MF.getName()) << "      found a BL/BLR (" << TII->getName(MIOpcode) << ")\n");
@@ -138,12 +147,14 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
     partsType = PartsTypeMetadata::getUnknown();
   }
 
-  skipIfB(!partsType->isKnown(), "Branch.Unknown", false, "type_id is unknown!\n");
-  skipIfN(partsType->isIgnored(), "Branch.Ignored", "marked as ignored, skipping!\n");
-  skipIfN(!partsType->isPointer(), "Branch.NotAPointer", "not a pointer, skipping!\n");
 
-  log->inc("StoreLoad.InstrumentedCall", true) << "      instrumenting call " << partsType->toString() << "\n";
+  skipIfN(partsType->isIgnored(), "Branch.Ignored_" + MIName, "marked as ignored, skipping!\n");
+  skipIfB(!partsType->isKnown(), "Branch.Unknown_" + MIName, false, "type_id is unknown!\n");
+  skipIfN(!partsType->isPointer(), "Branch.NotAPointer_" + MIName, "not a pointer, skipping!\n");
+
   assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
+
+  log->inc("Branch.Instrumented_" + MIName,  true) << "instrumenting call " << partsType->toString() << "\n";
 
   const auto ptrRegOperand = MIi->getOperand(0);
   const auto DL = MIi->getDebugLoc();
