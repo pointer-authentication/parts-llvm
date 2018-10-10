@@ -205,7 +205,6 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
     MI.removeFromParent();
   } else {
     const auto ptrReg = ptrRegOperand.getReg();
-    MIi->dump();
     partsUtils->addNops(MBB, MIi == MBB.instr_end() ? nullptr : &*MIi, ptrReg, modReg, DL);
   }
 
