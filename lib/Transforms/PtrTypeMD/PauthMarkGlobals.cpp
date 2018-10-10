@@ -99,7 +99,6 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
   if (PARTS::useFeCfi()) {
     log->inc(DEBUG_TYPE ".CodePointersFixed", fixed_cp) << "\"fixed\" " << fixed_cp << " code pointers for PACing\n";
     log->inc(DEBUG_TYPE ".CodePointersMarked", marked_code_pointers) << "annotating " << marked_code_pointers << " code pointers for PACing\n";
-    errs() << fixed_cp << " and " << marked_code_pointers << "\n";
     writeTypeIds(M, code_type_ids, ".code_type_id");
   }
 
