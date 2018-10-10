@@ -143,7 +143,7 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   if (partsType == nullptr) {
     DEBUG_PA(log->debug(MF.getName()) << "      trying to figure out type_id\n");
 
-    assert(MIi->getNumOperands() == 1);
+    assert(MIi->getNumOperands() >= 1);
     assert(MIi->getOperand(0).isReg());
 
     const auto reg = MIi->getOperand(0).getReg();
