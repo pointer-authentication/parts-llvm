@@ -130,7 +130,10 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
   auto &C = MF.getFunction().getContext();
   const auto fName = MF.getName();
 
-  DEBUG_PA(log->debug(fName) << "found a load/store (" << TII->getName(MIi->getOpcode()) << ")\n");
+  const auto MIOpcode = MIi->getOpcode();
+  const auto MIName = TII->getName(MIOpcode).str();
+
+  DEBUG_PA(log->debug(fName) << "found a load/store (" << TII->getName(MIOpcode) << ")\n");
 
   if (partsType == nullptr) {
     DEBUG_PA(log->debug(fName) << "trying to figure out type_id\n");
@@ -160,10 +163,10 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     log->inc("StoreLoad.Inferred") << "      storing type_id " << partsType->toString() << ") in current MI\n";
   }
 
-  skipIfN(partsType->isIgnored(), fName, "StoreLoad.Ignored", "marked as ignored, skipping!\n");
-  skipIfB(!partsType->isKnown(), fName, "StoreLoad.Unknown", false, "type_id is unknown!\n");
-  skipIfN(!partsType->isPointer(), fName, "StoreLoad.NotAPointer", "not a pointer, skipping!\n");
-  skipIfN(partsType->isCodePointer(), fName, "PartsPassDpi" ".StoreLoad.IgnoringCodePointer", "ignoring code pointer\n");
+  skipIfN(partsType->isIgnored(), fName, "StoreLoad.Ignored_" + MIName, "marked as ignored, skipping!\n");
+  skipIfB(!partsType->isKnown(), fName, "StoreLoad.Unknown_" + MIName, false, "type_id is unknown!\n");
+  skipIfN(!partsType->isPointer(), fName, "StoreLoad.NotAPointer_" + MIName, "not a pointer, skipping!\n");
+  skipIfN(partsType->isCodePointer(), fName, "PartsPassDpi.StoreLoad.IgnoringCodePointer_" + MIName, "ignoring code pointer\n");
 
   auto reg = MIi->getOperand(0).getReg();
   const auto modReg = PARTS::getModifierReg();
