@@ -154,13 +154,16 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   if (!TyIsPointer(type))
     return 0;
 
-#ifdef PARTS_USE_SHA3
   type_id_t type_id = 0;
-
   // Generate a std::string from type
   std::string type_str;
   llvm::raw_string_ostream rso(type_str);
   type->print(rso);
+
+  auto c_string = rso.str().c_str();
+
+#ifdef PARTS_USE_SHA3
+
 
   // Prepare SHA3 generation
   mbedtls_sha3_context sha3_context;
@@ -168,7 +171,7 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   mbedtls_sha3_init(&sha3_context);
 
   // Prepare input and output variables
-  auto *input = reinterpret_cast<const unsigned char*>(rso.str().c_str());
+  auto *input = reinterpret_cast<const unsigned char*>(c_string);
   auto *output= new unsigned char[32]();
 
   // Generate hash
@@ -182,13 +185,13 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   //const auto original_type_id = type_id;
   //type_id = type_id % UINT8_MAX;
 
-  return type_id;
 #else
   if (TyIsCodePointer(type))
-    return 7;
-
-  return 3;
+    type_id = 7;
+  else
+    type_id = 3;
 #endif
+  return type_id;
 }
 
 Constant *PartsTypeMetadata::idConstantFromType(LLVMContext &C, const Type *const type) {
