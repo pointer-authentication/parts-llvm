@@ -93,7 +93,18 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
 PartsTypeMetadata_ptr PtrTypeMDPass::createLoadMetadata(Function &F, Instruction &I) {
   assert(isa<LoadInst>(I));
 
-  auto MD = PartsTypeMetadata::get(I.getType());
+  auto V = I.getOperand(0);
+  assert(I.getType() == V->getType()->getPointerElementType());
+
+  PartsTypeMetadata_ptr MD = nullptr;
+
+  if (isa<BitCastInst>(V)) {
+    auto BC = dyn_cast<BitCastInst>(V);
+    MD = PartsTypeMetadata::get(BC->getSrcTy());
+    // FIXME: Ugly hack, will make all union types the same!!!
+  } else {
+    MD = PartsTypeMetadata::get(V->getType()->getPointerElementType());
+  }
 
   if (MD->isCodePointer()) {
     // Ignore all loaded function-pointers (at least for now)
@@ -110,7 +121,18 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createLoadMetadata(Function &F, Instruction
 PartsTypeMetadata_ptr PtrTypeMDPass::createStoreMetadata(Function &F, Instruction &I) {
   assert(isa<StoreInst>(I));
 
-  auto MD = PartsTypeMetadata::get(I.getOperand(0)->getType());
+  auto V = I.getOperand(1);
+  assert(I.getOperand(0)->getType() == V->getType()->getPointerElementType());
+
+  PartsTypeMetadata_ptr MD = nullptr;
+
+  if (isa<BitCastInst>(V)) {
+    auto BC = dyn_cast<BitCastInst>(V);
+    MD = PartsTypeMetadata::get(BC->getSrcTy());
+    // FIXME: Ugly hack, will make all union types the same!!!
+  } else {
+    MD = PartsTypeMetadata::get(V->getType()->getPointerElementType());
+  }
 
   if (MD->isCodePointer()) {
     MD->setIgnored(true);
