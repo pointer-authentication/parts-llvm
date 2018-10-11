@@ -88,6 +88,11 @@ PartsLogStream &PartsLogStream::operator<<(const Value *I) {
   return *this;
 }
 
+PartsLogStream &PartsLogStream::operator<<(const Type *T) {
+  T->print(*m_ostream);
+  return *this;
+}
+
 
 } // namespace PARTS
 
