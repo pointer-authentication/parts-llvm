@@ -24,7 +24,7 @@ class PartsIntr {
 
 public:
   static Value *pac_pointer(Function &F, Instruction &I, Value *V, const std::string &name = "");
-  static Value *pac_pointer(IRBuilder<> *builder, Module &M, Value *V, const std::string &name = "");
+  static Value *pac_pointer(IRBuilder<> *builder, Module &M, Value *V, const std::string &name = "", PartsTypeMetadata_ptr = nullptr);
 
   static Value *load_aut_pointer(Function &F, Instruction &I, PartsTypeMetadata_ptr PTMD);
   static Value *store_aut_pointer(Function &F, Instruction &I, PartsTypeMetadata_ptr PTMD);
