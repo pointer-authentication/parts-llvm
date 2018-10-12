@@ -78,6 +78,7 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
   auto result = Type::getVoidTy(C);
   FunctionType* signature = FunctionType::get(result, false);
   funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
+  funcFixGlobals->addFnAttr("no-parts", "true");
 
   auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
   IRBuilder<> localBuilder(BB);
