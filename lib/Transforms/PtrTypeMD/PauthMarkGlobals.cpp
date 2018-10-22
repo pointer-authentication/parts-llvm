@@ -25,15 +25,8 @@ using namespace llvm;
 #define DEBUG_TYPE "PauthOptPauthMarkGlobals"
 #define TAG KYEL DEBUG_TYPE ": "
 
-#define DEBUG_DO(x) do { \
-  x;\
-  errs() << KNRM; \
-} while(0);
-
-#ifdef DISABLE_PA_DEBUG
-#undef DEBUG_DO
-#define DEBUG_DO(x)
-#endif
+//#undef DEBUG_PA
+//#define DEBUG_PA(x) x
 
 namespace {
 
@@ -85,6 +78,7 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
   auto result = Type::getVoidTy(C);
   FunctionType* signature = FunctionType::get(result, false);
   funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
+  funcFixGlobals->addFnAttr("no-parts", "true");
 
   auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
   IRBuilder<> localBuilder(BB);
@@ -108,7 +102,7 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
     writeTypeIds(M, data_type_ids, ".data_type_id");
   }
 
-  need_fix_globals_call = (marked_code_pointers+marked_code_pointers+fixed_cp+fixed_dp) > 0;
+  need_fix_globals_call = (marked_code_pointers+marked_data_pointers+fixed_cp+fixed_dp) > 0;
   return need_fix_globals_call;
 }
 
@@ -162,15 +156,15 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
 
         auto loaded = builder->CreateLoad(elPtr);
         auto paced = PartsIntr::pac_pointer(builder, M, loaded);
-        DEBUG_PA(log->debug() << "found array elemnt, PACed " << paced << " with id " << PartsTypeMetadata::idFromType(elementType) << "\n");
+        builder->CreateStore(paced, elPtr);
+
+        DEBUG_PA(log->debug() << "found array element, PACed " << paced << " with id " << PartsTypeMetadata::idFromType(elementType) << "\n");
 
         if (isCodePtr) {
           fixed_cp++;
         } else {
           fixed_dp++;
         }
-
-        builder->CreateStore(paced, elPtr);
       }
       log->debug() << GV << " DONE\n";
     }
@@ -178,20 +172,33 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
   }
 
   if (Ty->isPointerTy()) {
+    auto PTMD = PartsTypeMetadata::get(Ty);
+
     auto type_id = PartsTypeMetadata::idFromType(Ty);
 
-    if (PartsTypeMetadata::TyIsCodePointer(Ty)) {
+    if (PTMD->isCodePointer()) {
       if (PARTS::useFeCfi()) {
         marked_code_pointers++;
-        GV.setSection(".code_pauth");
-        code_type_ids.push_back(type_id);
+        log->debug() << "mark as code pointer type_id=" << type_id << "\n";
+      } else {
+        PTMD->setIgnored(true);
       }
     } else {
+      assert(PTMD->isDataPointer());
       if (PARTS::useDpi()) {
         marked_data_pointers++;
-        GV.setSection(".data_pauth");
-        data_type_ids.push_back(type_id);
+        log->green() << "mark as data pointer type_id=" << type_id << "\n";
+      } else {
+        PTMD->setIgnored(true);
       }
+    }
+
+    if (!PTMD->isIgnored()) {
+      log->debug() << "inserting new PAC call to global fixer function\n";
+
+      auto loaded = builder->CreateLoad(&GV);
+      auto paced = PartsIntr::pac_pointer(builder, M, loaded);
+      builder->CreateStore(paced, &GV);
     }
     return true;
   }

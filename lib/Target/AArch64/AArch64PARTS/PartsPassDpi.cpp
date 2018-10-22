@@ -32,6 +32,9 @@
 
 #define DEBUG_TYPE "aarch64-parts-dpi"
 
+//#undef DEBUG_PA
+//#define DEBUG_PA(x) x
+
 using namespace llvm;
 using namespace llvm::PARTS;
 
@@ -101,6 +104,8 @@ bool PartsPassDpi::runOnMachineFunction(MachineFunction &MF) {
   TRI = STI->getRegisterInfo();
   partsUtils = PartsUtils::get(TRI, TII);
 
+  if (MF.getFunction().getFnAttribute("no-parts").getValueAsString() == "true") return false;
+
   for (auto &MBB : MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       DEBUG_PA(log->debug(MF.getName()) << MF.getName() << "->" << MBB.getName() << "->" << MIi);
@@ -140,9 +145,27 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     auto Op = MIi->getOperand(0);
     const auto targetReg = Op.getReg();
 
-    if (!partsUtils->checkIfRegInstrumentable(targetReg)) {
+    //if (!partsUtils->checkIfRegInstrumentable(targetReg)) {
+    if (!TRI->getPointerRegClass(MF)->contains(Op.getReg())) {
+      partsType = PartsTypeMetadata::getIgnored();
+      // Just to make sure this behaves as expected...
+      assert(Op.getReg() != AArch64::X0 && Op.getReg() != AArch64::X1 && Op.getReg() != AArch64::X2 &&
+             Op.getReg() != AArch64::X3 && Op.getReg() != AArch64::X4 && Op.getReg() != AArch64::X5 &&
+             Op.getReg() != AArch64::X6 && Op.getReg() != AArch64::X7 && Op.getReg() != AArch64::X8 &&
+             Op.getReg() != AArch64::X9 && Op.getReg() != AArch64::X11 && Op.getReg() != AArch64::X12 &&
+             Op.getReg() != AArch64::X13 && Op.getReg() != AArch64::X14 && Op.getReg() != AArch64::X15 &&
+             Op.getReg() != AArch64::X16 && Op.getReg() != AArch64::X17 && Op.getReg() != AArch64::X18 &&
+             Op.getReg() != AArch64::X19 && Op.getReg() != AArch64::X21 && Op.getReg() != AArch64::X22 &&
+             Op.getReg() != AArch64::X23 && Op.getReg() != AArch64::X24 && Op.getReg() != AArch64::X25 &&
+             Op.getReg() != AArch64::X26 && Op.getReg() != AArch64::X27 && Op.getReg() != AArch64::X28 &&
+             Op.getReg() != AArch64::FP && Op.getReg() != AArch64::LR);
+    } else if (Op.getReg() == AArch64::FP || Op.getReg() == AArch64::LR) {
+      // Ignore FP and LR, they are handled elsewhre
       partsType = PartsTypeMetadata::getIgnored();
     } else {
+      // remove this call at some point, checkIfRegInstrumentable is crappy...
+      assert(partsUtils->checkIfRegInstrumentable(targetReg));
+
       if (partsUtils->isStore(*MIi)) {
         partsType = partsUtils->inferPauthTypeIdRegBackwards(MF, MBB, *MIi, targetReg);
       } else {
@@ -164,6 +187,25 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
   }
 
   skipIfN(partsType->isIgnored(), fName, "StoreLoad.Ignored_" + MIName, "marked as ignored, skipping!\n");
+
+  if (!partsType->isKnown() && (
+      MIi->getFlag(MachineInstr::MIFlag::FrameSetup) ||
+      MIi->getFlag(MachineInstr::MIFlag::FrameDestroy))) {
+    // We're assuming this is a callee saved registerThing, so therefore this op should be relative to SP...
+    assert(MIi->getOperand(1).getReg() == AArch64::SP || MIi->getOperand(2).getReg() == AArch64::SP);
+    log->inc("StoreLoad.CalleeSaved_" + MIName, true, "skipping callee saved register!\n");
+    return false;
+  }
+
+  if (!partsType->isKnown()) {
+    errs() << "___________________________________________________________________\n";
+    errs() << MF.getFunction().getName() << " : " << MBB.getName() << "\n";
+    errs() << MIi->getFlag(MachineInstr::MIFlag::FrameSetup) << "\n";
+    errs() << MIi->getFlag(MachineInstr::MIFlag::FrameDestroy) << "\n";
+    MIi->dump();
+    errs() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
+  }
+
   skipIfB(!partsType->isKnown(), fName, "StoreLoad.Unknown_" + MIName, false, "type_id is unknown!\n");
   skipIfN(!partsType->isPointer(), fName, "StoreLoad.NotAPointer_" + MIName, "not a pointer, skipping!\n");
   skipIfN(partsType->isCodePointer(), fName, "PartsPassDpi.StoreLoad.IgnoringCodePointer_" + MIName, "ignoring code pointer\n");
