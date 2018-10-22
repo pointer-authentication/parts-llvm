@@ -35,6 +35,9 @@ public:
                           MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                           const DebugLoc &DL, bool IsTailCallReturn);
 
+  void instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
+                          MachineBasicBlock &MBB, const DebugLoc &DL, bool IsTailCallReturn);
+
   void instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                           MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                           const DebugLoc &DL);

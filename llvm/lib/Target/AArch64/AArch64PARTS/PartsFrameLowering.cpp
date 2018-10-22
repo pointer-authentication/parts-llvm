@@ -37,6 +37,20 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
   }
 }
 
+void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
+                                  MachineBasicBlock &MBB, const DebugLoc &DL, const bool IsTailCallReturn) {
+  auto partsUtils = PartsUtils::get(TRI, TII);
+  auto modReg = PARTS::getModifierReg();
+
+  if (!IsTailCallReturn) {
+    partsUtils->createBeCfiModifier(MBB, nullptr, modReg, DebugLoc());
+    partsUtils->insertPAInstr(MBB, nullptr, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DebugLoc());
+  } else {
+    partsUtils->createBeCfiModifier(MBB, nullptr, modReg, DebugLoc());
+    partsUtils->insertPAInstr(MBB, nullptr, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DebugLoc());
+  }
+}
+
 void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                                             MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                                             const DebugLoc &DL) {
