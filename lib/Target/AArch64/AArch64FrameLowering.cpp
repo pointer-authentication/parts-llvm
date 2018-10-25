@@ -905,14 +905,8 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     emitFrameOffset(MBB, MBB.getFirstTerminator(), DL, AArch64::SP, AArch64::SP,
                     ArgumentPopSize, TII, MachineInstr::FrameDestroy);
 
-  if (MBBI == MBB.end() && MBB.getParent()==&MF) { 
-    if (PARTS::useBeCfi())
-      PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
-  }
-  else {
-    if (PARTS::useBeCfi())
-      PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, DL, IsTailCallReturn);
-  }
+  if (PARTS::useBeCfi())
+    PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for
