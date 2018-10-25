@@ -1468,14 +1468,8 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     BuildMI(MBB, MBB.getFirstTerminator(), DL, TII->get(AArch64::SEH_EpilogEnd))
         .setMIFlag(MachineInstr::FrameDestroy);
 
- if (MBBI == MBB.end() && MBB.getParent()==&MF) { 
-    if (PARTS::useBeCfi())
-      PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
-  }
-  else {
-    if (PARTS::useBeCfi())
-      PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, DL, IsTailCallReturn);
-  }
+  if (PARTS::useBeCfi())
+    PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for
