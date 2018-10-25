@@ -322,6 +322,10 @@ void PartsUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrR
                          const DebugLoc &DL) {
   auto loc = (MI == nullptr ? &*(MBB.getFirstTerminator()) : MI);
 
+  if (ptrReg == AArch64::XZR)
+    /* Don't do nuthin' for XZR, only rarely used, so shouldn't be an issue */
+    return;
+
   BuildMI(MBB, loc, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
   BuildMI(MBB, loc, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
   BuildMI(MBB, loc, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
