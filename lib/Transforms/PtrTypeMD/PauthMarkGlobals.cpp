@@ -77,8 +77,10 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
 
   auto result = Type::getVoidTy(C);
   FunctionType* signature = FunctionType::get(result, false);
-  funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
+  //funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
+  funcFixGlobals = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_globals", &M);
   funcFixGlobals->addFnAttr("no-parts", "true");
+  funcFixGlobals->addFnAttr("constructor", "true");
 
   auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
   IRBuilder<> localBuilder(BB);
@@ -112,6 +114,7 @@ bool PauthMarkGlobals::runOnFunction(Function &F) {
 
   assert(F.getName().equals("main"));
 
+#ifdef PARTS_INSERT_CALL_TO_PAC_GLOBALS
   auto &B = F.getEntryBlock();
   auto &I = *B.begin();
 
@@ -119,6 +122,7 @@ bool PauthMarkGlobals::runOnFunction(Function &F) {
   Builder.CreateCall(funcFixGlobals);
 
   DEBUG_PA(log->info() << "Adding call to __pauth_pac_globals\n");
+#endif
   return true;
 }
 
