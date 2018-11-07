@@ -246,17 +246,12 @@ void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineInstr *MIi, unsi
   const auto t3 = (type_id >> 32) & UINT16_MAX;
   const auto t4 = (type_id >> 48) & UINT16_MAX;
 
-  if (MIi == nullptr) {
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t1).addImm(0);
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t2).addImm(16);
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t3).addImm(32);
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi)).addReg(modReg).addReg(modReg).addImm(t4).addImm(48);
-  } else {
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t1).addImm(0);
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t2).addImm(16);
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t3).addImm(32);
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t4).addImm(48);
-  }
+  auto loc = (MIi == nullptr ? &*(MBB.getFirstTerminator()) : MIi);
+
+  BuildMI(MBB, loc, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t1).addImm(0);
+  BuildMI(MBB, loc, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t2).addImm(16);
+  BuildMI(MBB, loc, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t3).addImm(32);
+  BuildMI(MBB, loc, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t4).addImm(48);
 }
 
 void PartsUtils::createBeCfiModifier(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg, const DebugLoc &DL) {
