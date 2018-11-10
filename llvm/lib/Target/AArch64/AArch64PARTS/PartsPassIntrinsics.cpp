@@ -25,6 +25,7 @@
 #include "AArch64RegisterInfo.h"
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
+#include "llvm/PARTS/PartsEventCount.h"
 #include "PartsUtils.h"
 
 #define DEBUG_TYPE "aarch64-parts-intrinsics"
@@ -59,6 +60,8 @@ private:
   const AArch64InstrInfo *TII = nullptr;
   const AArch64RegisterInfo *TRI = nullptr;
   PartsUtils_ptr partsUtils;
+
+  Function *funcCountCodePtrCreate = nullptr;
 };
 } // end anonymous namespace
 
@@ -69,7 +72,8 @@ FunctionPass *llvm::createPartsPassIntrinsics() {
 char PartsPassIntrinsics::ID = 0;
 
 bool PartsPassIntrinsics::doInitialization(Module &M) {
-  return false;
+  funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerBranch(M);
+  return true;
 }
 
 bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
@@ -111,11 +115,13 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
           // Insert appropriate PA instruction
           if (MIOpcode == AArch64::PARTS_PACIA) {
             log->inc(TAG ".pacia", true) << "converting PARTS_PACIA\n";
+            //partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrCreate);
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACIA), DL);
           } else if (MIOpcode == AArch64::PARTS_PACDA) {
             log->inc(TAG ".pacda", true) << "converting PARTS_PACDA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
           } else if (MIOpcode == AArch64::PARTS_AUTIA) {
+            assert(false && "should never(?) be AUTIAing instruction pointers");
             log->inc(TAG ".autia", true) << "converting PARTS_AUTIA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTIA), DL);
           } else if (MIOpcode == AArch64::PARTS_AUTDA) {
