@@ -22,6 +22,7 @@ bool useFeCfi();
 bool useDpi();
 bool useAny();
 bool useDummy();
+bool useRuntimeStats();
 
 } // PARTS
 

@@ -27,6 +27,7 @@
 // PARTS includes
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/PartsLog.h"
+#include "llvm/PARTS/PartsEventCount.h"
 #include "llvm/PARTS/Parts.h"
 #include "PartsUtils.h"
 
@@ -55,6 +56,7 @@ namespace {
  public:
    static char ID;
 
+
    PartsPassCpi() :
    MachineFunctionPass(ID),
    log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
@@ -77,6 +79,8 @@ namespace {
    const AArch64InstrInfo *TII = nullptr;
    const AArch64RegisterInfo *TRI = nullptr;
    PartsUtils_ptr  partsUtils = nullptr;
+
+   Function *funcCountCodePtrBranch = nullptr;
  };
 } // end anonymous namespace
 
@@ -87,7 +91,8 @@ FunctionPass *llvm::createPartsPassCpi() {
 char PartsPassCpi::ID = 0;
 
 bool PartsPassCpi::doInitialization(Module &M) {
-  return false;
+  funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
+  return true;
 }
 
 bool PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
@@ -189,6 +194,18 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   const auto ptrRegOperand = MIi->getOperand(0);
   const auto DL = MIi->getDebugLoc();
   const auto modReg = PARTS::getModifierReg();
+
+
+  //void PartsUtils::addEventCallFunction(MachineBasicBlock &MBB, MachineInstr &MI,
+  partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
+  /*
+  if (PARTS::useRuntimeStats()) {
+    // This is safe to do, since we are already having function calls, i.e., we are sure to have LR stored!
+    auto BMI = BuildMI(MBB, *MIi, DL, TII->get(AArch64::BL));
+    char tmp = TII->get(AArch64::BL);
+    BMI.addGlobalAddress(funcCountCodePtrBranch);
+  }
+  */
 
   // Create the PAC modifier
   partsUtils->moveTypeIdToReg(MBB, MIi, modReg, partsType->getTypeId(), DL);

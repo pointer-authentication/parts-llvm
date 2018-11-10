@@ -337,7 +337,11 @@ void PartsUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrR
     BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
   }
 }
-
-
-
+void PartsUtils::addEventCallFunction(MachineBasicBlock &MBB, MachineInstr &MI,
+                                      const DebugLoc &DL, Function *func) {
+  if (PARTS::useRuntimeStats()) {
+    auto BMI = BuildMI(MBB, MI, DL, TII->get(AArch64::BL));
+    BMI.addGlobalAddress(func);
+  }
+}
 

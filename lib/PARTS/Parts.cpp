@@ -30,6 +30,10 @@ static cl::opt<bool> UseDummyInstructions("parts-dummy", cl::Hidden,
                                           cl::desc("Use dummy instructions and XOR instead of PA"),
                                           cl::init(false));
 
+static cl::opt<bool> EnablePartsRuntimeStats("parts-stats", cl::Hidden,
+                                          cl::desc("Invoke stat counting functions to count various events"),
+                                          cl::init(false));
+
 bool llvm::PARTS::useBeCfi() {
   return EnablePartsBeCfi;
 }
@@ -48,4 +52,8 @@ bool llvm::PARTS::useAny() {
 
 bool llvm::PARTS::useDummy() {
   return UseDummyInstructions;
+}
+
+bool llvm::PARTS::useRuntimeStats() {
+  return EnablePartsRuntimeStats;
 }
