@@ -24,17 +24,13 @@ PartsFrameLowering_ptr PartsFrameLowering::get() {
 void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                                   MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                                   const DebugLoc &DL, const bool IsTailCallReturn) {
+  //FIXME: I assume there was a reason for IsTailCallReturn, but its no longer used at all!?!
   auto partsUtils = PartsUtils::get(TRI, TII);
   auto modReg = PARTS::getModifierReg();
+  auto loc = (MBBI != MBB.end() ? &*MBBI : nullptr);
 
-  if (!IsTailCallReturn) {
-    assert(MBBI != MBB.end());
-    partsUtils->createBeCfiModifier(MBB, &*MBBI, modReg, DebugLoc());
-    partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DebugLoc());
-  } else {
-    partsUtils->createBeCfiModifier(MBB, &*MBBI, modReg, DebugLoc());
-    partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DebugLoc());
-  }
+  partsUtils->createBeCfiModifier(MBB, loc, modReg, DebugLoc());
+  partsUtils->insertPAInstr(MBB, loc, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DebugLoc());
 }
 
 void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
