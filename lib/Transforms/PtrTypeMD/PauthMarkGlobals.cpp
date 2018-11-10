@@ -109,20 +109,20 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
 }
 
 bool PauthMarkGlobals::runOnFunction(Function &F) {
-  if (!(need_fix_globals_call && PARTS::useAny() && F.getName().equals("main")))
+  if (!(PARTS::useAny() && F.getName().equals("main")))
     return false;
 
   assert(F.getName().equals("main"));
 
-#ifdef PARTS_INSERT_CALL_TO_PAC_GLOBALS
-  auto &B = F.getEntryBlock();
-  auto &I = *B.begin();
+  if (need_fix_globals_call) {
+    auto &B = F.getEntryBlock();
+    auto &I = *B.begin();
 
-  IRBuilder<> Builder(&I);
-  Builder.CreateCall(funcFixGlobals);
+    IRBuilder<> Builder(&I);
+    Builder.CreateCall(funcFixGlobals);
 
-  DEBUG_PA(log->info() << "Adding call to __pauth_pac_globals\n");
-#endif
+    DEBUG_PA(log->info() << "Adding call to __pauth_pac_globals\n");
+  }
   return true;
 }
 
