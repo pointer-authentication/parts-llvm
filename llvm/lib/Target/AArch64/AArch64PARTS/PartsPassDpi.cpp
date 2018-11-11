@@ -27,6 +27,7 @@
 // PARTS includes
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/PartsLog.h"
+#include "llvm/PARTS/PartsEventCount.h"
 #include "llvm/PARTS/Parts.h"
 #include "PartsUtils.h"
 
@@ -83,6 +84,9 @@ namespace {
    PartsUtils_ptr  partsUtils = nullptr;
    int m_PACed_me_a_live_one = false; // FIXME: horrible hack!
    MachineOperand *m_the_live_one = nullptr;
+
+   Function *funcCountDataStr = nullptr;
+   Function *funcCountDataLdr = nullptr;
  };
 } // end anonymous namespace
 
@@ -93,7 +97,9 @@ FunctionPass *llvm::createPartsPassDpi() {
 char PartsPassDpi::ID = 0;
 
 bool PartsPassDpi::doInitialization(Module &M) {
-  return false;
+  funcCountDataStr = PartsEventCount::getFuncDataStr(M);
+  funcCountDataLdr = PartsEventCount::getFuncDataLdr(M);
+  return true;
 }
 
 bool PartsPassDpi::runOnMachineFunction(MachineFunction &MF) {
@@ -220,7 +226,9 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
 
       // FIXME: Horrible hack for double define!
       if (m_PACed_me_a_live_one == 0) {
-        partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id, MIi->getDebugLoc());
+        const auto &DL = MIi->getDebugLoc();
+        partsUtils->pacDataPointer(MBB, MIi, reg, modReg, type_id, DL);
+        partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
       } else {
         assert(m_the_live_one->getReg() == MIi->getOperand(0).getReg());
       }
@@ -236,11 +244,13 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     }
   } else {
     auto loc = MIi;
-    MIi->getDebugLoc();
     loc++;
     if (PARTS::useDpi()) {
       log->inc("StoreLoad.InstrumentedDataLoad", true, fName) << "instrumenting load with " << partsType->toString() << "\n";
-      partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id, MIi->getDebugLoc());
+
+      const auto &DL = loc->getDebugLoc();
+      partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id, DL);
+      partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataLdr);
       return true;
     }
   }
