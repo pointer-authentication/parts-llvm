@@ -72,7 +72,7 @@ FunctionPass *llvm::createPartsPassIntrinsics() {
 char PartsPassIntrinsics::ID = 0;
 
 bool PartsPassIntrinsics::doInitialization(Module &M) {
-  funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerBranch(M);
+  funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
   return true;
 }
 
@@ -115,8 +115,8 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
           // Insert appropriate PA instruction
           if (MIOpcode == AArch64::PARTS_PACIA) {
             log->inc(TAG ".pacia", true) << "converting PARTS_PACIA\n";
-            //partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrCreate);
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACIA), DL);
+            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrCreate);
           } else if (MIOpcode == AArch64::PARTS_PACDA) {
             log->inc(TAG ".pacda", true) << "converting PARTS_PACDA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
