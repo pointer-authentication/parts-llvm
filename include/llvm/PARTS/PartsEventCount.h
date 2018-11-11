@@ -25,6 +25,8 @@ class PartsEventCount {
 public:
   static Function *getFuncCodePointerBranch(Module &M) { return getCounterFunc(M, "__parts_count_code_ptr_branch"); };
   static Function *getFuncCodePointerCreate(Module &M) { return getCounterFunc(M, "__parts_count_code_ptr_create"); };
+  static Function *getFuncDataStr(Module &M) { return getCounterFunc(M, "__parts_count_data_ptr_str"); };
+  static Function *getFuncDataLdr(Module &M) { return getCounterFunc(M, "__parts_count_data_ptr_ldr"); };
 
 private:
   static Function *getCounterFunc(Module &M, const std::string &fName);
