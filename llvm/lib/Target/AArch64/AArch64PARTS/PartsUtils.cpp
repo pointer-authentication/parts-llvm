@@ -340,8 +340,17 @@ void PartsUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrR
 void PartsUtils::addEventCallFunction(MachineBasicBlock &MBB, MachineInstr &MI,
                                       const DebugLoc &DL, Function *func) {
   if (PARTS::useRuntimeStats()) {
-    auto BMI = BuildMI(MBB, MI, DL, TII->get(AArch64::BL));
-    BMI.addGlobalAddress(func);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::STRQpre))
+        .addReg(AArch64::SP, RegState::Define)
+        .addReg(AArch64::LR)
+        .addReg(AArch64::SP)
+        .addImm(-16);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::BL))
+        .addGlobalAddress(func);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::LDRQpost))
+        .addReg(AArch64::SP, RegState::Define)
+        .addReg(AArch64::LR)
+        .addReg(AArch64::SP)
+        .addImm(16);
   }
 }
-
