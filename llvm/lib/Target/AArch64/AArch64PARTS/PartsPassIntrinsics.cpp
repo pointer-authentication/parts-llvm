@@ -63,6 +63,7 @@ private:
 
   Function *funcCountCodePtrCreate = nullptr;
   Function *funcCountDataStr = nullptr;
+  Function *funcCountNonleafCall = nullptr;
 };
 } // end anonymous namespace
 
@@ -75,6 +76,7 @@ char PartsPassIntrinsics::ID = 0;
 bool PartsPassIntrinsics::doInitialization(Module &M) {
   funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
   funcCountDataStr = PartsEventCount::getFuncDataStr(M);
+  funcCountNonleafCall = PartsEventCount::getFuncNonleafCall(M);
   return true;
 }
 
@@ -96,6 +98,15 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
       switch(MIOpcode) {
         default:
           break;
+        case AArch64::PACIB: {
+          // FIXME: This return address signing counting should probably be properly put somewhere else...
+          // Should however work as long as we only use PACIB for return address signing.
+          if (PARTS::useRuntimeStats()) {
+            const auto &DL = MIi->getDebugLoc();
+            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountNonleafCall);
+          }
+          break;
+        }
         case AArch64::PARTS_PACIA:
         case AArch64::PARTS_PACDA:
         case AArch64::PARTS_AUTIA:

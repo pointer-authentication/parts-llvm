@@ -27,6 +27,7 @@ public:
   static Function *getFuncCodePointerCreate(Module &M) { return getCounterFunc(M, "__parts_count_code_ptr_create"); };
   static Function *getFuncDataStr(Module &M) { return getCounterFunc(M, "__parts_count_data_ptr_str"); };
   static Function *getFuncDataLdr(Module &M) { return getCounterFunc(M, "__parts_count_data_ptr_ldr"); };
+  static Function *getFuncNonleafCall(Module &M) { return getCounterFunc(M, "__parts_count_nonleaf_call"); };
 
 private:
   static Function *getCounterFunc(Module &M, const std::string &fName);
