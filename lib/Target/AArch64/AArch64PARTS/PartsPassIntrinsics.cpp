@@ -64,6 +64,7 @@ private:
   Function *funcCountCodePtrCreate = nullptr;
   Function *funcCountDataStr = nullptr;
   Function *funcCountNonleafCall = nullptr;
+  Function *funcCountLeafCall = nullptr;
 };
 } // end anonymous namespace
 
@@ -77,6 +78,7 @@ bool PartsPassIntrinsics::doInitialization(Module &M) {
   funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
   funcCountDataStr = PartsEventCount::getFuncDataStr(M);
   funcCountNonleafCall = PartsEventCount::getFuncNonleafCall(M);
+  funcCountLeafCall = PartsEventCount::getFuncLeafCall(M);
   return true;
 }
 
@@ -88,6 +90,8 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
   //TM = &MF.getTarget();;
   TRI = STI->getRegisterInfo();
   partsUtils = PartsUtils::get(TRI, TII);
+
+  bool foundReturnSign = false;
 
   for (auto &MBB : MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
@@ -104,6 +108,8 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
           if (PARTS::useRuntimeStats()) {
             const auto &DL = MIi->getDebugLoc();
             partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountNonleafCall);
+            foundReturnSign = true;
+            found = true;
           }
           break;
         }
@@ -154,6 +160,22 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
           break;
       }
 
+    }
+  }
+
+  if (PARTS::useRuntimeStats()) {
+    if (!foundReturnSign) {
+      // if this function was instrumented we should already have found the PACIB earlier
+      // Instrumenting the return instead, since instrumenting the entry prooved unreliable (guessing
+      // empty functions, weird entry basic blocks, etc)
+      for (auto &MBB : MF) {
+        for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
+          if (MIi->isReturn()) {
+            partsUtils->addEventCallFunction(MBB, *MIi, MIi->getDebugLoc(), funcCountLeafCall);
+            found = true;
+          }
+        }
+      }
     }
   }
 
