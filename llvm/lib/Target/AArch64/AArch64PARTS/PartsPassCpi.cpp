@@ -196,16 +196,7 @@ bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
   const auto modReg = PARTS::getModifierReg();
 
 
-  //void PartsUtils::addEventCallFunction(MachineBasicBlock &MBB, MachineInstr &MI,
   partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
-  /*
-  if (PARTS::useRuntimeStats()) {
-    // This is safe to do, since we are already having function calls, i.e., we are sure to have LR stored!
-    auto BMI = BuildMI(MBB, *MIi, DL, TII->get(AArch64::BL));
-    char tmp = TII->get(AArch64::BL);
-    BMI.addGlobalAddress(funcCountCodePtrBranch);
-  }
-  */
 
   // Create the PAC modifier
   partsUtils->moveTypeIdToReg(MBB, MIi, modReg, partsType->getTypeId(), DL);
