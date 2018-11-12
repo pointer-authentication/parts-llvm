@@ -140,12 +140,18 @@ void PartsCpi::fixDirectFunctionArgs(Function &F, Instruction &I) {
 
   auto CI = dyn_cast<CallInst>(&I);
 
-  for (auto i = 0U; i < CI->getNumOperands() - 1; i++) {
-    auto O = CI->getOperand(i);
+  for (auto i = 0U; i < CI->getNumArgOperands(); i++) {
+    auto O = CI->getArgOperand(i);
+
+    // FIXME: This shoudl also look for direct bitcasts!!!
 
     if (PartsTypeMetadata::TyIsCodePointer(O->getType()) && isa<Function>(O)) {
-      auto paced_arg = PartsIntr::pac_pointer(F, I, O);
-      CI->setOperand(i, paced_arg);
+      auto FO = dyn_cast<Function>(O);
+
+      if (!FO->isIntrinsic()) {
+        auto paced_arg = PartsIntr::pac_pointer(F, I, O);
+        CI->setOperand(i, paced_arg);
+      }
     }
   }
 }
