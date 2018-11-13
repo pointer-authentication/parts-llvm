@@ -43,6 +43,11 @@ struct PartsCpi : public FunctionPass {
 
   PartsTypeMetadata_ptr createCallMetadata(Function &F, Instruction &I);
   void fixDirectFunctionArgs(Function &F, Instruction &I);
+
+  inline void replaceDirectFuncOperand(Function &F, Instruction &I, Value *O, CallInst *CI, unsigned i) {
+    auto paced_arg = PartsIntr::pac_pointer(F, I, O);
+    CI->setOperand(i, paced_arg);
+  }
 };
 
 } // anonymous namespace
@@ -143,14 +148,25 @@ void PartsCpi::fixDirectFunctionArgs(Function &F, Instruction &I) {
   for (auto i = 0U; i < CI->getNumArgOperands(); i++) {
     auto O = CI->getArgOperand(i);
 
-    // FIXME: This shoudl also look for direct bitcasts!!!
+    // First make sure that we're dealing with a function pointer
+    if (PartsTypeMetadata::TyIsCodePointer(O->getType())) {
+      if (isa<Function>(O)) {
+        // The argument is a function address directly taken i.e., func(printf).
+        if (!dyn_cast<Function>(O)->isIntrinsic()) {
+          // Ignore intrinsics! FIXME: Or should we?
+          replaceDirectFuncOperand(F, I, O, CI, i);
+        }
+      } else if (isa<BitCastOperator>(O)) {
+        // This is a bitcast, so src might be directly taken function
+        auto BC = dyn_cast<BitCastOperator>(O);
+        auto BCO = BC->getOperand(0);
 
-    if (PartsTypeMetadata::TyIsCodePointer(O->getType()) && isa<Function>(O)) {
-      auto FO = dyn_cast<Function>(O);
-
-      if (!FO->isIntrinsic()) {
-        auto paced_arg = PartsIntr::pac_pointer(F, I, O);
-        CI->setOperand(i, paced_arg);
+        if (isa<Function>(BCO)) {
+          if (!dyn_cast<Function>(BCO)->isIntrinsic()) {
+            // Ignore intrinsics! FIXME: Or should we?
+            replaceDirectFuncOperand(F, I, O, CI, i);
+          }
+        }
       }
     }
   }
