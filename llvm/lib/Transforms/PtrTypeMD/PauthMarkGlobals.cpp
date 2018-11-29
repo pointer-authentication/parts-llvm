@@ -80,7 +80,7 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
   //funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
   funcFixGlobals = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_globals", &M);
   funcFixGlobals->addFnAttr("no-parts", "true");
-  funcFixGlobals->addFnAttr("constructor", "true");
+  //funcFixGlobals->addFnAttr("constructor", "true");
 
   auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
   IRBuilder<> localBuilder(BB);

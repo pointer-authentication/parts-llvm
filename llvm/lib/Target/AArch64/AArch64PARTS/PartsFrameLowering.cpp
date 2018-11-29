@@ -24,6 +24,8 @@ PartsFrameLowering_ptr PartsFrameLowering::get() {
 void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                                   MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                                   const DebugLoc &DL, const bool IsTailCallReturn) {
+  if (MBB.getParent()->getFunction().getFnAttribute("no-parts").getValueAsString() == "true") return;
+
   //FIXME: I assume there was a reason for IsTailCallReturn, but its no longer used at all!?!
   auto partsUtils = PartsUtils::get(TRI, TII);
   auto modReg = PARTS::getModifierReg();
@@ -36,6 +38,8 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
 void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                                             MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                                             const DebugLoc &DL) {
+  if (MBB.getParent()->getFunction().getFnAttribute("no-parts").getValueAsString() == "true") return;
+
   auto partsUtils = PartsUtils::get(TRI, TII);
   auto modReg = PARTS::getModifierReg();
 
