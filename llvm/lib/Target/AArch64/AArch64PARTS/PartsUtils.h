@@ -77,6 +77,8 @@ public:
   void autDataPointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                       unsigned modReg, type_id_t type_id, const DebugLoc &DL);
 
+  void convertPartIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr);
+
   bool isLoadOrStore(const MachineInstr &MI);
 
   bool isLoad(const MachineInstr &MI);

@@ -299,6 +299,27 @@ void PartsUtils::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsign
   }
 }
 
+void PartsUtils::convertPartIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
+  const auto &DL = MI.getDebugLoc();
+  const unsigned dst = MI.getOperand(0).getReg();
+  const unsigned src = MI.getOperand(1).getReg();
+  unsigned mod = MI.getOperand(2).getReg();
+
+  // Save the mod register if it is marked as killable!
+  if (MI.getOperand(2).isKill()) {
+    unsigned oldMod = mod;
+    mod = PARTS::getModifierReg();
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
+  }
+  // Move the pointer to destination register
+  BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
+
+  insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL);
+
+  // And finally, remove the intrinsic
+  MI.removeFromParent();
+}
+
 void PartsUtils::pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                                 unsigned modReg, type_id_t type_id, const DebugLoc &DL) {
   moveTypeIdToReg(MBB, MIi, modReg, type_id, DL);

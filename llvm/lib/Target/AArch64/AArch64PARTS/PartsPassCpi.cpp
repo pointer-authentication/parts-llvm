@@ -36,20 +36,6 @@
 using namespace llvm;
 using namespace llvm::PARTS;
 
-#define skipIfB(ifx, stat, b, string) do {  \
-    if ((ifx)) {                            \
-      log->inc(stat, b) << string;          \
-      return false;                         \
-    }                                       \
-} while(false)
-
-#define skipIfN(ifx, stat, string) do {     \
-    if ((ifx)) {                            \
-      log->inc(stat) << string;             \
-      return false;                         \
-    }                                       \
-} while (false)
-
 namespace {
  class PartsPassCpi : public MachineFunctionPass {
 
@@ -68,7 +54,6 @@ namespace {
 
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
-   bool instrumentBranches(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
 
  private:
 
@@ -81,6 +66,7 @@ namespace {
    PartsUtils_ptr  partsUtils = nullptr;
 
    Function *funcCountCodePtrBranch = nullptr;
+   Function *funcCountCodePtrCreate = nullptr;
  };
 } // end anonymous namespace
 
@@ -92,10 +78,12 @@ char PartsPassCpi::ID = 0;
 
 bool PartsPassCpi::doInitialization(Module &M) {
   funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
+  funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
   return true;
 }
 
 bool PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
+  bool found = false;
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
   DEBUG_PA(log->debug() << "function " << MF.getName() << "\n");
 
@@ -111,111 +99,33 @@ bool PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
 
-      if (MIi->isCall() || MIi->isIndirectBranch()) {
-        /* We don't expect to be instrumenting all branches, but lets just keep them here
-         * to make sure we are aware of anything that might need to be instrumented. */
-        instrumentBranches(MF, MBB, MIi);
+      const auto MIOpcode = MIi->getOpcode();
+
+      if (MIOpcode == AArch64::PARTS_PACIA) {
+        log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_PACIA\n";
+
+        auto &MI = *MIi--;
+
+        partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrCreate);
+        partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
+
+        found = true; // make sure we return true when we modify stuff
+      } else if (MIOpcode == AArch64::PARTS_AUTIA) {
+        log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_AUTIA\n";
+
+        auto &MI = *MIi--;
+
+        partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrBranch);
+        partsUtils->convertPartIntrinsic(MBB, MI, AArch64::AUTIA);
+
+        found = true; // make sure we return true when we modify stuff
+
+      } else if (MIi->isCall() || MIi->isIndirectBranch()) {
+
       }
     }
   }
 
-  return true;
+  return found;
 }
 
-bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
-                                      MachineBasicBlock &MBB,
-                                      MachineBasicBlock::instr_iterator &MIi) {
-  return false;
-  if (!PARTS::useFeCfi())
-    return false;
-
-  const auto MIOpcode = MIi->getOpcode();
-  const auto MIName = TII->getName(MIOpcode).str();
-  auto partsType = PartsTypeMetadata::retrieve(*MIi);
-
-  skipIfN(MIOpcode == AArch64::BL ||
-          //MIOpcode == AArch64::Bcc ||
-          //MIOpcode == AArch64::TBZW ||
-          //MIOpcode == AArch64::TBZX ||
-          MIi->isReturn(),
-          "Branch.Skipped_" + MIName, "skipping branch '" + MIName + "'!\n");
-
-  /* Assume that only these are left... */
-  assert(MIOpcode == AArch64::BLR || MIOpcode == AArch64::BL || MIOpcode == AArch64::BR);
-
-  /* ----------------------------- BL/BLR ---------------------------------------- */
-  DEBUG_PA(log->debug(MF.getName()) << "      found a BL/BLR (" << TII->getName(MIOpcode) << ")\n");
-
-  if (partsType == nullptr) {
-    DEBUG_PA(log->debug(MF.getName()) << "      trying to figure out type_id\n");
-
-    assert(MIi->getNumOperands() >= 1);
-    assert(MIi->getOperand(0).isReg());
-
-    const auto reg = MIi->getOperand(0).getReg();
-
-    // Only look within same basic block
-    if (MBB.instr_begin() != MIi) {
-      auto iter = MIi;
-
-      do {
-        iter--;
-
-        for (unsigned i = 0; i < iter->getNumOperands(); i++) {
-          auto foundOp = MIi->getOperand(i);
-          if (foundOp.isReg() && foundOp.getReg() == reg) {
-
-            if (AArch64::LDRXroX == iter->getOpcode()) {
-              // FIXME: is this actually true!??
-              // This is probably a jump-table, either way, it is marked RO...
-              partsType = PartsTypeMetadata::getIgnored();
-            }
-
-            // Just a stupid way to exit the do loop...
-            i = UINT_MAX/2;
-            iter = MBB.instr_begin();
-          }
-        }
-      } while (MBB.instr_begin() != iter);
-    }
-
-
-    if (partsType == nullptr)
-      partsType = PartsTypeMetadata::getUnknown();
-  }
-
-  skipIfN(partsType->isIgnored(), "Branch.Ignored_" + MIName, "marked as ignored, skipping!\n");
-  skipIfB(!partsType->isKnown(), "Branch.Unknown_" + MIName, false, "type_id is unknown!\n");
-  skipIfN(!partsType->isPointer(), "Branch.NotAPointer_" + MIName, "not a pointer, skipping!\n");
-
-  assert(MIOpcode != AArch64::BL && "Whoops, thought this was never, maybe, gonna happen. I guess?");
-
-  log->inc("Branch.Instrumented_" + MIName,  true) << "instrumenting call " << partsType->toString() << "\n";
-
-  const auto ptrRegOperand = MIi->getOperand(0);
-  const auto DL = MIi->getDebugLoc();
-  const auto modReg = PARTS::getModifierReg();
-
-
-  partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
-
-  // Create the PAC modifier
-  partsUtils->moveTypeIdToReg(MBB, MIi, modReg, partsType->getTypeId(), DL);
-
-  // Swap out the branch to a auth+branch variant
-  if (!PARTS::useDummy()) {
-    auto BMI = BuildMI(MBB, *MIi, DL, TII->get(AArch64::BLRAA));
-    BMI.add(ptrRegOperand);
-    BMI.addReg(modReg);
-
-    // Remove the old instruction!
-    auto &MI = *MIi;
-    MIi--;
-    MI.removeFromParent();
-  } else {
-    const auto ptrReg = ptrRegOperand.getReg();
-    partsUtils->addNops(MBB, MIi == MBB.instr_end() ? nullptr : &*MIi, ptrReg, modReg, DL);
-  }
-
-  return true;
-}

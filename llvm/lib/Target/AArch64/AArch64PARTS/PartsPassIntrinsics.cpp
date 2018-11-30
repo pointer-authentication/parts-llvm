@@ -61,7 +61,6 @@ private:
   const AArch64RegisterInfo *TRI = nullptr;
   PartsUtils_ptr partsUtils;
 
-  Function *funcCountCodePtrCreate = nullptr;
   Function *funcCountDataStr = nullptr;
   Function *funcCountNonleafCall = nullptr;
   Function *funcCountLeafCall = nullptr;
@@ -75,7 +74,6 @@ FunctionPass *llvm::createPartsPassIntrinsics() {
 char PartsPassIntrinsics::ID = 0;
 
 bool PartsPassIntrinsics::doInitialization(Module &M) {
-  funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
   funcCountDataStr = PartsEventCount::getFuncDataStr(M);
   funcCountNonleafCall = PartsEventCount::getFuncNonleafCall(M);
   funcCountLeafCall = PartsEventCount::getFuncLeafCall(M);
@@ -113,9 +111,7 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
           }
           break;
         }
-        case AArch64::PARTS_PACIA:
         case AArch64::PARTS_PACDA:
-        case AArch64::PARTS_AUTIA:
         case AArch64::PARTS_AUTDA:
           const auto &DL = MIi->getDebugLoc();
           const unsigned dst = MIi->getOperand(0).getReg();
@@ -132,18 +128,9 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
           BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
 
           // Insert appropriate PA instruction
-          if (MIOpcode == AArch64::PARTS_PACIA) {
-            log->inc(TAG ".pacia", true) << "converting PARTS_PACIA\n";
-            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACIA), DL);
-            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrCreate);
-          } else if (MIOpcode == AArch64::PARTS_PACDA) {
+          if (MIOpcode == AArch64::PARTS_PACDA) {
             log->inc(TAG ".pacda", true) << "converting PARTS_PACDA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
-            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
-          } else if (MIOpcode == AArch64::PARTS_AUTIA) {
-            //assert(false && "should never(?) be AUTIAing instruction pointers");
-            log->inc(TAG ".autia", true) << "converting PARTS_AUTIA\n";
-            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTIA), DL);
             partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
           } else if (MIOpcode == AArch64::PARTS_AUTDA) {
             assert(false && "this isn't currently used, and should be updated if its gonna be");
