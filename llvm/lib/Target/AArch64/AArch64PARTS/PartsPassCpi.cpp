@@ -111,6 +111,9 @@ bool PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
 
         found = true; // make sure we return true when we modify stuff
       } else if (MIOpcode == AArch64::PARTS_AUTIA) {
+        /*
+         * TODO: This should instead replace the following BLR with a BLRA!!!
+         */
         log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_AUTIA\n";
 
         auto &MI = *MIi--;
