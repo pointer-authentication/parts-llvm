@@ -125,6 +125,7 @@ bool PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
 bool PartsPassCpi::instrumentBranches(MachineFunction &MF,
                                       MachineBasicBlock &MBB,
                                       MachineBasicBlock::instr_iterator &MIi) {
+  return false;
   if (!PARTS::useFeCfi())
     return false;
 
