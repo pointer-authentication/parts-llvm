@@ -141,9 +141,10 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
             partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
           } else if (MIOpcode == AArch64::PARTS_AUTIA) {
-            assert(false && "should never(?) be AUTIAing instruction pointers");
+            //assert(false && "should never(?) be AUTIAing instruction pointers");
             log->inc(TAG ".autia", true) << "converting PARTS_AUTIA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTIA), DL);
+            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
           } else if (MIOpcode == AArch64::PARTS_AUTDA) {
             assert(false && "this isn't currently used, and should be updated if its gonna be");
             log->inc(TAG ".autda", true) << "converting PARTS_AUTDA\n";

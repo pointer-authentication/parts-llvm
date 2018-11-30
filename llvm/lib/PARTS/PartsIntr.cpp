@@ -41,64 +41,25 @@ Value *PartsIntr::pac_pointer(Function &F, Instruction &I, Value *V, const std::
   return pac_pointer(&Builder, *F.getParent(), V, name);
 }
 
-Value *PartsIntr::load_aut_pointer(Function &F, Instruction &I, PartsTypeMetadata_ptr partsMD) {
-  assert(partsMD->isPointer());
+Value *PartsIntr::aut_pointer(IRBuilder<> *builder, Module &M, Value *V, const std::string &name, PartsTypeMetadata_ptr PTMD) {
+  // Get the intrinsic declaration based on our specific pointer type
+  Type *arg_types[] = { V->getType() };
+  if (PTMD == nullptr)
+    PTMD = PartsTypeMetadata::get(V->getType());
 
-  IRBuilder<> Builder(&I);
+  auto intr = Intrinsic::getDeclaration(&M,
+                                        (PTMD->isCodePointer() ? Intrinsic::pa_autia : Intrinsic::pa_autda),
+                                        arg_types);
 
-  //auto *mod = Builder.CreateLoad(partsMD->getTypeIdConstant(F.getContext()));
-  auto *mod = partsMD->getTypeIdConstant(F.getContext());
-  auto *ptr = Builder.Insert(I.clone());
+  auto typeIdConstant = PTMD->getTypeIdConstant(M.getContext());
 
-  // Insert the unPAC/AUT intrinsic
-
-  Type *arg_types[] = { I.getType() };
-  //(errs
-  I.dump();
-  auto aut = partsMD->isCodePointer() ?
-             Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, arg_types) :
-             Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autda, arg_types);
-
-  Value *args[] { ptr, mod };
-  auto *V = Builder.CreateCall(aut, args, "unPACed_");
-
-  // Replace uses of old instruction with new one
-  I.replaceAllUsesWith(V);
-
-  // Don't remove, optimizer should maybe get rid of this anyway?
-  //I.removeFromParent();
-
-  //return V;
-  return nullptr;
+  // Create the arguments for the intrinsic call (i.e., original pointer + modifier/type_id)
+  Value *args[] = { V, typeIdConstant };
+  return builder->CreateCall(intr, args, name);
 }
 
-Value *PartsIntr::store_aut_pointer(Function &F, Instruction &I, PartsTypeMetadata_ptr PTMD) {
-  assert(PTMD->isPointer());
-
+Value *PartsIntr::aut_pointer(Function &F, Instruction &I, Value *V, const std::string &name) {
+  // insert the call
   IRBuilder<> Builder(&I);
-
-  //auto *mod = Builder.CreateLoad(partsMD->getTypeIdConstant(F.getContext()));
-  auto *mod = PTMD->getTypeIdConstant(F.getContext());
-  auto *ptr = Builder.Insert(I.clone());
-
-  // Insert the unPAC/AUT intrinsic
-
-  Type *arg_types[] = { I.getType() };
-  auto aut = PTMD->isCodePointer() ?
-             Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_pacia, arg_types) :
-             Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_pacda, arg_types);
-
-  Value *args[] { ptr, mod };
-  Builder.CreateCall(aut, args, "PACed_");
-
-  // Replace uses of old instruction with new one
-  //I.replaceAllUsesWith(V);
-
-  // Don't remove, optimizer should maybe get rid of this anyway?
-  //I.removeFromParent();
-
-  //return V;
-  return nullptr;
+  return aut_pointer(&Builder, *F.getParent(), V, name);
 }
-
-
