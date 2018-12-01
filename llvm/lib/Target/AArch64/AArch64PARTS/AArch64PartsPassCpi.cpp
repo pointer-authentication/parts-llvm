@@ -111,6 +111,8 @@ bool AArch64PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
 
         found = true; // make sure we return true when we modify stuff
       } else if (MIOpcode == AArch64::PARTS_AUTIA) {
+        log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
+
         auto &MI_autia = *MIi;
         MIi--; // move iterator back since we're gonna change latter stuff
 
