@@ -25,19 +25,19 @@
 using namespace llvm;
 using namespace llvm::PARTS;
 
-#define DEBUG_TYPE "PartsCfi"
+#define DEBUG_TYPE "parts-pass-cpi"
 
 //#undef DEBUG_PA
 //#define DEBUG_PA(x) x
 
 namespace {
 
-struct PartsCpi : public FunctionPass {
+struct PartsPassCpi : public FunctionPass {
   static char ID;
 
   PartsLog_ptr log;
 
-  PartsCpi() : FunctionPass(ID), log(PartsLog::getLogger(DEBUG_TYPE))
+  PartsPassCpi() : FunctionPass(ID), log(PartsLog::getLogger(DEBUG_TYPE))
   {
     DEBUG_PA(log->enable());
   }
@@ -54,10 +54,10 @@ struct PartsCpi : public FunctionPass {
 
 } // anonymous namespace
 
-char PartsCpi::ID = 0;
-static RegisterPass<PartsCpi> X("parts-fecfi-pass", "PARTS CFI pass");
+char PartsPassCpi::ID = 0;
+static RegisterPass<PartsPassCpi> X("parts-fecfi-pass", "PARTS CFI pass");
 
-bool PartsCpi::runOnFunction(Function &F) {
+bool PartsPassCpi::runOnFunction(Function &F) {
   if (!PARTS::useFeCfi())
     return false;
 
@@ -129,7 +129,7 @@ bool PartsCpi::runOnFunction(Function &F) {
   return true;
 }
 
-void PartsCpi::fixDirectFunctionArgs(Function &F, Instruction &I) {
+void PartsPassCpi::fixDirectFunctionArgs(Function &F, Instruction &I) {
   if (!PARTS::useFeCfi())
     return;
 

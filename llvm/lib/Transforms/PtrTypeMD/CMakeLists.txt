@@ -21,7 +21,7 @@ if(WIN32 OR CYGWIN)
 endif()
 
 add_llvm_loadable_module(LLVMPtrTypeMDPass
-  PartsCpi.cpp
+  PartsPassCpi.cpp
     PtrTypeMD.cpp
     PauthPacMain.cpp
     PauthMarkGlobals.cpp

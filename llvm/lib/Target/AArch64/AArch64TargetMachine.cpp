@@ -597,6 +597,6 @@ void AArch64PassConfig::addPreEmitPass() {
     if (PARTS::useDpi())
       addPass(createPartsPassDpi());
     if (PARTS::useFeCfi())
-      addPass(createPartsPassCpi());
+      addPass(createAArch64PartsPassCpi());
   }
 }
