@@ -111,20 +111,39 @@ bool AArch64PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
 
         found = true; // make sure we return true when we modify stuff
       } else if (MIOpcode == AArch64::PARTS_AUTIA) {
-        /*
-         * TODO: This should instead replace the following BLR with a BLRA!!!
-         */
-        log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_AUTIA\n";
+        auto &MI_autia = *MIi;
+        MIi--; // move iterator back since we're gonna change latter stuff
 
-        auto &MI = *MIi--;
+        // Try to find the corresponding BLR
+        MachineInstr *MI_blr = &MI_autia;
+        do {
+          MI_blr = MI_blr->getNextNode();
+          if (MI_blr == nullptr) {
+            MBB.dump(); // dump for debugging...
+            llvm_unreachable("failed to find BLR for AUTIA");
+          }
+        } while (MI_blr->getOpcode() != AArch64::BLR);
 
-        partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrBranch);
-        partsUtils->convertPartIntrinsic(MBB, MI, AArch64::AUTIA);
+        // This is where the instrumentation "happens"
+        auto *loc = MI_blr;
+        const auto DL = loc->getDebugLoc();
+        // But this is the IR intrinsic that has the needed info!
+        const unsigned mod = MI_autia.getOperand(2).getReg();
+        const unsigned src = MI_autia.getOperand(1).getReg();
+        const unsigned dst = MI_autia.getOperand(0).getReg(); // This goes to waste
 
-        found = true; // make sure we return true when we modify stuff
+        if (!PARTS::useDummy()) {
+          auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
+          BMI.addReg(src);
+          BMI.addReg(mod);
+        } else {
+          // FIXME: This might break if the pointer is reused elsewhere!!!
+          partsUtils->addNops(MBB, loc, src, mod, DL);
+        }
 
-      } else if (MIi->isCall() || MIi->isIndirectBranch()) {
-
+        // Remove the old instructions!
+        MI_autia.removeFromParent();
+        MI_blr->removeFromParent();
       }
     }
   }
