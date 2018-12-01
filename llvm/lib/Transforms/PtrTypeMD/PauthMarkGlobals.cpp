@@ -179,6 +179,8 @@ bool PauthMarkGlobals::handleArray(Module &M, GlobalVariable &GV, Value *V) {
 }
 
 bool PauthMarkGlobals::handleStruct(Module &M, GlobalVariable &GV, Value *V) {
+  // FIXME: These need to be properly handled!
+  errs() << "UNIMPLEMENTED: cannot handle global structures!!!!!\n";
   return false;
 }
 
@@ -196,6 +198,9 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
 
   if (Ty->isArrayTy())
     return handleArray(M, GV, O);
+
+  if (Ty->isStructTy())
+    return handleStruct(M, GV, O);
 
   if (Ty->isPointerTy()) {
     auto PTMD = PartsTypeMetadata::get(Ty);
