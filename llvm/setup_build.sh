@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Author: Hans Liljestrand <hans.liljestrand@pm.me>
+# Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
+#
+# This code is released under Apache 2.0 license
+#
 
 declare -r llvm_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 declare -r scriptname=$(basename "$0")

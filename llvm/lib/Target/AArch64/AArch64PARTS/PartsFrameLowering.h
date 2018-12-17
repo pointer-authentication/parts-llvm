@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 //
 // Author: Hans Liljestrand <hans.liljestrand@pm.me>
-// Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/
+// Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
 //
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.

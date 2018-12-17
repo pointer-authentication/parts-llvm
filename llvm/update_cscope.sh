@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# Author: ishkamiel <ishkamiel@hugreal>
-# Copyright (C) 2018 ishkamiel <ishkamiel@hugreal>
+# Author: Hans Liljestrand <hans.liljestrand@pm.me>
+# Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
 #
-# Distributed under terms of the MIT license.
+# This code is released under Apache 2.0 license
 
 /usr/bin/find . \
     -path "./lib/Target/*" ! -path "./lib/Target/AArch64/*" -prune -o \
