@@ -139,9 +139,8 @@ bool PauthMarkGlobals::handleArray(Module &M, GlobalVariable &GV, Value *V) {
 
   assert(Ty->isArrayTy());
 
-  if (!Ty->getArrayElementType()->isPointerTy()) {
+  if (!Ty->getArrayElementType()->isPointerTy())
     return false;
-  }
 
   assert(isa<User>(V));
 
@@ -179,11 +178,40 @@ bool PauthMarkGlobals::handleArray(Module &M, GlobalVariable &GV, Value *V) {
 }
 
 bool PauthMarkGlobals::handleStruct(Module &M, GlobalVariable &GV, Value *V) {
-  // FIXME: These need to be properly handled!
-  errs() << "UNIMPLEMENTED: cannot handle global structures!!!!!\n";
-  return false;
-}
+  bool changed = false;
 
+  auto STy = dyn_cast<StructType>(GV.getValueType());
+  assert(STy != nullptr);
+
+  for (auto i = 0U; i < STy->getNumElements(); i++) {
+    auto elType = STy->getElementType(i);
+
+    if (!elType->isPointerTy())
+      continue;
+
+    auto PTMD = PartsTypeMetadata::get(elType);
+    assert(PTMD->isPointer());
+    auto isCodePtr = PTMD->isCodePointer();
+
+    if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
+      auto elPtr = builder->CreateStructGEP(STy, &GV, i);
+
+      auto loaded = builder->CreateLoad(elPtr);
+      auto paced = PartsIntr::pac_pointer(builder, M, loaded);
+      builder->CreateStore(paced, elPtr);
+
+      DEBUG_PA(log->debug() << "found struct element, PACed " << paced << " with id " << PTMD->getTypeId() << "\n");
+
+      if (PTMD->isCodePointer())
+        fixed_cp++;
+      else
+        fixed_dp++;
+      changed = true;
+    }
+  }
+
+  return changed;
+}
 
 bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
   DEBUG_PA(log->info() << "inspecting " << GV << "\n");
