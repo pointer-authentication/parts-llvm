@@ -59,7 +59,7 @@ struct PauthMarkGlobals: public FunctionPass {
 
   bool handleGlobal(Module &M, GlobalVariable &GV);
   bool handleValue(Module &M, GlobalVariable &GV, Value *V);
-  bool handleArray(Module &M, GlobalVariable &GV, Value *V);
+  bool handleArray(Module &M, Value *V);
 
   bool handleStruct(Module &M, Value *V);
 
@@ -134,48 +134,63 @@ bool PauthMarkGlobals::handleValue(Module &M, GlobalVariable &GV, Value *V) {
   return false;
 }
 
-bool PauthMarkGlobals::handleArray(Module &M, GlobalVariable &GV, Value *V) {
+bool PauthMarkGlobals::handleArray(Module &M, Value *V) {
   auto &C = M.getContext();
-  auto Ty = V->getType();
 
-  assert(Ty->isArrayTy());
+  const auto plainTy = (V->getType()->isPointerTy() ? dyn_cast<PointerType>(V->getType())->getElementType() :
+                   (isa<GlobalVariable>(V)  ? dyn_cast<GlobalVariable>(V)->getValueType() :
+                    nullptr));
 
-  if (!Ty->getArrayElementType()->isPointerTy())
-    return false;
+  assert(plainTy->isArrayTy());
+  const auto Ty = dyn_cast<ArrayType>(plainTy);
 
-  assert(isa<User>(V));
-
-  auto arrayType = dyn_cast<ArrayType>(V->getType());
-  auto elementType = arrayType->getElementType();
-
-  const auto isCodePtr = PartsTypeMetadata::TyIsCodePointer(elementType);
-
-  if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
-    // Only PAC if feature enabled
-    DEBUG_PA(log->debug() << "looking to PAC: " << GV << "\n");
-
+  if (Ty->getArrayElementType()->isArrayTy()) {
+    errs() << "UNIMPLEMENTED: no support for nested arrays!\n";
+    V->dump();
+    /*
     for (auto i = 0U; i < dyn_cast<User>(V)->getNumOperands(); i++) {
-      auto elPtr = builder->CreateGEP(&GV, {
+      auto elPtr = builder->CreateGEP(V, {
           ConstantInt::get(Type::getInt64Ty(C), 0),
           ConstantInt::get(Type::getInt64Ty(C), i),
       });
-
-      auto loaded = builder->CreateLoad(elPtr);
-      auto paced = PartsIntr::pac_pointer(builder, M, loaded);
-      builder->CreateStore(paced, elPtr);
-
-      DEBUG_PA(log->debug() << "found array element, PACed " << paced << " with id "
-                            << PartsTypeMetadata::idFromType(elementType) << "\n");
-
-      if (isCodePtr) {
-        fixed_cp++;
-      } else {
-        fixed_dp++;
-      }
+      handleArray(M, elPtr);
     }
-    log->debug() << GV << " DONE\n";
+     */
+    return false;
+  } else if (Ty->getArrayElementType()->isPointerTy()) {
+    assert(isa<User>(V));
+
+    auto elementType = Ty->getElementType();
+    const auto isCodePtr = PartsTypeMetadata::TyIsCodePointer(elementType);
+
+    // Only PAC if feature enabled
+    if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
+      auto inner = dyn_cast<User>(V);
+      const auto elCount = dyn_cast<User>(inner->getOperand(0))->getNumOperands();
+
+      for (auto i = 0U; i < elCount; i++) {
+        auto elPtr = builder->CreateGEP(V, {
+            ConstantInt::get(Type::getInt64Ty(C), 0),
+            ConstantInt::get(Type::getInt64Ty(C), i),
+        });
+
+        auto loaded = builder->CreateLoad(elPtr);
+        auto paced = PartsIntr::pac_pointer(builder, M, loaded);
+        builder->CreateStore(paced, elPtr);
+
+        DEBUG_PA(log->debug() << "found array element, PACed " << paced << " with id "
+                              << PartsTypeMetadata::idFromType(elementType) << "\n");
+
+        if (isCodePtr) {
+          fixed_cp++;
+        } else {
+          fixed_dp++;
+        }
+      }
+      return true;
+    }
   }
-  return true;
+  return false;
 }
 
 bool PauthMarkGlobals::handleStruct(Module &M, Value *V) {
@@ -230,7 +245,7 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
   auto Ty = O->getType();
 
   if (Ty->isArrayTy())
-    return handleArray(M, GV, O);
+    return handleArray(M, &GV);
 
   if (Ty->isStructTy())
     return handleStruct(M, &GV);
