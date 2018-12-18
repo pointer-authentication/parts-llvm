@@ -60,9 +60,8 @@ struct PauthMarkGlobals: public FunctionPass {
   bool handleGlobal(Module &M, GlobalVariable &GV);
   bool handleValue(Module &M, GlobalVariable &GV, Value *V);
   bool handleArray(Module &M, GlobalVariable &GV, Value *V);
-  bool handleStruct(Module &M, GlobalVariable &GV, Value *V);
 
-  bool handleNestedStruct(Module &M, Value *V);
+  bool handleStruct(Module &M, Value *V);
 
 private:
   void writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName);
@@ -179,7 +178,7 @@ bool PauthMarkGlobals::handleArray(Module &M, GlobalVariable &GV, Value *V) {
   return true;
 }
 
-bool PauthMarkGlobals::handleNestedStruct(Module &M, Value *V) {
+bool PauthMarkGlobals::handleStruct(Module &M, Value *V) {
   bool changed = false;
 
   const auto Ty = (V->getType()->isPointerTy() ? dyn_cast<PointerType>(V->getType())->getElementType() :
@@ -194,7 +193,7 @@ bool PauthMarkGlobals::handleNestedStruct(Module &M, Value *V) {
     auto elType = STy->getElementType(i);
 
     if (elType->isStructTy()) {
-      auto retval = handleNestedStruct(M, builder->CreateStructGEP(STy, V, i));
+      auto retval = handleStruct(M, builder->CreateStructGEP(STy, V, i));
       changed = changed || retval;
     } else if (elType->isPointerTy()) {
       auto PTMD = PartsTypeMetadata::get(elType);
@@ -219,44 +218,6 @@ bool PauthMarkGlobals::handleNestedStruct(Module &M, Value *V) {
   return changed;
 }
 
-bool PauthMarkGlobals::handleStruct(Module &M, GlobalVariable &GV, Value *V) {
-  bool changed = false;
-
-  auto STy = dyn_cast<StructType>(GV.getValueType());
-  assert(STy != nullptr);
-
-  for (auto i = 0U; i < STy->getNumElements(); i++) {
-    auto elType = STy->getElementType(i);
-
-    if (elType->isStructTy()) {
-      auto retval = handleNestedStruct(M, builder->CreateStructGEP(STy, &GV, i));
-      changed = changed || retval;
-    } else if (elType->isPointerTy()) {
-      auto PTMD = PartsTypeMetadata::get(elType);
-      assert(PTMD->isPointer());
-      auto isCodePtr = PTMD->isCodePointer();
-
-      if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
-        auto elPtr = builder->CreateStructGEP(STy, &GV, i);
-
-        auto loaded = builder->CreateLoad(elPtr);
-        auto paced = PartsIntr::pac_pointer(builder, M, loaded);
-        builder->CreateStore(paced, elPtr);
-
-        DEBUG_PA(log->debug() << "found struct element, PACed " << paced << " with id " << PTMD->getTypeId() << "\n");
-
-        if (PTMD->isCodePointer())
-          fixed_cp++;
-        else
-          fixed_dp++;
-        changed = true;
-      }
-    }
-  }
-
-  return changed;
-}
-
 bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
   DEBUG_PA(log->info() << "inspecting " << GV << "\n");
 
@@ -272,7 +233,7 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
     return handleArray(M, GV, O);
 
   if (Ty->isStructTy())
-    return handleStruct(M, GV, O);
+    return handleStruct(M, &GV);
 
   if (Ty->isPointerTy()) {
     auto PTMD = PartsTypeMetadata::get(Ty);
