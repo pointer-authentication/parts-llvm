@@ -141,21 +141,24 @@ bool PauthMarkGlobals::handleArray(Module &M, Value *V) {
                    (isa<GlobalVariable>(V)  ? dyn_cast<GlobalVariable>(V)->getValueType() :
                     nullptr));
 
-  assert(plainTy->isArrayTy());
+  const auto elCount = isa<GlobalVariable>(V) ?
+                       dyn_cast<User>(dyn_cast<User>(V)->getOperand(0))->getNumOperands() :
+                       dyn_cast<User>(V)->getNumOperands();
+
   const auto Ty = dyn_cast<ArrayType>(plainTy);
 
+  assert(Ty != nullptr);
+
   if (Ty->getArrayElementType()->isArrayTy()) {
-    errs() << "UNIMPLEMENTED: no support for nested arrays!\n";
-    V->dump();
-    /*
-    for (auto i = 0U; i < dyn_cast<User>(V)->getNumOperands(); i++) {
+    // FIXME-PARTS: This is still not working properly!!!
+    for (auto i = 0U; i < elCount; i++) {
       auto elPtr = builder->CreateGEP(V, {
           ConstantInt::get(Type::getInt64Ty(C), 0),
           ConstantInt::get(Type::getInt64Ty(C), i),
       });
+
       handleArray(M, elPtr);
     }
-     */
     return false;
   } else if (Ty->getArrayElementType()->isPointerTy()) {
     assert(isa<User>(V));
@@ -165,8 +168,6 @@ bool PauthMarkGlobals::handleArray(Module &M, Value *V) {
 
     // Only PAC if feature enabled
     if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
-      auto inner = dyn_cast<User>(V);
-      const auto elCount = dyn_cast<User>(inner->getOperand(0))->getNumOperands();
 
       for (auto i = 0U; i < elCount; i++) {
         auto elPtr = builder->CreateGEP(V, {
