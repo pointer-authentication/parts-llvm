@@ -181,6 +181,8 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
 
   memcpy(&type_id, output, sizeof(type_id_t));
 
+  delete[] output;
+
   // FIXME: Support proper PA modifiers (this is a workaround for PartsUtils inability to move larger immediate value)
   //const auto original_type_id = type_id;
   //type_id = type_id % UINT8_MAX;
