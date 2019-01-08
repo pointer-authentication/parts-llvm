@@ -1,0 +1,28 @@
+; Check that we insert a function to authenticate global code pointers at the beginning of main
+; RUN: opt -load LLVMPtrTypeMDPass.so -parts-fecfi -pauth-markglobals -S < %s  | FileCheck %s
+@func = global void ()* @call_func, align 8
+
+declare void @call_func()
+
+define i32 @main() {
+entry:
+; CHECK:  call void @__pauth_pac_globals()
+  %retval = alloca i32, align 4
+  store i32 0, i32* %retval, align 4
+  %0 = load void ()*, void ()** @func, align 8
+  call void %0()
+  ret i32 0
+}
+
+; CHECK: define void @__pauth_pac_globals() #0 {
+; CHECK: entry:
+; CHECK:   %0 = load void ()*, void ()** @func
+; CHECK:   %1 = call void ()* @llvm.pa.pacia.p0f_isVoidf(void ()* %0, i64 -8151429658862389052)
+; CHECK:   store void ()* %1, void ()** @func
+; CHECK:   ret void
+; CHECK: }
+
+; CHECK: declare void ()* @llvm.pa.pacia.p0f_isVoidf(void ()*, i64) #1
+
+; CHECK: attributes #0 = { "no-parts"="true" }
+; CHECK: attributes #1 = { nounwind readnone }
