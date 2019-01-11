@@ -173,6 +173,11 @@ bool PauthMarkGlobals::handleArray(Module &M, Value *V) {
     return changed;
   }
 
+  auto isCodePtr = PartsTypeMetadata::TyIsCodePointer(elType);
+
+  if ( !((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) )
+    return false;
+
   /* We need to determine a base for the array we index, particularly if it is nested. */
   auto base = isa<GlobalVariable>(V) ? 0 : dyn_cast<ConstantInt>(dyn_cast<User>(V)->getOperand(1))->getLimitedValue();
 
@@ -191,7 +196,7 @@ bool PauthMarkGlobals::handleArray(Module &M, Value *V) {
     DEBUG_PA(log->debug() << "found array element, PACed " << paced << " with id "
                           << PartsTypeMetadata::idFromType(elType) << "\n");
 
-    if (PartsTypeMetadata::TyIsCodePointer(elType)) {
+    if (isCodePtr) {
       fixed_cp++;
     } else {
       fixed_dp++;
