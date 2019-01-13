@@ -54,6 +54,7 @@ namespace {
 
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
+   inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
 
  private:
 
@@ -99,57 +100,94 @@ bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
 
-      const auto MIOpcode = MIi->getOpcode();
-
-      if (MIOpcode == AArch64::PARTS_PACIA) {
-        log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_PACIA\n";
-
-        auto &MI = *MIi--;
-
-        partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrCreate);
-        partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
-
-        found = true; // make sure we return true when we modify stuff
-      } else if (MIOpcode == AArch64::PARTS_AUTIA) {
-        log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
-
-        auto &MI_autia = *MIi;
-        MIi--; // move iterator back since we're gonna change latter stuff
-
-        // Try to find the corresponding BLR
-        MachineInstr *MI_blr = &MI_autia;
-        do {
-          MI_blr = MI_blr->getNextNode();
-          if (MI_blr == nullptr) {
-            MBB.dump(); // dump for debugging...
-            llvm_unreachable("failed to find BLR for AUTIA");
-          }
-        } while (MI_blr->getOpcode() != AArch64::BLR);
-
-        // This is where the instrumentation "happens"
-        auto *loc = MI_blr;
-        const auto DL = loc->getDebugLoc();
-        // But this is the IR intrinsic that has the needed info!
-        const unsigned mod = MI_autia.getOperand(2).getReg();
-        const unsigned src = MI_autia.getOperand(1).getReg();
-        const unsigned dst = MI_autia.getOperand(0).getReg(); // This goes to waste
-
-        if (!PARTS::useDummy()) {
-          auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
-          BMI.addReg(src);
-          BMI.addReg(mod);
-        } else {
-          // FIXME: This might break if the pointer is reused elsewhere!!!
-          partsUtils->addNops(MBB, loc, src, mod, DL);
-        }
-
-        // Remove the old instructions!
-        MI_autia.removeFromParent();
-        MI_blr->removeFromParent();
-      }
+      found = handleInstruction(MF, MBB, MIi) || found;
     }
   }
 
   return found;
 }
 
+
+/**
+ *
+ * @param MF
+ * @param MBB
+ * @param MIi
+ * @return  return true when changing something, otherwise false
+ */
+inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
+                                                   MachineBasicBlock &MBB,
+                                                   MachineBasicBlock::instr_iterator &MIi) {
+  const auto MIOpcode = MIi->getOpcode();
+
+  if (MIOpcode == AArch64::PARTS_PACIA) {
+    log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_PACIA\n";
+
+    auto &MI = *MIi--;
+
+    partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrCreate);
+    partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
+
+    return true;
+  }
+
+  if (MIOpcode == AArch64::PARTS_AUTIA) {
+    log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
+
+    auto &MI_autia = *MIi;
+    MIi--; // move iterator back since we're gonna change latter stuff
+
+    // Try to find the corresponding BLR
+    MachineInstr *MI_blr = &MI_autia;
+    do {
+      MI_blr = MI_blr->getNextNode();
+      if (MI_blr == nullptr) {
+        // This shouldn't happen, as it indicates that we didn't find what we were looking for
+        // and have an orphaned pacia.
+        MBB.dump(); // dump for debugging...
+        llvm_unreachable("failed to find BLR for AUTIA");
+      }
+    } while (MI_blr->getOpcode() != AArch64::BLR &&
+             MI_blr->getOpcode() != AArch64::TCRETURNdi &&
+        MI_blr->getOpcode() != AArch64::TCRETURNri);
+
+
+    auto *loc = MI_blr;
+    const auto DL = loc->getDebugLoc();
+    // But this is the IR intrinsic that has the needed info!
+    const unsigned mod = MI_autia.getOperand(2).getReg();
+    const unsigned src = MI_autia.getOperand(1).getReg();
+    const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
+
+    partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
+
+    if (PARTS::useDummy()) {
+      // FIXME: This might break if the pointer is reused elsewhere!!!
+      partsUtils->addNops(MBB, loc, src, mod, DL);
+    } else {
+      if (MI_blr->getOpcode() == AArch64::BLR) {
+        // This is where the instrumentation of BLR "happens"
+
+        auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
+        BMI.addReg(src);
+        BMI.addReg(mod);
+
+        // Remove the BLR that's been replaced by BLRAA
+        MI_blr->removeFromParent();
+      } else {
+        // This is a tail call return, in this case we just need to fix the AUTIA into a proper instruction.
+        // (i.e., an optimizatoin where a tail-cal is converted into a direct call so that
+        //  the tail-called function can return immediately to the current callee, without
+        //  going through the currently active function.)
+        partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTIA), DL);
+      }
+    }
+
+    // Remove the PARTS intrinsic!
+    MI_autia.removeFromParent();
+
+    return true;
+  }
+
+  return false;
+}
