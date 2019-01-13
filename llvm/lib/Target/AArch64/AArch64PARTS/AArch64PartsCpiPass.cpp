@@ -31,19 +31,19 @@
 #include "llvm/PARTS/Parts.h"
 #include "PartsUtils.h"
 
-#define DEBUG_TYPE "aarch64-parts-pass-cpi"
+#define DEBUG_TYPE "AArch64PartsCpiPass"
 
 using namespace llvm;
 using namespace llvm::PARTS;
 
 namespace {
- class AArch64PartsPassCpi : public MachineFunctionPass {
+ class AArch64PartsCpiPass : public MachineFunctionPass {
 
  public:
    static char ID;
 
 
-   AArch64PartsPassCpi() :
+   AArch64PartsCpiPass() :
    MachineFunctionPass(ID),
    log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
    {
@@ -71,18 +71,18 @@ namespace {
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PartsPassCpi() {
-  return new AArch64PartsPassCpi();
+  return new AArch64PartsCpiPass();
 }
 
-char AArch64PartsPassCpi::ID = 0;
+char AArch64PartsCpiPass::ID = 0;
 
-bool AArch64PartsPassCpi::doInitialization(Module &M) {
+bool AArch64PartsCpiPass::doInitialization(Module &M) {
   funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
   funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
   return true;
 }
 
-bool AArch64PartsPassCpi::runOnMachineFunction(MachineFunction &MF) {
+bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
   DEBUG_PA(log->debug() << "function " << MF.getName() << "\n");

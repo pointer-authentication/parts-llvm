@@ -28,18 +28,17 @@
 #include "llvm/PARTS/PartsEventCount.h"
 #include "PartsUtils.h"
 
-#define DEBUG_TYPE "aarch64-parts-intrinsics"
-#define TAG "PartsPasSIntrinsics"
+#define DEBUG_TYPE "AArch64PartsIntrPass"
 
 using namespace llvm;
 using namespace llvm::PARTS;
 
 namespace {
-class PartsPassIntrinsics : public MachineFunctionPass {
+class AArch64PartsIntrPass : public MachineFunctionPass {
 public:
   static char ID;
 
-  PartsPassIntrinsics() :
+  AArch64PartsIntrPass() :
       MachineFunctionPass(ID),
       log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
   {
@@ -68,19 +67,19 @@ private:
 } // end anonymous namespace
 
 FunctionPass *llvm::createPartsPassIntrinsics() {
-  return new PartsPassIntrinsics();
+  return new AArch64PartsIntrPass();
 }
 
-char PartsPassIntrinsics::ID = 0;
+char AArch64PartsIntrPass::ID = 0;
 
-bool PartsPassIntrinsics::doInitialization(Module &M) {
+bool AArch64PartsIntrPass::doInitialization(Module &M) {
   funcCountDataStr = PartsEventCount::getFuncDataStr(M);
   funcCountNonleafCall = PartsEventCount::getFuncNonleafCall(M);
   funcCountLeafCall = PartsEventCount::getFuncLeafCall(M);
   return true;
 }
 
-bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
+bool AArch64PartsIntrPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
 
   STI = &MF.getSubtarget<AArch64Subtarget>();
@@ -129,12 +128,12 @@ bool PartsPassIntrinsics::runOnMachineFunction(MachineFunction &MF) {
 
           // Insert appropriate PA instruction
           if (MIOpcode == AArch64::PARTS_PACDA) {
-            log->inc(TAG ".pacda", true) << "converting PARTS_PACDA\n";
+            log->inc(DEBUG_TYPE ".pacda", true) << "converting PARTS_PACDA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
             partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
           } else if (MIOpcode == AArch64::PARTS_AUTDA) {
             assert(false && "this isn't currently used, and should be updated if its gonna be");
-            log->inc(TAG ".autda", true) << "converting PARTS_AUTDA\n";
+            log->inc(DEBUG_TYPE ".autda", true) << "converting PARTS_AUTDA\n";
             partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTDA), DL);
           }
 

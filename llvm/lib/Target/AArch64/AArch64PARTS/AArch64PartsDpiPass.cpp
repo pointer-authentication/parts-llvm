@@ -31,7 +31,7 @@
 #include "llvm/PARTS/Parts.h"
 #include "PartsUtils.h"
 
-#define DEBUG_TYPE "aarch64-parts-dpi"
+#define DEBUG_TYPE "AArch64PartsDpiPass"
 
 //#undef DEBUG_PA
 //#define DEBUG_PA(x) x
@@ -54,12 +54,12 @@ using namespace llvm::PARTS;
 } while (false)
 
 namespace {
- class PartsPassDpi : public MachineFunctionPass {
+ class AArch64PartsDpiPass : public MachineFunctionPass {
 
  public:
    static char ID;
 
-   PartsPassDpi() :
+   AArch64PartsDpiPass() :
        MachineFunctionPass(ID),
        log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
    {
@@ -91,18 +91,18 @@ namespace {
 } // end anonymous namespace
 
 FunctionPass *llvm::createPartsPassDpi() {
-  return new PartsPassDpi();
+  return new AArch64PartsDpiPass();
 }
 
-char PartsPassDpi::ID = 0;
+char AArch64PartsDpiPass::ID = 0;
 
-bool PartsPassDpi::doInitialization(Module &M) {
+bool AArch64PartsDpiPass::doInitialization(Module &M) {
   funcCountDataStr = PartsEventCount::getFuncDataStr(M);
   funcCountDataLdr = PartsEventCount::getFuncDataLdr(M);
   return true;
 }
 
-bool PartsPassDpi::runOnMachineFunction(MachineFunction &MF) {
+bool AArch64PartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
@@ -133,7 +133,7 @@ bool PartsPassDpi::runOnMachineFunction(MachineFunction &MF) {
   return true;
 }
 
-bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &MBB,
+bool AArch64PartsDpiPass::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &MBB,
                                          MachineBasicBlock::instr_iterator &MIi) {
   assert(partsUtils->isLoadOrStore(*MIi));
 
@@ -189,17 +189,17 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     partsUtils->attach(MF.getFunction().getContext(), partsType, &*MIi);
 
     MIi->addOperand(MachineOperand::CreateMetadata(partsType->getMDNode(C)));
-    log->inc("StoreLoad.Inferred") << "      storing type_id " << partsType->toString() << ") in current MI\n";
+    log->inc(DEBUG_TYPE ".StoreLoad.Inferred") << "      storing type_id " << partsType->toString() << ") in current MI\n";
   }
 
-  skipIfN(partsType->isIgnored(), fName, "StoreLoad.Ignored_" + MIName, "marked as ignored, skipping!\n");
+  skipIfN(partsType->isIgnored(), fName, DEBUG_TYPE ".StoreLoad.Ignored_" + MIName, "marked as ignored, skipping!\n");
 
   if (!partsType->isKnown() && (
       MIi->getFlag(MachineInstr::MIFlag::FrameSetup) ||
       MIi->getFlag(MachineInstr::MIFlag::FrameDestroy))) {
     // We're assuming this is a callee saved registerThing, so therefore this op should be relative to SP...
     assert(MIi->getOperand(1).getReg() == AArch64::SP || MIi->getOperand(2).getReg() == AArch64::SP);
-    log->inc("StoreLoad.CalleeSaved_" + MIName, true, "skipping callee saved register!\n");
+    log->inc(DEBUG_TYPE ".StoreLoad.CalleeSaved_" + MIName, true, "skipping callee saved register!\n");
     return false;
   }
 
@@ -212,9 +212,9 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     errs() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
   }
 
-  skipIfB(!partsType->isKnown(), fName, "StoreLoad.Unknown_" + MIName, false, "type_id is unknown!\n");
-  skipIfN(!partsType->isPointer(), fName, "StoreLoad.NotAPointer_" + MIName, "not a pointer, skipping!\n");
-  skipIfN(partsType->isCodePointer(), fName, "PartsPassDpi.StoreLoad.IgnoringCodePointer_" + MIName, "ignoring code pointer\n");
+  skipIfB(!partsType->isKnown(), fName, DEBUG_TYPE ".StoreLoad.Unknown_" + MIName, false, "type_id is unknown!\n");
+  skipIfN(!partsType->isPointer(), fName, DEBUG_TYPE ".StoreLoad.NotAPointer_" + MIName, "not a pointer, skipping!\n");
+  skipIfN(partsType->isCodePointer(), fName, DEBUG_TYPE ".StoreLoad.IgnoringCodePointer_" + MIName, "ignoring code pointer\n");
 
   auto reg = MIi->getOperand(0).getReg();
   const auto modReg = PARTS::getModifierReg();
@@ -222,7 +222,7 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
 
   if (partsUtils->isStore(*MIi)) {
     if (PARTS::useDpi()) {
-      log->inc("StoreLoad.InstrumentedDataStore", true) << "instrumenting store" << partsType->toString() << "\n";
+      log->inc(DEBUG_TYPE ".StoreLoad.InstrumentedDataStore", true) << "instrumenting store" << partsType->toString() << "\n";
 
       // FIXME: Horrible hack for double define!
       if (m_PACed_me_a_live_one == 0) {
@@ -246,7 +246,7 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     auto loc = MIi;
     loc++;
     if (PARTS::useDpi()) {
-      log->inc("StoreLoad.InstrumentedDataLoad", true, fName) << "instrumenting load with " << partsType->toString() << "\n";
+      log->inc(DEBUG_TYPE ".StoreLoad.InstrumentedDataLoad", true, fName) << "instrumenting load with " << partsType->toString() << "\n";
 
       const auto &DL = loc->getDebugLoc();
       partsUtils->autDataPointer(MBB, loc, reg, modReg, type_id, DL);
