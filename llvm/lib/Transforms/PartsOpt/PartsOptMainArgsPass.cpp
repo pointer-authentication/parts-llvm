@@ -21,18 +21,18 @@
 
 using namespace llvm;
 
-#define DEBUG_TYPE "PauthPacMain"
+#define DEBUG_TYPE "PartsOptMainArgsPass"
 
 namespace {
 
-struct PauthPacMain: public FunctionPass {
+struct PartsOptMainArgsPass: public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
 
   Function *funcFixMain = nullptr;
 
   PartsLog_ptr log;
 
-  PauthPacMain() :
+  PartsOptMainArgsPass() :
       FunctionPass(ID),
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
@@ -47,10 +47,10 @@ struct PauthPacMain: public FunctionPass {
 
 } // anonyous namespace
 
-char PauthPacMain::ID = 0;
-static RegisterPass<PauthPacMain> X("pauth-pacmain", "PAC argv for main call");
+char PartsOptMainArgsPass::ID = 0;
+static RegisterPass<PartsOptMainArgsPass> X("parts-opt-mainargs", "PARTS fix for main args, needed for DPI");
 
-bool PauthPacMain::doInitialization(Module &M)
+bool PartsOptMainArgsPass::doInitialization(Module &M)
 {
   if (!PARTS::useDpi())
     return false;
@@ -71,11 +71,11 @@ bool PauthPacMain::doInitialization(Module &M)
   return true;
 }
 
-bool PauthPacMain::doFinalization(Module &M) {
+bool PartsOptMainArgsPass::doFinalization(Module &M) {
   return PARTS::useDpi();
 }
 
-bool PauthPacMain::runOnFunction(Function &F) {
+bool PartsOptMainArgsPass::runOnFunction(Function &F) {
   if (!(PARTS::useDpi() &&F.getName().equals("main")))
     return false;
 

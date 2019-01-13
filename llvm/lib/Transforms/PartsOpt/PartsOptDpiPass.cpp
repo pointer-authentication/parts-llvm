@@ -25,17 +25,17 @@
 using namespace llvm;
 using namespace llvm::PARTS;
 
-#define DEBUG_TYPE "PtrTypeMDPass"
+#define DEBUG_TYPE "PartsOptDpiPass"
 #define TAG KBLU DEBUG_TYPE ": "
 
 namespace {
 
-struct PtrTypeMDPass : public FunctionPass {
+struct PartsOptDpiPass : public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
 
   PartsLog_ptr log;
 
-  PtrTypeMDPass() :
+  PartsOptDpiPass() :
       FunctionPass(ID),
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
@@ -50,10 +50,10 @@ struct PtrTypeMDPass : public FunctionPass {
 
 } // anonymous namespace
 
-char PtrTypeMDPass::ID = 0;
-static RegisterPass<PtrTypeMDPass> X("ptr-type-md-pass", "Pointer Type Metadata Pass");
+char PartsOptDpiPass::ID = 0;
+static RegisterPass<PartsOptDpiPass> X("parts-opt-dpi", "PARTS DPI pass");
 
-bool PtrTypeMDPass::runOnFunction(Function &F) {
+bool PartsOptDpiPass::runOnFunction(Function &F) {
   if (!PARTS::useDpi())
     return false;
 
@@ -90,7 +90,7 @@ bool PtrTypeMDPass::runOnFunction(Function &F) {
   return true;
 }
 
-PartsTypeMetadata_ptr PtrTypeMDPass::createLoadMetadata(Function &F, Instruction &I) {
+PartsTypeMetadata_ptr PartsOptDpiPass::createLoadMetadata(Function &F, Instruction &I) {
   assert(isa<LoadInst>(I));
 
   auto V = I.getOperand(0);
@@ -118,7 +118,7 @@ PartsTypeMetadata_ptr PtrTypeMDPass::createLoadMetadata(Function &F, Instruction
   return MD;
 }
 
-PartsTypeMetadata_ptr PtrTypeMDPass::createStoreMetadata(Function &F, Instruction &I) {
+PartsTypeMetadata_ptr PartsOptDpiPass::createStoreMetadata(Function &F, Instruction &I) {
   assert(isa<StoreInst>(I));
 
   auto V = I.getOperand(1);

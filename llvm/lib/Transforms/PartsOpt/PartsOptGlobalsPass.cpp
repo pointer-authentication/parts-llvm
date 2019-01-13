@@ -22,7 +22,7 @@
 
 using namespace llvm;
 
-#define DEBUG_TYPE "PauthOptPauthMarkGlobals"
+#define DEBUG_TYPE "PartsOptGlobalsPass"
 #define TAG KYEL DEBUG_TYPE ": "
 
 //#undef DEBUG_PA
@@ -30,7 +30,7 @@ using namespace llvm;
 
 namespace {
 
-struct PauthMarkGlobals: public FunctionPass {
+struct PartsOptGlobalsPass: public FunctionPass {
   static char ID; // Pass identification, replacement for typeid
 
   PartsLog_ptr log;
@@ -47,7 +47,7 @@ struct PauthMarkGlobals: public FunctionPass {
 
   Function *funcFixGlobals = nullptr;
 
-  PauthMarkGlobals() :
+  PartsOptGlobalsPass() :
       FunctionPass(ID),
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
@@ -70,10 +70,10 @@ private:
 
 } // anonymous namespace
 
-char PauthMarkGlobals::ID = 0;
-static RegisterPass<PauthMarkGlobals> X("pauth-markglobals", "PAC argv for main call");
+char PartsOptGlobalsPass::ID = 0;
+static RegisterPass<PartsOptGlobalsPass> X("parts-opt-globals", "PARTS globals fix, needed for CPI and DPI");
 
-bool PauthMarkGlobals::doInitialization(Module &M) {
+bool PartsOptGlobalsPass::doInitialization(Module &M) {
   if ( !(PARTS::useFeCfi() || PARTS::useDpi())) // We don't need to do anything unless we use PI
     return false;
 
@@ -111,7 +111,7 @@ bool PauthMarkGlobals::doInitialization(Module &M) {
   return need_fix_globals_call;
 }
 
-bool PauthMarkGlobals::runOnFunction(Function &F) {
+bool PartsOptGlobalsPass::runOnFunction(Function &F) {
   if (!(PARTS::useAny() && F.getName().equals("main")))
     return false;
 
@@ -129,11 +129,11 @@ bool PauthMarkGlobals::runOnFunction(Function &F) {
   return true;
 }
 
-bool PauthMarkGlobals::handleValue(Module &M, GlobalVariable &GV, Value *V) {
+bool PartsOptGlobalsPass::handleValue(Module &M, GlobalVariable &GV, Value *V) {
   return false;
 }
 
-bool PauthMarkGlobals::handleArray(Module &M, Value *V) {
+bool PartsOptGlobalsPass::handleArray(Module &M, Value *V) {
   auto &C = M.getContext();
 
   // We have two alternatives here, either:
@@ -206,7 +206,7 @@ bool PauthMarkGlobals::handleArray(Module &M, Value *V) {
   return true;
 }
 
-bool PauthMarkGlobals::handleStruct(Module &M, Value *V) {
+bool PartsOptGlobalsPass::handleStruct(Module &M, Value *V) {
   bool changed = false;
 
   const auto Ty = (V->getType()->isPointerTy() ? dyn_cast<PointerType>(V->getType())->getElementType() :
@@ -246,7 +246,7 @@ bool PauthMarkGlobals::handleStruct(Module &M, Value *V) {
   return changed;
 }
 
-bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
+bool PartsOptGlobalsPass::handleGlobal(Module &M, GlobalVariable &GV) {
   DEBUG_PA(log->info() << "inspecting " << GV << "\n");
 
   if (GV.getNumOperands() == 0) {
@@ -299,7 +299,7 @@ bool PauthMarkGlobals::handleGlobal(Module &M, GlobalVariable &GV) {
   return false;
 }
 
-void PauthMarkGlobals::writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName)
+void PartsOptGlobalsPass::writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName)
 {
   for (auto type_id : type_ids) {
     ConstantInt* type_id_Constant = ConstantInt::get(Type::getInt64Ty(M.getContext()), type_id);
