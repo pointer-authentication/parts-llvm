@@ -1,5 +1,5 @@
 ; Check metadata for data pointer authentication is added
-; RUN: opt -load LLVMPtrTypeMDPass.so -parts-dpi -ptr-type-md-pass -S < %s | FileCheck %s
+; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -S < %s | FileCheck %s
 
 define i8* @simple_pointer() {
 entry:

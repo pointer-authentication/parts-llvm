@@ -1,5 +1,5 @@
 ; Check that we insert a function to authenticate global data pointers at the beginning of main
-; RUN: opt -load LLVMPtrTypeMDPass.so -parts-dpi -pauth-markglobals -S < %s  | FileCheck %s
+; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
 @global_data = internal global i8* null, align 8
 
 define i32 @main() {

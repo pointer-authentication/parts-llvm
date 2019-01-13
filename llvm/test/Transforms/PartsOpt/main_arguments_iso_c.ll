@@ -1,5 +1,5 @@
 ; Check intrinsic is added to handle ISO C compliant main() arguments.
-; RUN: opt -load LLVMPtrTypeMDPass.so -parts-dpi -pauth-pacmain -S < %s | FileCheck %s
+; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-mainargs -S < %s | FileCheck %s
 
 define i32 @main(i32 %argc, i8** %argv) {
 entry:

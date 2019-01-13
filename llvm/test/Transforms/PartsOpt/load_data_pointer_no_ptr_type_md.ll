@@ -1,5 +1,5 @@
 ; Check pointer type metadata is not generated if PARTS DPI is not enabled
-; RUN: opt -load LLVMPtrTypeMDPass.so -ptr-type-md-pass -S < %s | FileCheck %s
+; RUN: opt -load PartsOpt.so -parts-opt-dpi -S < %s | FileCheck %s
 
 define i8 @simple_pointer(i8* %val) {
 entry:

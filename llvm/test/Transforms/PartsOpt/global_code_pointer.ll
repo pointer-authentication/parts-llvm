@@ -1,5 +1,5 @@
 ; Check that we insert a function to authenticate global code pointers at the beginning of main
-; RUN: opt -load LLVMPtrTypeMDPass.so -parts-fecfi -pauth-markglobals -S < %s  | FileCheck %s
+; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-globals -S < %s  | FileCheck %s
 @func = global void ()* @call_func, align 8
 
 declare void @call_func()

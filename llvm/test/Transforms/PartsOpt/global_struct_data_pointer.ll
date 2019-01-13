@@ -1,5 +1,5 @@
 ; Check that we insert the needed functionality to authenticate a global struct with data pointers
-; RUN: opt -load LLVMPtrTypeMDPass.so -parts-dpi -pauth-markglobals -S < %s  | FileCheck %s
+; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
 
 %struct.data = type { %struct.data*, i32 }
 
