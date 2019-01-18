@@ -1,4 +1,5 @@
 ; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi < %s | FileCheck %s
+; XFAIL: *
 target triple = "aarch64"
 
 ; Check that leaf functions aren't instrumented

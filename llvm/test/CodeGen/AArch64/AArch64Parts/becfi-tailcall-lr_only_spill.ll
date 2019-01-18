@@ -1,4 +1,5 @@
 ; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi < %s | FileCheck %s
+; XFAIL: *
 ;
 ; Make sure that a tailcall works, when the FP+LR has been spilled.
 ;
