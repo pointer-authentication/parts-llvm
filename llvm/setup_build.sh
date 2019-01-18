@@ -22,6 +22,7 @@ COMMANDs:
     cmake   - create cmake build in CWD ($(pwd))
     args    - dump cmake args
     repos   - install repositories
+    test    - run llvm-lit on PARTS parts
 
 The script can be further customized with the environment variables:
     system_llvm=x.0   - system LLVM version to use (default: ${default_system_llvm})
@@ -304,10 +305,22 @@ check_llvm_root() {
     return 0
 }
 
+run_tests() {
+    local driver="./build/bin/llvm-lit"
+    if [[ ! -e "$driver" ]]; then
+        echo "Cannot find $driver, maybe build first?"
+        return 1
+    fi
+
+    "$driver" -v test/Transforms/PartsOpt test/CodeGen/AArch64/AArch64Parts
+}
+
 if [[ $1 = args ]]; then
     echo_cmake_args
 elif [[ $1 = repos ]]; then
     install_repos
+elif [[ $1 = test ]]; then
+    run_tests
 elif [[ $1 = cmake ]]; then
     if ! check_packages; then
         ask_continue || exit
