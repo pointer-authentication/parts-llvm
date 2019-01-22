@@ -27,6 +27,8 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
   if (MBB.getParent()->getFunction().getFnAttribute("no-parts").getValueAsString() == "true") return;
 
   //FIXME: I assume there was a reason for IsTailCallReturn, but its no longer used at all!?!
+  (void) IsTailCallReturn;
+
   auto partsUtils = PartsUtils::get(TRI, TII);
   auto modReg = PARTS::getModifierReg();
   auto loc = (MBBI != MBB.end() ? &*MBBI : nullptr);
