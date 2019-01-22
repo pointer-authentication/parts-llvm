@@ -18,7 +18,7 @@ entry:
 }
 
 ; Make sure that LR+FP spill is instrumented
-define void @func() #0 {
+define void @func() #1 {
 entry:
 ;   CHECK: pacib
     call void @leaf()
@@ -26,4 +26,5 @@ entry:
     ret void
 }
 
-attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" }
+attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" "parts-function_id"="1" }
+attributes #1 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" "parts-function_id"="2" }

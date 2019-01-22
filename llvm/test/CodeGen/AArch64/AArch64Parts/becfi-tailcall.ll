@@ -22,7 +22,7 @@ entry:
 }
 
 ; Function Attrs: noinline nounwind
-define hidden void @tail_caller(void ()* nocapture %f) local_unnamed_addr #0 {
+define hidden void @tail_caller(void ()* nocapture %f) local_unnamed_addr #1 {
 entry:
   ; CHECK-NO: pacib
   tail call void %f()
@@ -31,4 +31,5 @@ entry:
   ret void
 }
 
-attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" }
+attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" "parts-function_id"="1" }
+attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" "parts-function_id"="2" }
