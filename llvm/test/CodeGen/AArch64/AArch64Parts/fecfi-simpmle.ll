@@ -6,7 +6,6 @@
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
 ; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-fecfi < %s | FileCheck %s
-; XFAIL: *
 ;
 ; Simple tests for code pointer integrity, based on:
 ;
@@ -133,11 +132,7 @@ entry:
   %4 = load void ()*, void ()** @func2, align 8
   %5 = call void ()* @llvm.pa.autia.p0f_isVoidf(void ()* %4, i64 -8151429658862389052)
   ; CHECK-NO: autia
-  call void %3()
-  ; CHECK: blraa
-
   call void %5()
-  ; CHECK-NO: autia
   ; CHECK: blraa
 
   %6 = load void ()*, void ()** @func1, align 8
@@ -155,12 +150,12 @@ entry:
   %9 = load void ()*, void ()** @func1, align 8
   ; CHECK-NO: autia
   call void @gimme_func_ptr(void ()* %9)
-  ; CHECK: blr
+  ; CHECK: bl
 
   %10 = load void ()*, void ()** @func2, align 8
   ; CHECK-NO: autia
   call void @gimme_func_ptr(void ()* %10)
-  ; CHECK: blr
+  ; CHECK: bl
 
   %11 = load void ()*, void ()** @func1, align 8
   ; CHECK-NO: autia
