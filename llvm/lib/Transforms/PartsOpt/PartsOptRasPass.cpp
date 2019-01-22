@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <set>
+#include <iterator>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/PARTS/PartsTypeMetadata.h>
 #include "llvm/ADT/Statistic.h"
@@ -52,10 +54,19 @@ bool PartsOptRasPass::runOnModule(Module &M) {
   if ( !PARTS::useBeCfi() )
     return false;
 
+
   std::unique_ptr<RandomNumberGenerator> RNG = M.createRNG(this);
 
+  /* A bit crude, but, use st to keep track of used numbers */
+  std::set<uint64_t> used_numbers;
+
   for (auto &F : M) {
-    auto num = (*RNG)();
+    uint64_t num;
+
+    do { /* Find a random function_id that has not yet been assigned */
+      num = (*RNG)();
+    } while (used_numbers.count(num) != 0);
+
     F.addFnAttr("parts-function_id", std::to_string(num));
   };
 
