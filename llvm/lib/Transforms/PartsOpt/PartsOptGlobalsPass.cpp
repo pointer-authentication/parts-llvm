@@ -153,7 +153,6 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, ArrayType *Ty) {
   bool changed = false;
   auto &C = M.getContext();
 
-  const auto elType = Ty->getElementType();
   const auto elCount = Ty->getNumElements();
 
   uint64_t base = 0; // Store the based pointer for GEP instruction
