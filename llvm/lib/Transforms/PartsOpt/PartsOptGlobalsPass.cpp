@@ -57,11 +57,10 @@ struct PartsOptGlobalsPass: public FunctionPass {
   bool doInitialization(Module &M) override;
   bool runOnFunction(Function &M) override;
 
-  bool handleGlobal(Module &M, GlobalVariable &GV);
-  bool handleValue(Module &M, GlobalVariable &GV, Value *V);
-  bool handleArray(Module &M, Value *V);
-
-  bool handleStruct(Module &M, Value *V);
+  bool handle(Module &M, Value *V, Type *Ty);
+  bool handle(Module &M, Value *V, StructType *Ty);
+  bool handle(Module &M, Value *V, ArrayType *Ty);
+  bool handle(Module &M, Value *V, PointerType *Ty);
 
 private:
   void writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName);
@@ -81,7 +80,6 @@ bool PartsOptGlobalsPass::doInitialization(Module &M) {
 
   auto result = Type::getVoidTy(C);
   FunctionType* signature = FunctionType::get(result, false);
-  //funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
   funcFixGlobals = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_globals", &M);
   funcFixGlobals->addFnAttr("no-parts", "true");
   //funcFixGlobals->addFnAttr("constructor", "true");
@@ -89,8 +87,17 @@ bool PartsOptGlobalsPass::doInitialization(Module &M) {
   auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
   IRBuilder<> localBuilder(BB);
   builder = &localBuilder;
+
   for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
-    handleGlobal(M, *GI);
+
+    if (GI->getNumOperands() == 0) {
+      DEBUG_PA(log->info() << "skipping empty\n");
+    } else {
+      DEBUG_PA(log->info() << "inspecting " << GI << "\n");
+      const auto O = GI->getOperand(0);
+      handle(M, &*GI, O->getType());
+    }
+
   }
   builder->CreateRetVoid();
   builder = nullptr;
@@ -129,174 +136,92 @@ bool PartsOptGlobalsPass::runOnFunction(Function &F) {
   return true;
 }
 
-bool PartsOptGlobalsPass::handleValue(Module &M, GlobalVariable &GV, Value *V) {
+bool PartsOptGlobalsPass::handle(Module &M, Value *V, Type *Ty) {
+  if (Ty->isArrayTy())
+    return handle(M, V, dyn_cast<ArrayType>(Ty));
+
+  if (Ty->isStructTy())
+    return handle(M, V, dyn_cast<StructType>(Ty));
+
+  if (Ty->isPointerTy())
+    return handle(M, V, dyn_cast<PointerType>(Ty));
+
   return false;
 }
 
-bool PartsOptGlobalsPass::handleArray(Module &M, Value *V) {
+bool PartsOptGlobalsPass::handle(Module &M, Value *V, ArrayType *Ty) {
+  bool changed = false;
   auto &C = M.getContext();
 
-  // We have two alternatives here, either:
-  //  1) V is a GlobalVariable and just take the type
-  //  2) or, V is a nested getelementptr, i.e., ptr, and we get the getPointerElementType
-  const auto Ty = dyn_cast<ArrayType>(
-      isa<GlobalVariable>(V)  ?
-      dyn_cast<GlobalVariable>(V)->getValueType() :
-      V->getType()->getPointerElementType()
-  );
-
-  assert(Ty && "V must be a GlobalVariable, or nested getelementptr");
-
   const auto elType = Ty->getElementType();
-
-  // Bail out early in case this is something we shouldn't handle
-  if ( !(elType->isArrayTy() || elType->isPointerTy()) ) {
-    return false;
-  }
-
   const auto elCount = Ty->getNumElements();
 
-  // First handle nested arrays
-  if (elType->isArrayTy()) {
-    bool changed = false;
+  uint64_t base = 0; // Store the based pointer for GEP instruction
 
-    DEBUG_PA(log->debug() << "handling nested array with " << elCount << " elements\n");
-    for (auto i = 0U; i < elCount; i++) {
-      auto elPtr = builder->CreateGEP(V, {
-          ConstantInt::get(Type::getInt64Ty(C), 0),
-          ConstantInt::get(Type::getInt64Ty(C), i),
-      });
-
-      changed = handleArray(M, elPtr) || changed;
-    }
-
-    return changed;
-  }
-
-  auto isCodePtr = PartsTypeMetadata::TyIsCodePointer(elType);
-
-  if ( !((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) )
-    return false;
-
-  /* We need to determine a base for the array we index, particularly if it is nested. */
-  auto base = isa<GlobalVariable>(V) ? 0 : dyn_cast<ConstantInt>(dyn_cast<User>(V)->getOperand(1))->getLimitedValue();
+  if (isa<GetElementPtrInst>(V))  // Get prior base if mult-level array
+      base = dyn_cast<ConstantInt>(dyn_cast<User>(V)->getOperand(1))->getLimitedValue();
 
   // Handle pointer elements
   for (auto i = 0U; i < elCount; i++) {
     DEBUG_PA(log->debug() << "Getting GEP to " << base << ", " << i << "\n");
     auto elPtr = builder->CreateGEP(V, {
         ConstantInt::get(Type::getInt64Ty(C), 0),
-        ConstantInt::get(Type::getInt64Ty(C), base+i),
+        ConstantInt::get(Type::getInt64Ty(C), base + i),
     });
 
-    auto loaded = builder->CreateLoad(elPtr);
-    auto paced = PartsIntr::pac_pointer(builder, M, loaded);
-    builder->CreateStore(paced, elPtr);
-
-    DEBUG_PA(log->debug() << "found array element, PACed " << paced << " with id "
-                          << PartsTypeMetadata::idFromType(elType) << "\n");
-
-    if (isCodePtr) {
-      fixed_cp++;
-    } else {
-      fixed_dp++;
-    }
+    changed = handle(M, elPtr, elPtr->getType()->getPointerElementType()) || changed;
   }
 
-  return true;
-}
-
-bool PartsOptGlobalsPass::handleStruct(Module &M, Value *V) {
-  bool changed = false;
-
-  const auto Ty = (V->getType()->isPointerTy() ? dyn_cast<PointerType>(V->getType())->getElementType() :
-              (isa<GlobalVariable>(V)  ? dyn_cast<GlobalVariable>(V)->getValueType() :
-               nullptr));
-
-  assert(Ty != nullptr && Ty->isStructTy());
-
-  const auto STy = dyn_cast<StructType>(Ty);
-
-  for (auto i = 0U; i < STy->getNumElements(); i++) {
-    auto elType = STy->getElementType(i);
-
-    if (elType->isStructTy()) {
-      auto retval = handleStruct(M, builder->CreateStructGEP(STy, V, i));
-      changed = changed || retval;
-    } else if (elType->isPointerTy()) {
-      auto PTMD = PartsTypeMetadata::get(elType);
-      assert(PTMD->isPointer());
-      auto isCodePtr = PTMD->isCodePointer();
-
-      if ((PARTS::useDpi() && !isCodePtr) || (PARTS::useFeCfi() && isCodePtr)) {
-        auto elPtr = builder->CreateStructGEP(STy, V, i);
-
-        auto loaded = builder->CreateLoad(elPtr);
-        auto paced = PartsIntr::pac_pointer(builder, M, loaded);
-        builder->CreateStore(paced, elPtr);
-
-        DEBUG_PA(log->debug() << "found struct element, PACed " << paced << " with id " << PTMD->getTypeId() << "\n");
-
-        if (PTMD->isCodePointer()) fixed_cp++;
-        else fixed_dp++;
-        changed = true;
-      }
-    }
-  }
   return changed;
 }
 
-bool PartsOptGlobalsPass::handleGlobal(Module &M, GlobalVariable &GV) {
-  DEBUG_PA(log->info() << "inspecting " << GV << "\n");
+bool PartsOptGlobalsPass::handle(Module &M, Value *V, StructType *Ty) {
+  bool changed = false;
 
-  if (GV.getNumOperands() == 0) {
-    log->info() << "skipping empty\n";
+  for (auto i = 0U; i < Ty->getNumElements(); i++) {
+    auto elPtr = builder->CreateStructGEP(Ty, V, i);
+    auto elType = Ty->getElementType(i);
+
+    changed = handle(M, elPtr, elType) || changed;
+  }
+
+  return changed;
+}
+
+bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
+  auto PTMD = PartsTypeMetadata::get(Ty);
+
+  auto type_id = PTMD->getTypeId();
+
+  if (PTMD->isCodePointer()) {
+    if (PARTS::useFeCfi()) {
+      marked_code_pointers++;
+      log->debug() << "mark as code pointer type_id=" << type_id << "\n";
+    } else {
+      PTMD->setIgnored(true);
+    }
+  } else {
+    assert(PTMD->isDataPointer());
+    if (PARTS::useDpi()) {
+      marked_data_pointers++;
+      log->green() << "mark as data pointer type_id=" << type_id << "\n";
+    } else {
+      PTMD->setIgnored(true);
+    }
+  }
+
+  if (PTMD->isIgnored()) {
+    DEBUG_PA(log->info() << "skipping ignored\n");
     return false;
   }
 
-  auto O = GV.getOperand(0);
-  auto Ty = O->getType();
+  DEBUG_PA(log->debug() << "inserting new PAC call to global fixer function\n");
 
-  if (Ty->isArrayTy())
-    return handleArray(M, &GV);
+  auto loaded = builder->CreateLoad(V);
+  auto paced = PartsIntr::pac_pointer(builder, M, loaded);
+  builder->CreateStore(paced, V);
 
-  if (Ty->isStructTy())
-    return handleStruct(M, &GV);
-
-  if (Ty->isPointerTy()) {
-    auto PTMD = PartsTypeMetadata::get(Ty);
-
-    auto type_id = PartsTypeMetadata::idFromType(Ty);
-
-    if (PTMD->isCodePointer()) {
-      if (PARTS::useFeCfi()) {
-        marked_code_pointers++;
-        log->debug() << "mark as code pointer type_id=" << type_id << "\n";
-      } else {
-        PTMD->setIgnored(true);
-      }
-    } else {
-      assert(PTMD->isDataPointer());
-      if (PARTS::useDpi()) {
-        marked_data_pointers++;
-        log->green() << "mark as data pointer type_id=" << type_id << "\n";
-      } else {
-        PTMD->setIgnored(true);
-      }
-    }
-
-    if (!PTMD->isIgnored()) {
-      log->debug() << "inserting new PAC call to global fixer function\n";
-
-      auto loaded = builder->CreateLoad(&GV);
-      auto paced = PartsIntr::pac_pointer(builder, M, loaded);
-      builder->CreateStore(paced, &GV);
-    }
-    return true;
-  }
-
-  log->info() << "skipping\n";
-  return false;
+  return true;
 }
 
 void PartsOptGlobalsPass::writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName)
