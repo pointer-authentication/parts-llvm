@@ -166,21 +166,22 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
       partsUtils->addNops(MBB, loc, src, mod, DL);
     } else {
       if (MI_blr->getOpcode() == AArch64::BLR) {
-        // This is where the instrumentation of BLR "happens"
-
+        // Normal indirect call
         auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
         BMI.addReg(src);
         BMI.addReg(mod);
-
-        // Remove the BLR that's been replaced by BLRAA
-        MI_blr->removeFromParent();
       } else {
-        // This is a tail call return, in this case we just need to fix the AUTIA into a proper instruction.
-        // (i.e., an optimizatoin where a tail-cal is converted into a direct call so that
+        // This is a tail call return, and we need to use BRAA
+        // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
         //  the tail-called function can return immediately to the current callee, without
         //  going through the currently active function.)
-        partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTIA), DL);
+        auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BRAA));
+        BMI.addReg(src);
+        BMI.addReg(mod);
       }
+
+      // Remove the replaced BR instruction
+      MI_blr->removeFromParent();
     }
 
     // Remove the PARTS intrinsic!
