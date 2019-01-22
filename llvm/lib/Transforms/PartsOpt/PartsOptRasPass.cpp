@@ -60,6 +60,8 @@ bool PartsOptRasPass::runOnModule(Module &M) {
   /* A bit crude, but, use st to keep track of used numbers */
   std::set<uint64_t> used_numbers;
 
+  assert(RNG->min() == 0 && RNG->max() == UINT64_MAX);
+
   for (auto &F : M) {
     uint64_t num;
 
@@ -67,6 +69,7 @@ bool PartsOptRasPass::runOnModule(Module &M) {
       num = (*RNG)();
     } while (used_numbers.count(num) != 0);
 
+    /* This is also a bit crude, we're passing an uint64_t as a string */
     F.addFnAttr("parts-function_id", std::to_string(num));
   };
 
