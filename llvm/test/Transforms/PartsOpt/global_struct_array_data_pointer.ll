@@ -1,0 +1,32 @@
+; Check that we insert the needed functionality to authenticate a global struct with an array of data pointers.
+; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
+
+%struct.data = type { [2 x %struct.data*], i32 }
+
+@global_struct_data = global %struct.data { [2 x %struct.data*] [%struct.data* @global_struct_data, %struct.data* @global_struct_data], i32 -559038737 }, align 8
+
+define i32 @main() {
+entry:
+; CHECK:   call void @__pauth_pac_globals()
+  %retval = alloca i32, align 4
+  store i32 0, i32* %retval, align 4
+  %0 = load i32, i32* getelementptr inbounds (%struct.data, %struct.data* @global_struct_data, i32 0, i32 1), align 8
+  ret i32 %0
+}
+
+; CHECK: define void @__pauth_pac_globals() #0 {
+; CHECK: entry:
+; CHECK:   %0 = load %struct.data*, %struct.data** getelementptr inbounds (%struct.data, %struct.data* @global_struct_data, i32 0, i32 0, i64 0)
+; CHECK:   %1 = call %struct.data* @llvm.pa.pacda.p0s_struct.datas(%struct.data* %0, i64 -1989659990953377005)
+; CHECK:   store %struct.data* %1, %struct.data** getelementptr inbounds (%struct.data, %struct.data* @global_struct_data, i32 0, i32 0, i64 0)
+; CHECK:   %2 = load %struct.data*, %struct.data** getelementptr inbounds (%struct.data, %struct.data* @global_struct_data, i32 0, i32 0, i64 1)
+; CHECK:   %3 = call %struct.data* @llvm.pa.pacda.p0s_struct.datas(%struct.data* %2, i64 -1989659990953377005)
+; CHECK:   store %struct.data* %3, %struct.data** getelementptr inbounds (%struct.data, %struct.data* @global_struct_data, i32 0, i32 0, i64 1)
+; CHECK:   ret void
+; CHECK: }
+
+; CHECK: ; Function Attrs: nounwind readnone
+; CHECK: declare %struct.data* @llvm.pa.pacda.p0s_struct.datas(%struct.data*, i64) #1
+
+; CHECK: attributes #0 = { "no-parts"="true" }
+; CHECK: attributes #1 = { nounwind readnone }
