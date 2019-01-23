@@ -114,6 +114,9 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
             } else if (isa<Function>(O) && dyn_cast<Function>(O)->isIntrinsic()) {
               // Ignore intrinsic calls
               DEBUG_PA(log->info() << "ignoring intrinsic call\n");
+            } else if (isa<BitCastOperator>(O)) {
+              // Ignore bitcast operator
+              DEBUG_PA(log->info() << "ignoring bitcast operator\n");
             } else {
               log->inc(DEBUG_TYPE ".IndirectCall", true, F.getName()) << "found indirect call!!!!\n";
               auto aut_arg = PartsIntr::aut_pointer(F, I, O);
