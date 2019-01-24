@@ -78,7 +78,7 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
 
   auto result = Type::getVoidTy(C);
   FunctionType* signature = FunctionType::get(result, false);
-  Function *funcFixGlobals = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_globals", &M);
+  Function *funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
   funcFixGlobals->addFnAttr("no-parts", "true");
  // funcFixGlobals->addFnAttr("noinline", "true");
 
