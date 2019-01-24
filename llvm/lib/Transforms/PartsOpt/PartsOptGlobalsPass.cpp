@@ -19,6 +19,7 @@
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsLog.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
+#include <llvm/Transforms/Utils/ModuleUtils.h>
 
 using namespace llvm;
 
@@ -82,7 +83,7 @@ bool PartsOptGlobalsPass::doInitialization(Module &M) {
   FunctionType* signature = FunctionType::get(result, false);
   funcFixGlobals = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_globals", &M);
   funcFixGlobals->addFnAttr("no-parts", "true");
-  //funcFixGlobals->addFnAttr("constructor", "true");
+ // funcFixGlobals->addFnAttr("noinline", "true");
 
   auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
   IRBuilder<> localBuilder(BB);
@@ -102,6 +103,8 @@ bool PartsOptGlobalsPass::doInitialization(Module &M) {
   builder->CreateRetVoid();
   builder = nullptr;
 
+  appendToGlobalCtors(M, funcFixGlobals, 0);
+
   if (PARTS::useFeCfi()) {
     log->inc(DEBUG_TYPE ".CodePointersFixed", fixed_cp) << "\"fixed\" " << fixed_cp << " code pointers for PACing\n";
     log->inc(DEBUG_TYPE ".CodePointersMarked", marked_code_pointers) << "annotating " << marked_code_pointers << " code pointers for PACing\n";
@@ -119,6 +122,7 @@ bool PartsOptGlobalsPass::doInitialization(Module &M) {
 }
 
 bool PartsOptGlobalsPass::runOnFunction(Function &F) {
+#if 0
   if (!(PARTS::useAny() && F.getName().equals("main")))
     return false;
 
@@ -134,6 +138,9 @@ bool PartsOptGlobalsPass::runOnFunction(Function &F) {
     DEBUG_PA(log->info() << "Adding call to __pauth_pac_globals\n");
   }
   return true;
+#else
+  return false;
+#endif
 }
 
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, Type *Ty) {
