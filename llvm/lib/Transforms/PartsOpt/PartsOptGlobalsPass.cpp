@@ -31,7 +31,7 @@ using namespace llvm;
 
 namespace {
 
-struct PartsOptGlobalsPass: public FunctionPass {
+struct PartsOptGlobalsPass: public ModulePass {
   static char ID; // Pass identification, replacement for typeid
 
   PartsLog_ptr log;
@@ -49,14 +49,13 @@ struct PartsOptGlobalsPass: public FunctionPass {
   Function *funcFixGlobals = nullptr;
 
   PartsOptGlobalsPass() :
-      FunctionPass(ID),
+      ModulePass(ID),
       log(PartsLog::getLogger(DEBUG_TYPE))
   {
     DEBUG_PA(log->enable());
   }
 
-  bool doInitialization(Module &M) override;
-  bool runOnFunction(Function &M) override;
+  bool runOnModule(Module &M) override;
 
   bool handle(Module &M, Value *V, Type *Ty);
   bool handle(Module &M, Value *V, StructType *Ty);
@@ -73,7 +72,7 @@ private:
 char PartsOptGlobalsPass::ID = 0;
 static RegisterPass<PartsOptGlobalsPass> X("parts-opt-globals", "PARTS globals fix, needed for CPI and DPI");
 
-bool PartsOptGlobalsPass::doInitialization(Module &M) {
+bool PartsOptGlobalsPass::runOnModule(Module &M) {
   if ( !(PARTS::useFeCfi() || PARTS::useDpi())) // We don't need to do anything unless we use PI
     return false;
 
@@ -119,10 +118,6 @@ bool PartsOptGlobalsPass::doInitialization(Module &M) {
 
   need_fix_globals_call = (marked_code_pointers+marked_data_pointers+fixed_cp+fixed_dp) > 0;
   return need_fix_globals_call;
-}
-
-bool PartsOptGlobalsPass::runOnFunction(Function &F) {
-  return false;
 }
 
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, Type *Ty) {
