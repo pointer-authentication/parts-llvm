@@ -8,10 +8,11 @@
 %struct.data = type { %struct.data*, i32 }
 
 @global_struct_data = global %struct.extra_data4 { i32 4, %struct.extra_data3 { i32 3, %struct.extra_data2 { i32 2, %struct.extra_data1 { i32 1, %struct.data { %struct.data* bitcast (i8* getelementptr (i8, i8* bitcast (%struct.extra_data4* @global_struct_data to i8*), i64 32) to %struct.data*), i32 -559038737 } } } } }, align 8
+; CHECK: @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 0, void ()* @__pauth_pac_globals, i8* null }]
 
 define i32 @main() {
  entry:
-; CHECK:   call void @__pauth_pac_globals()
+; CHECK-NOT: call void @__pauth_pac_globals()
    %retval = alloca i32, align 4
    store i32 0, i32* %retval, align 4
    %0 = load i32, i32* getelementptr inbounds (%struct.extra_data4, %struct.extra_data4* @global_struct_data, i32 0, i32 1, i32 1, i32 1, i32 1, i32 1), align 8

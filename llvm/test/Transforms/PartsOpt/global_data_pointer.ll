@@ -1,10 +1,11 @@
 ; Check that we insert a function to authenticate global data pointers at the beginning of main
 ; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
 @global_data = internal global i8* null, align 8
+; CHECK: @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 0, void ()* @__pauth_pac_globals, i8* null }]
 
 define i32 @main() {
 entry:
-; CHECK:  call void @__pauth_pac_globals()
+; CHECK-NOT: call void @__pauth_pac_globals()
   %retval = alloca i32, align 4
   store i32 0, i32* %retval, align 4
   %0 = load i8*, i8** @global_data, align 8

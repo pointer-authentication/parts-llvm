@@ -3,10 +3,11 @@
 
 @global_data = global i8 127, align 1
 @global_array_data = global [3 x [4 x i8*]] [[4 x i8*] [i8* @global_data, i8* @global_data, i8* null, i8* @global_data], [4 x i8*] [i8* @global_data, i8* @global_data, i8* null, i8* @global_data], [4 x i8*] [i8* @global_data, i8* @global_data, i8* null, i8* @global_data]], align 8
+; CHECK: @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 0, void ()* @__pauth_pac_globals, i8* null }]
 
 define i32 @main() {
 entry:
-; CHECK:   call void @__pauth_pac_globals()
+; CHECK-NOT: call void @__pauth_pac_globals()
   %retval = alloca i32, align 4
   store i32 0, i32* %retval, align 4
   %0 = load i8*, i8** getelementptr inbounds ([3 x [4 x i8*]], [3 x [4 x i8*]]* @global_array_data, i64 0, i64 1, i64 1), align 8

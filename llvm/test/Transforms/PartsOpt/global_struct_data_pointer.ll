@@ -4,10 +4,11 @@
 %struct.data = type { %struct.data*, i32 }
 
 @global_struct_data = global %struct.data { %struct.data* @global_struct_data, i32 -559038737 }, align 8
+; CHECK: @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 0, void ()* @__pauth_pac_globals, i8* null }]
 
 define i32 @main() {
 entry:
-; CHECK: call void @__pauth_pac_globals()
+; CHECK-NOT: call void @__pauth_pac_globals()
   %retval = alloca i32, align 4
   store i32 0, i32* %retval, align 4
   %0 = load i32, i32* getelementptr inbounds (%struct.data, %struct.data* @global_struct_data, i32 0, i32 1), align 8
