@@ -122,25 +122,7 @@ bool PartsOptGlobalsPass::doInitialization(Module &M) {
 }
 
 bool PartsOptGlobalsPass::runOnFunction(Function &F) {
-#if 0
-  if (!(PARTS::useAny() && F.getName().equals("main")))
-    return false;
-
-  assert(F.getName().equals("main"));
-
-  if (need_fix_globals_call) {
-    auto &B = F.getEntryBlock();
-    auto &I = *B.begin();
-
-    IRBuilder<> Builder(&I);
-    Builder.CreateCall(funcFixGlobals);
-
-    DEBUG_PA(log->info() << "Adding call to __pauth_pac_globals\n");
-  }
-  return true;
-#else
   return false;
-#endif
 }
 
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, Type *Ty) {
