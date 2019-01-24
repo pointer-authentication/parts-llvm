@@ -16,7 +16,7 @@ entry:
   ret i32 %conv
 }
 
-; CHECK: define void @__pauth_pac_globals() #0 {
+; CHECK: define private void @__pauth_pac_globals() #0 {
 ; CHECK: entry:
 ; CHECK:   %0 = load i8*, i8** getelementptr inbounds ([3 x [4 x i8*]], [3 x [4 x i8*]]* @global_array_data, i64 0, i64 0, i64 0)
 ; CHECK:   %1 = call i8* @llvm.pa.pacda.p0i8(i8* %0, i64 3284146682194183030)

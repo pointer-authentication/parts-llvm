@@ -15,7 +15,7 @@ entry:
   ret i32 0
 }
 
-; CHECK: define void @__pauth_pac_globals() #0 {
+; CHECK: define private void @__pauth_pac_globals() #0 {
 ; CHECK: entry:
 ; CHECK:   %0 = load void ()*, void ()** @func
 ; CHECK:   %1 = call void ()* @llvm.pa.pacia.p0f_isVoidf(void ()* %0, i64 -8151429658862389052)

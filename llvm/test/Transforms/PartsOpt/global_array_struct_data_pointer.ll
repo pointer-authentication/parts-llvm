@@ -16,7 +16,7 @@ entry:
   ret i32 %0
 }
 
-; CHECK: define void @__pauth_pac_globals() #0 {
+; CHECK: define private void @__pauth_pac_globals() #0 {
 ; CHECK: entry:
 ; CHECK:   %0 = load %struct.data*, %struct.data** getelementptr inbounds ([1 x %struct.data], [1 x %struct.data]* @global_struct_data, i64 0, i64 0, i32 0)
 ; CHECK:   %1 = call %struct.data* @llvm.pa.pacda.p0s_struct.datas(%struct.data* %0, i64 -1989659990953377005)
