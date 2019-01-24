@@ -57,12 +57,12 @@ struct PartsOptGlobalsPass: public ModulePass {
 
   bool runOnModule(Module &M) override;
 
+private:
   bool handle(Module &M, Value *V, Type *Ty);
   bool handle(Module &M, Value *V, StructType *Ty);
   bool handle(Module &M, Value *V, ArrayType *Ty);
   bool handle(Module &M, Value *V, PointerType *Ty);
 
-private:
   void writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName);
 
 };
