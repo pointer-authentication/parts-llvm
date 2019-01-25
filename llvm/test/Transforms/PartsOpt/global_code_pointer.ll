@@ -1,4 +1,4 @@
-; Check that we insert a function to authenticate global code pointers at the beginning of main
+; Check that we insert a constructor function to authenticate global code pointers
 ; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-globals -S < %s  | FileCheck %s
 @func = global void ()* @call_func, align 8
 ; CHECK: @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 0, void ()* @__pauth_pac_globals, i8* null }]
