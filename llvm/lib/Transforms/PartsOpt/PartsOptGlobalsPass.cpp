@@ -85,7 +85,7 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
   IRBuilder<> localBuilder(BB);
   builder = &localBuilder;
 
-  for (auto GI = M.global_begin(); GI != M.global_end(); GI++) {
+  for (auto GI = M.global_begin(), GE = M.global_end(); GI != GE; ++GI) {
 
     if (GI->getNumOperands() == 0) {
       DEBUG_PA(log->info() << "skipping empty\n");
