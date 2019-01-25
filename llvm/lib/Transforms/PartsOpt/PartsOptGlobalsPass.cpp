@@ -80,7 +80,7 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
   FunctionType* signature = FunctionType::get(result, false);
   Function *funcFixGlobals = Function::Create(signature, Function::PrivateLinkage, "__pauth_pac_globals", &M);
   funcFixGlobals->addFnAttr("no-parts", "true");
- // funcFixGlobals->addFnAttr("noinline", "true");
+  funcFixGlobals->addFnAttr("noinline", "true");
 
   auto BB = BasicBlock::Create(M.getContext(), "entry", funcFixGlobals);
   IRBuilder<> localBuilder(BB);
