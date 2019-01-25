@@ -60,5 +60,5 @@ entry:
 ; CHECK: ; Function Attrs: nounwind readnone
 ; CHECK: declare i8* @llvm.pa.pacda.p0i8(i8*, i64) #1
 
-; CHECK: attributes #0 = { "no-parts"="true" }
+; CHECK: attributes #0 = { "no-parts"="true" "noinline"="true" }
 ; CHECK: attributes #1 = { nounwind readnone }

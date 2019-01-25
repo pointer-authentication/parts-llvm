@@ -30,5 +30,5 @@ define i32 @main() {
 ; CHECK: ; Function Attrs: nounwind readnone
 ; CHECK: declare %struct.data* @llvm.pa.pacda.p0s_struct.datas(%struct.data*, i64) #1
 
-; CHECK: attributes #0 = { "no-parts"="true" }
+; CHECK: attributes #0 = { "no-parts"="true" "noinline"="true" }
 ; CHECK: attributes #1 = { nounwind readnone }
