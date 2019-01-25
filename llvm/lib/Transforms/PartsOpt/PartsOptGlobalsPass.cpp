@@ -34,6 +34,16 @@ namespace {
 struct PartsOptGlobalsPass: public ModulePass {
   static char ID; // Pass identification, replacement for typeid
 
+  PartsOptGlobalsPass() :
+      ModulePass(ID),
+      log(PartsLog::getLogger(DEBUG_TYPE))
+  {
+    DEBUG_PA(log->enable());
+  }
+
+  bool runOnModule(Module &M) override;
+
+private:
   PartsLog_ptr log;
 
   std::list<PARTS::type_id_t> data_type_ids = std::list<PARTS::type_id_t>(0);
@@ -46,16 +56,6 @@ struct PartsOptGlobalsPass: public ModulePass {
 
   IRBuilder<> *builder;
 
-  PartsOptGlobalsPass() :
-      ModulePass(ID),
-      log(PartsLog::getLogger(DEBUG_TYPE))
-  {
-    DEBUG_PA(log->enable());
-  }
-
-  bool runOnModule(Module &M) override;
-
-private:
   bool handle(Module &M, Value *V, Type *Ty);
   bool handle(Module &M, Value *V, StructType *Ty);
   bool handle(Module &M, Value *V, ArrayType *Ty);
