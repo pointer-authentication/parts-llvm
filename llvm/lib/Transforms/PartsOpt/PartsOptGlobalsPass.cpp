@@ -52,7 +52,6 @@ private:
   unsigned marked_code_pointers = 0;
   unsigned fixed_dp = 0;
   unsigned fixed_cp = 0;
-  bool need_fix_globals_call = false;
 
   IRBuilder<> *builder;
 
@@ -114,7 +113,7 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
     writeTypeIds(M, data_type_ids, ".data_type_id");
   }
 
-  need_fix_globals_call = (marked_code_pointers+marked_data_pointers+fixed_cp+fixed_dp) > 0;
+  bool need_fix_globals_call = (marked_code_pointers+marked_data_pointers+fixed_cp+fixed_dp) > 0;
   return need_fix_globals_call;
 }
 
