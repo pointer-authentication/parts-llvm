@@ -206,7 +206,6 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   std::string typeString = TypeToString(type);
   auto c_string = typeString.c_str();
 
-#ifdef PARTS_USE_SHA3
   // Prepare SHA3 generation
   mbedtls_sha3_context sha3_context;
   mbedtls_sha3_type_t sha3_type = MBEDTLS_SHA3_256;
@@ -225,16 +224,6 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
 
   delete[] output;
 
-  // FIXME: Support proper PA modifiers (this is a workaround for PartsUtils inability to move larger immediate value)
-  //const auto original_type_id = type_id;
-  //type_id = type_id % UINT8_MAX;
-
-#else
-  if (TyIsCodePointer(type))
-    type_id = 7;
-  else
-    type_id = 3;
-#endif
   return type_id;
 }
 
