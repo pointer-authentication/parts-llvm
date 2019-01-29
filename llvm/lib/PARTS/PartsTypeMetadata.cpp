@@ -9,8 +9,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/PARTS/PartsTypeMetadata.h>
-
+#include <regex>
+#include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 
 extern "C" {
@@ -148,6 +148,53 @@ bool PartsTypeMetadata::isPartsTypeMetadataContainer(const MDNode *const MDN) {
           dyn_cast<MDString>(MDN->getOperand(0))->getString() == MetadataKindString);
 }
 
+std::string PartsTypeMetadata::TypeToString(const Type *const type) {
+  if (type->isPointerTy()) {
+    return std::string("ptr.").append(TypeToString(type->getPointerElementType()));
+  }
+
+  if (type->isStructTy()) {
+    auto structName = dyn_cast<StructType>(type)->getStructName();
+    std::regex e ("^(\\w+\\.\\w+)(\\.\\w+)?$");
+    return std::regex_replace(structName.str(), e, "$1");
+  }
+
+  if (type->isArrayTy()) {
+    return std::string("a.")
+        .append(std::to_string(type->getArrayNumElements()))
+        .append(TypeToString(type->getArrayElementType()));
+  }
+
+  if (type->isFunctionTy()) {
+    auto FuncTy = dyn_cast<FunctionType>(type);
+    std::string typeString = "f.";
+    typeString.append(TypeToString(FuncTy->getReturnType()));
+
+    for (auto p = FuncTy->param_begin(); p != FuncTy->param_end(); p++) {
+      typeString.append(TypeToString(*p));
+    }
+
+    return typeString;
+  }
+
+  if (type->isVectorTy()) {
+    return std::string("vec.")
+        .append(std::to_string(type->getVectorNumElements()))
+        .append(TypeToString(type->getVectorElementType()));
+  }
+
+  if (type->isVoidTy()) {
+    return "v";
+  }
+
+  /* Make sure we've handled all cases we want to */
+  assert(type->isIntegerTy() || type->isFloatingPointTy());
+
+  std::string type_str;
+  llvm::raw_string_ostream rso(type_str);
+  type->print(rso);
+  return rso.str();
+}
 
 type_id_t PartsTypeMetadata::idFromType(const Type *const type)
 {
@@ -155,16 +202,11 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
     return 0;
 
   type_id_t type_id = 0;
-  // Generate a std::string from type
-  std::string type_str;
-  llvm::raw_string_ostream rso(type_str);
-  type->print(rso);
 
-  auto c_string = rso.str().c_str();
+  std::string typeString = TypeToString(type);
+  auto c_string = typeString.c_str();
 
 #ifdef PARTS_USE_SHA3
-
-
   // Prepare SHA3 generation
   mbedtls_sha3_context sha3_context;
   mbedtls_sha3_type_t sha3_type = MBEDTLS_SHA3_256;
@@ -175,7 +217,7 @@ type_id_t PartsTypeMetadata::idFromType(const Type *const type)
   auto *output= new unsigned char[32]();
 
   // Generate hash
-  auto result = mbedtls_sha3(input, type_str.length(), sha3_type, output);
+  auto result = mbedtls_sha3(input, typeString.length(), sha3_type, output);
   if (result != 0)
     llvm_unreachable("SHA3 hashing failed :(");
 
