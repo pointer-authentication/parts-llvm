@@ -18,7 +18,7 @@ entry:
 ; CHECK: define private void @__pauth_pac_globals() #0 {
 ; CHECK: entry:
 ; CHECK:   %0 = load void ()*, void ()** @func
-; CHECK:   %1 = call void ()* @llvm.pa.pacia.p0f_isVoidf(void ()* %0, i64 -8151429658862389052)
+; CHECK:   %1 = call void ()* @llvm.pa.pacia.p0f_isVoidf(void ()* %0, i64 {{-?[0-9]+}})
 ; CHECK:   store void ()* %1, void ()** @func
 ; CHECK:   ret void
 ; CHECK: }

@@ -22,7 +22,7 @@ entry:
 ; CHECK: define private void @__pauth_pac_globals() #0 {
 ; CHECK: entry:
 ; CHECK:   %0 = load void (i32)*, void (i32)** getelementptr inbounds (%struct.callback, %struct.callback* @global_struct_code, i32 0, i32 0)
-; CHECK:   %1 = call void (i32)* @llvm.pa.pacia.p0f_isVoidi32f(void (i32)* %0, i64 4899922909632043764)
+; CHECK:   %1 = call void (i32)* @llvm.pa.pacia.p0f_isVoidi32f(void (i32)* %0, i64 {{-?[0-9]+}})
 ; CHECK:   store void (i32)* %1, void (i32)** getelementptr inbounds (%struct.callback, %struct.callback* @global_struct_code, i32 0, i32 0)
 ; CHECK:   ret void
 ; CHECK: }
