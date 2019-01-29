@@ -6,6 +6,7 @@
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
 ; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
+; XFAIL: *
 ;
 ; This checks that compatible function signatures produce compatible type_ids.
 ;
