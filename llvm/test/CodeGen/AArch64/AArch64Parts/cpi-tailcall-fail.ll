@@ -43,5 +43,5 @@ define hidden void @test_funcptr2(void (%struct.video_par*, i8*)* nocapture %fun
 
 declare void (%struct.video_par*, i8*)* @llvm.pa.autia.p0f_isVoidp0s_struct.video_parsp0i8f(void (%struct.video_par*, i8*)*, i64) #3
 
-attributes #3 = { nounwind readnone "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" }
+attributes #3 = { nounwind readnone "no-frame-pointer-elim-non-leaf" }
 attributes #9 = { nounwind }
