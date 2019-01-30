@@ -94,6 +94,7 @@ bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
   TRI = STI->getRegisterInfo();
   partsUtils = PartsUtils::get(TRI, TII);
 
+  //MF.dump();
   for (auto &MBB : MF) {
     DEBUG_PA(log->debug(MF.getName()) << "  block " << MBB.getName() << "\n");
 
@@ -135,9 +136,20 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
     log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
 
     auto &MI_autia = *MIi;
+    MachineInstr *loc_mov = &*MIi;
     MIi--; // move iterator back since we're gonna change latter stuff
 
-    // Try to find the corresponding BLR
+    const auto MOVDL = loc_mov->getDebugLoc();
+    const unsigned mod = MI_autia.getOperand(2).getReg();
+    const unsigned src = MI_autia.getOperand(1).getReg();
+    const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
+
+     auto MOVMI = BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs), dst);
+     MOVMI.addUse(AArch64::XZR);
+     MOVMI.addUse(src);
+     MOVMI.addImm(0);
+
+     // Try to find the corresponding BLR
     MachineInstr *MI_blr = &MI_autia;
     do {
       MI_blr = MI_blr->getNextNode();
@@ -154,11 +166,12 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
 
     auto *loc = MI_blr;
     const auto DL = loc->getDebugLoc();
+#if 0
     // But this is the IR intrinsic that has the needed info!
     const unsigned mod = MI_autia.getOperand(2).getReg();
     const unsigned src = MI_autia.getOperand(1).getReg();
     const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
-
+#endif
     partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
 
     if (PARTS::useDummy()) {
@@ -168,16 +181,16 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
       if (MI_blr->getOpcode() == AArch64::BLR) {
         // Normal indirect call
         auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
-        BMI.addReg(src);
-        BMI.addReg(mod);
+        BMI.addUse(dst);
+        BMI.addUse(mod);
       } else {
         // This is a tail call return, and we need to use BRAA
         // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
         //  the tail-called function can return immediately to the current callee, without
         //  going through the currently active function.)
         auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BRAA));
-        BMI.addReg(src);
-        BMI.addReg(mod);
+        BMI.addUse(dst);
+        BMI.addUse(mod);
       }
 
       // Remove the replaced BR instruction
