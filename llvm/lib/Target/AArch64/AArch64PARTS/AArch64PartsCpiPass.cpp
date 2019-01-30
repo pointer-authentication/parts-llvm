@@ -143,12 +143,12 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
     const unsigned mod = MI_autia.getOperand(2).getReg();
     const unsigned src = MI_autia.getOperand(1).getReg();
     const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
-#if 0
+
      auto MOVMI = BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs), dst);
      MOVMI.addUse(AArch64::XZR);
      MOVMI.addUse(src);
      MOVMI.addImm(0);
-#endif
+
      // Try to find the corresponding BLR
     MachineInstr *MI_blr = &MI_autia;
     do {
@@ -181,15 +181,10 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
       if (MI_blr->getOpcode() == AArch64::BLR) {
         // Normal indirect call
         auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
-        BMI.addUse(src);
+        BMI.addUse(dst);
         BMI.addUse(mod);
       } else {
-         auto MOVMI = BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs), dst);
-         MOVMI.addUse(AArch64::XZR);
-         MOVMI.addUse(src);
-         MOVMI.addImm(0);
-
-     // This is a tail call return, and we need to use BRAA
+        // This is a tail call return, and we need to use BRAA
         // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
         //  the tail-called function can return immediately to the current callee, without
         //  going through the currently active function.)
