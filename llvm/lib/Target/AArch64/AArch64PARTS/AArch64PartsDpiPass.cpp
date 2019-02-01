@@ -208,7 +208,7 @@ bool AArch64PartsDpiPass::instrumentLoadStore(MachineFunction &MF, MachineBasicB
     errs() << MF.getFunction().getName() << " : " << MBB.getName() << "\n";
     errs() << MIi->getFlag(MachineInstr::MIFlag::FrameSetup) << "\n";
     errs() << MIi->getFlag(MachineInstr::MIFlag::FrameDestroy) << "\n";
-    MIi->dump();
+    DEBUG(MIi->dump());
     errs() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
   }
 

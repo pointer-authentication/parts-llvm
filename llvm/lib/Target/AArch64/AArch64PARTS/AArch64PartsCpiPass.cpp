@@ -156,7 +156,7 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
       if (MI_blr == nullptr) {
         // This shouldn't happen, as it indicates that we didn't find what we were looking for
         // and have an orphaned pacia.
-        MBB.dump(); // dump for debugging...
+        DEBUG(MBB.dump()); // dump for debugging...
         llvm_unreachable("failed to find BLR for AUTIA");
       }
     } while (MI_blr->getOpcode() != AArch64::BLR &&
