@@ -18,7 +18,7 @@ declare void @use_data(i8*)
 ; CHECK: define private void @__pauth_pac_globals() #0 {
 ; CHECK: entry:
 ; CHECK:   %0 = load i8*, i8** @global_data
-; CHECK:   %1 = call i8* @llvm.pa.pacda.p0i8(i8* %0, i64 3284146682194183030)
+; CHECK:   %1 = call i8* @llvm.pa.pacda.p0i8(i8* %0, i64 {{-?[0-9]+}})
 ; CHECK:   store i8* %1, i8** @global_data
 ; CHECK:   ret void
 ; CHECK: }

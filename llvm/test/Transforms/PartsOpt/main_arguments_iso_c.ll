@@ -3,7 +3,7 @@
 
 define i32 @main(i32 %argc, i8** %argv) {
 entry:
-; CHECK: call void @__pauth_pac_main_args(i32 %argc, i8** %argv, i64 3284146682194183030)
+; CHECK: call void @__pauth_pac_main_args(i32 %argc, i8** %argv, i64 {{-?[0-9]+}})
   %argc.addr = alloca i32, align 4
   %argv.addr = alloca i8**, align 8
   store i32 %argc, i32* %argc.addr, align 4

@@ -14,4 +14,4 @@ entry:
 
 declare i8* @my_simple_alloc(i64)
 
-; CHECK: !0 = !{!"PartsTypeMetadata", i64 3284146682194183030, i1 true, i1 true, i1 true, i1 false, i1 false}
+; CHECK: !0 = !{!"PartsTypeMetadata", i64 {{-?[0-9]+}}, i1 true, i1 true, i1 true, i1 false, i1 false}
