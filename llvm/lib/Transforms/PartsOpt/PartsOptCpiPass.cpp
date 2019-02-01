@@ -73,33 +73,20 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
         default:
           break;
         case Instruction::Store: {
+          assert(isa<StoreInst>(&I));
           auto SI = dyn_cast<StoreInst>(&I);
-          assert(SI != nullptr);
-
-          auto PO = SI->getPointerOperand();
           auto VO = SI->getValueOperand();
-          MD = PartsTypeMetadata::get(PO->getType());
 
           if (isa<Function>(VO)) {
             log->inc(DEBUG_TYPE ".StoreFunction", true, F.getName()) << "PACing store of function address\n";
-
             auto paced_arg = PartsIntr::pac_pointer(F, I, VO);
             SI->setOperand(0, paced_arg);
-
-            break;
           }
-
-          if (isa<Constant>(VO)) {
-            log->inc(DEBUG_TYPE ".StoreConstant", true, F.getName()) << "ignoring store of constant\n";
-            break;
-          }
-
-          // Assume th pointer is already PACed
-          log->inc(DEBUG_TYPE ".StoreCodePointer", true, F.getName()) << "ignoring re-store of code-pointer\n";
           break;
         }
-        case Instruction::Load:
+        case Instruction::Load: {
           break;
+        }
         case Instruction::Select: {
           //auto SI = dyn_cast<SelectInst>(&I);
           auto SI = &I;
