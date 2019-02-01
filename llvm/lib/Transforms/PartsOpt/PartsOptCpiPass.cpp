@@ -100,6 +100,28 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
         }
         case Instruction::Load:
           break;
+        case Instruction::Select: {
+          //auto SI = dyn_cast<SelectInst>(&I);
+          auto SI = &I;
+
+          for (unsigned i = 0, end = SI->getNumOperands(); i < end; ++i) {
+            auto V = SI->getOperand(i);
+            if (isa<Function>(V)) {
+              const auto VType = V->getType();
+
+              IRBuilder<> Builder(&I);
+              // Get declaration for pacia
+              auto pacia = Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_pacia, { VType });
+              // Get type_id as Constant
+              auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), VType);
+              // Create new instruction for pacing the result of select
+              auto paced = Builder.CreateCall(pacia, { V, typeIdConstant}, "");
+              // Replace any use of select result with the paced replacement
+              SI->setOperand(i, paced);
+            }
+          }
+          break;
+        }
         case Instruction::Call: {
           fixDirectFunctionArgs(F, I);
 
