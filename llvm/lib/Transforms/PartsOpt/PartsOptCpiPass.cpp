@@ -134,9 +134,19 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
           break;
         }
         case Instruction::Call: {
-          fixDirectFunctionArgs(F, I);
-
+          /*
+           * For functions we need to do two things:
+           * 1: Make sure any function args are PACed (e.g., ~ 'func(printf)' -> 'func(pacia(printf)))';
+           * 2: Make sure indirect function calls are authenticated.
+           */
           auto CI = dyn_cast<CallInst>(&I);
+          for (auto i = 0U, end = CI->getNumArgOperands(); i < end; ++i) {
+            auto paced = generatePACedValue(F.getParent(), I, CI->getArgOperand(i));
+            if (paced != nullptr) {
+              log->inc(DEBUG_TYPE ".PacFunctionArgument", true, F.getName()) << "PACing function argument\n";
+              CI->setArgOperand(i, paced);
+            }
+          }
 
           if (CI->getCalledFunction() == nullptr) {
             auto O = CI->getCalledValue();
