@@ -128,18 +128,9 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
         }
         case Instruction::Select: {
           for (unsigned i = 0, end = I.getNumOperands(); i < end; ++i) {
-            auto V = I.getOperand(i);
-            if (isa<Function>(V)) {
-              const auto VType = V->getType();
-
-              IRBuilder<> Builder(&I);
-              // Get declaration for pacia
-              auto pacia = Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_pacia, { VType });
-              // Get type_id as Constant
-              auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), VType);
-              // Create new instruction for pacing the result of select
-              auto paced = Builder.CreateCall(pacia, { V, typeIdConstant}, "");
-              // Replace any use of select result with the paced replacement
+            auto paced = generatePACedValue(F.getParent(), I, I.getOperand(i));
+            if (paced != nullptr) {
+              log->inc(DEBUG_TYPE ".PacSelect", true, F.getName()) << "PACing store of function address\n";
               I.setOperand(i, paced);
             }
           }
