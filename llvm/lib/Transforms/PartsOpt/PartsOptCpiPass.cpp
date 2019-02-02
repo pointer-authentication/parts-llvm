@@ -131,11 +131,8 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
           break;
         }
         case Instruction::Select: {
-          //auto SI = dyn_cast<SelectInst>(&I);
-          auto SI = &I;
-
-          for (unsigned i = 0, end = SI->getNumOperands(); i < end; ++i) {
-            auto V = SI->getOperand(i);
+          for (unsigned i = 0, end = I.getNumOperands(); i < end; ++i) {
+            auto V = I.getOperand(i);
             if (isa<Function>(V)) {
               const auto VType = V->getType();
 
@@ -147,7 +144,7 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
               // Create new instruction for pacing the result of select
               auto paced = Builder.CreateCall(pacia, { V, typeIdConstant}, "");
               // Replace any use of select result with the paced replacement
-              SI->setOperand(i, paced);
+              I.setOperand(i, paced);
             }
           }
           break;
