@@ -13,6 +13,7 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/Pass.h"
@@ -97,6 +98,8 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
            * For functions we need to do two things:
            * 1: Make sure any function args are PACed (e.g., ~ 'func(printf)' -> 'func(pacia(printf)))';
            * 2: Make sure indirect function calls are authenticated.
+           * FIXME: handle pointers InlineAsm
+           * FIXME: handle indirect calls using BitCastOperator (could perhaps be casting function pointer?)
            */
           auto CI = dyn_cast<CallInst>(&I);
           for (auto i = 0U, end = CI->getNumArgOperands(); i < end; ++i) {
@@ -108,33 +111,22 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
           }
 
           // 2: Handle indirect function calls
-          if (CI->getCalledFunction() == nullptr) {
-            auto O = CI->getCalledValue();
-            const auto OType = O->getType();
+          if (CallSite(CI).isIndirectCall()) {
+            auto calledValue = CI->getCalledValue();
+            const auto calledValueType = calledValue->getType();
 
-            if (OType->isPointerTy()) {
-              if (isa<InlineAsm>(O)) {
-                // FIXME: handle InlineAsm
-              } else if (isa<BitCastOperator>(O)) {
-                // FIXME: handle BitCastOperator (could perhaps be casting function pointer?)
-              } else {
-                assert(!(isa<Function>(O) && !dyn_cast<Function>(O)->isIntrinsic()) &&
-                       "Hmm, do we need to cover this case?");
+            log->inc(DEBUG_TYPE ".AutIndirectCall", true, F.getName()) << "found indirect call!!!!\n";
+            // Generate Builder for inserting pa_autia
+            IRBuilder<> Builder(&I);
+            // Get pa_autia declaration for correct input type
+            auto autia = Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, { calledValueType });
+            // Get type_id as Constant
+            auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), calledValueType);
+            // Insert intrinsics to authenticated the signed function pointer
+            auto paced = Builder.CreateCall(autia, { calledValue, typeIdConstant }, "");
 
-                log->inc(DEBUG_TYPE ".AutIndirectCall", true, F.getName()) << "found indirect call!!!!\n";
-                // Generate Builder for inserting pa_autia
-                IRBuilder<> Builder(&I);
-                // Get pa_autia declaration for correct input type
-                auto autia = Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, { OType });
-                // Get type_id as Constant
-                auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), OType);
-                // Insert intrinsics to authenticated the signed function pointer
-                auto paced = Builder.CreateCall(autia, { O, typeIdConstant }, "");
-
-                // Replace signed pointer with the authenticated one
-                CI->setCalledFunction(paced);
-              }
-            }
+            // Replace signed pointer with the authenticated one
+            CI->setCalledFunction(paced);
           }
           break;
         }
