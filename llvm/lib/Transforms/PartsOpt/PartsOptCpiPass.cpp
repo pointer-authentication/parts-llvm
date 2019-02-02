@@ -117,14 +117,13 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
         default:
           break;
         case Instruction::Store: {
-          assert(isa<StoreInst>(&I));
           auto SI = dyn_cast<StoreInst>(&I);
-          auto VO = SI->getValueOperand();
+          assert(SI != nullptr && "this should always be a store instruction, maybe remove this assert?");
 
-          if (isa<Function>(VO)) {
+          auto paced = generatePACedValue(F.getParent(), I, SI->getValueOperand());
+          if (paced != nullptr) {
             log->inc(DEBUG_TYPE ".StoreFunction", true, F.getName()) << "PACing store of function address\n";
-            auto paced_arg = PartsIntr::pac_pointer(F, I, VO);
-            SI->setOperand(0, paced_arg);
+            SI->setOperand(0, paced);
           }
           break;
         }
