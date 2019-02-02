@@ -9,9 +9,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/PARTS/PartsIntr.h>
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
@@ -21,6 +19,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsLog.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -123,8 +122,17 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
                        "Hmm, do we need to cover this case?");
 
                 log->inc(DEBUG_TYPE ".AutIndirectCall", true, F.getName()) << "found indirect call!!!!\n";
-                auto aut_arg = PartsIntr::aut_pointer(F, I, O);
-                CI->setCalledFunction(aut_arg);
+                // Generate Builder for inserting pa_autia
+                IRBuilder<> Builder(&I);
+                // Get pa_autia declaration for correct input type
+                auto autia = Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, { OType });
+                // Get type_id as Constant
+                auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), OType);
+                // Insert intrinsics to authenticated the signed function pointer
+                auto paced = Builder.CreateCall(autia, { O, typeIdConstant }, "");
+
+                // Replace signed pointer with the authenticated one
+                CI->setCalledFunction(paced);
               }
             }
           }
