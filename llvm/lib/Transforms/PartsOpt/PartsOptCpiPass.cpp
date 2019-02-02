@@ -44,8 +44,6 @@ struct PartsOptCpiPass : public FunctionPass {
 
   bool runOnFunction(Function &F) override;
 
-  void fixDirectFunctionArgs(Function &F, Instruction &I);
-
   /**
    * Check the input Value V and recursively change inner parameters, or
    * if V itself needs to be replaced in the containing function, then
@@ -88,11 +86,6 @@ struct PartsOptCpiPass : public FunctionPass {
     }
 
     return nullptr;
-  }
-
-  inline void replaceDirectFuncOperand(Function &F, Instruction &I, Value *O, CallInst *CI, unsigned i) {
-    auto paced_arg = PartsIntr::pac_pointer(F, I, O);
-    CI->setOperand(i, paced_arg);
   }
 };
 
@@ -148,22 +141,24 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
             }
           }
 
+          // 2: Handle indirect function calls
           if (CI->getCalledFunction() == nullptr) {
             auto O = CI->getCalledValue();
+            const auto OType = O->getType();
 
-            if (isa<InlineAsm>(O)) {
-              // Ignore inline asm
-              DEBUG_PA(log->info() << "ignoring inline asm indirect call\n");
-            } else if (isa<Function>(O) && dyn_cast<Function>(O)->isIntrinsic()) {
-              // Ignore intrinsic calls
-              DEBUG_PA(log->info() << "ignoring intrinsic call\n");
-            } else if (isa<BitCastOperator>(O)) {
-              // Ignore bitcast operator
-              DEBUG_PA(log->info() << "ignoring bitcast operator\n");
-            } else {
-              log->inc(DEBUG_TYPE ".IndirectCall", true, F.getName()) << "found indirect call!!!!\n";
-              auto aut_arg = PartsIntr::aut_pointer(F, I, O);
-              CI->setCalledFunction(aut_arg);
+            if (OType->isPointerTy()) {
+              if (isa<InlineAsm>(O)) {
+                // FIXME: handle InlineAsm
+              } else if (isa<BitCastOperator>(O)) {
+                // FIXME: handle BitCastOperator (could perhaps be casting function pointer?)
+              } else {
+                assert(!(isa<Function>(O) && !dyn_cast<Function>(O)->isIntrinsic()) &&
+                       "Hmm, do we need to cover this case?");
+
+                log->inc(DEBUG_TYPE ".AutIndirectCall", true, F.getName()) << "found indirect call!!!!\n";
+                auto aut_arg = PartsIntr::aut_pointer(F, I, O);
+                CI->setCalledFunction(aut_arg);
+              }
             }
           }
           break;
@@ -173,37 +168,4 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
   }
 
   return true;
-}
-
-void PartsOptCpiPass::fixDirectFunctionArgs(Function &F, Instruction &I) {
-  if (!PARTS::useFeCfi())
-    return;
-
-  auto CI = dyn_cast<CallInst>(&I);
-
-  for (auto i = 0U; i < CI->getNumArgOperands(); i++) {
-    auto O = CI->getArgOperand(i);
-
-    // First make sure that we're dealing with a function pointer
-    if (PartsTypeMetadata::TyIsCodePointer(O->getType())) {
-      if (isa<Function>(O)) {
-        // The argument is a function address directly taken i.e., func(printf).
-        if (!dyn_cast<Function>(O)->isIntrinsic()) {
-          // Ignore intrinsics! FIXME: Or should we?
-          replaceDirectFuncOperand(F, I, O, CI, i);
-        }
-      } else if (isa<BitCastOperator>(O)) {
-        // This is a bitcast, so src might be directly taken function
-        auto BC = dyn_cast<BitCastOperator>(O);
-        auto BCO = BC->getOperand(0);
-
-        if (isa<Function>(BCO)) {
-          if (!dyn_cast<Function>(BCO)->isIntrinsic()) {
-            // Ignore intrinsics! FIXME: Or should we?
-            replaceDirectFuncOperand(F, I, O, CI, i);
-          }
-        }
-      }
-    }
-  }
 }
