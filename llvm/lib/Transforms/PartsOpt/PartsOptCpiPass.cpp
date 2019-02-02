@@ -107,11 +107,7 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
 
   for (auto &BB:F){
     for (auto &I: BB) {
-      DEBUG_PA(log->debug() << F.getName() << "->" << BB.getName() << "->" << I << "\n");
-
       const auto IOpcode = I.getOpcode();
-
-      PartsTypeMetadata_ptr MD = nullptr;
 
       switch(IOpcode) {
         default:
