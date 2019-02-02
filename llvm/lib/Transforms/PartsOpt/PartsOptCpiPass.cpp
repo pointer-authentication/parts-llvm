@@ -123,9 +123,6 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
           }
           break;
         }
-        case Instruction::Load: {
-          break;
-        }
         case Instruction::Select: {
           for (unsigned i = 0, end = I.getNumOperands(); i < end; ++i) {
             auto paced = generatePACedValue(F.getParent(), I, I.getOperand(i));
