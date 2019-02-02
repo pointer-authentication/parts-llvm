@@ -118,7 +118,7 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
 
           auto paced = generatePACedValue(F.getParent(), I, SI->getValueOperand());
           if (paced != nullptr) {
-            log->inc(DEBUG_TYPE ".StoreFunction", true, F.getName()) << "PACing store of function address\n";
+            log->inc(DEBUG_TYPE ".PacStoreFunction", true, F.getName()) << "PACing store of function address\n";
             SI->setOperand(0, paced);
           }
           break;
