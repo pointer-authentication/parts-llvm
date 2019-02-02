@@ -46,6 +46,50 @@ struct PartsOptCpiPass : public FunctionPass {
 
   void fixDirectFunctionArgs(Function &F, Instruction &I);
 
+  /**
+   * Check the input Value V and recursively change inner parameters, or
+   * if V itself needs to be replaced in the containing function, then
+   * uses given builder to generate PACed value and returns said value.
+   * @param M
+   * @param I
+   * @param V
+   * @return
+   */
+  Value *generatePACedValue(Module *M, Instruction &I, Value *V) {
+    const auto VType = V->getType();
+
+    // We can directly skip if we don't need to do anything
+    if (! VType->isPointerTy())
+      return nullptr;
+
+    // We want to PAC function, but ignore intrinsics.
+    if (isa<Function>(V) && !dyn_cast<Function>(V)->isIntrinsic()) {
+      // Generate Builder for inserting pa_pacia
+      IRBuilder<> Builder(&I);
+      // Get pa_pacia declaration for correct input type
+      auto pacia = Intrinsic::getDeclaration(M, Intrinsic::pa_pacia, { VType });
+      // Get type_id as Constant
+      auto typeIdConstant = PartsTypeMetadata::idConstantFromType(M->getContext(), VType);
+      // Insert intrinsics to generate PACed Value and return it
+      return Builder.CreateCall(pacia, { V, typeIdConstant }, "");
+    }
+
+    // For bitcast we may want to PAC the input pointer
+    if (isa<BitCastOperator>(V)) {
+      auto BC = dyn_cast<BitCastOperator>(V);
+      auto paced = generatePACedValue(M, I, BC->getOperand(0));
+
+      if (paced != nullptr) {
+        BC->setOperand(0, paced);
+      }
+
+      // We can return nullptr, since all changes have already been made
+      return nullptr;
+    }
+
+    return nullptr;
+  }
+
   inline void replaceDirectFuncOperand(Function &F, Instruction &I, Value *O, CallInst *CI, unsigned i) {
     auto paced_arg = PartsIntr::pac_pointer(F, I, O);
     CI->setOperand(i, paced_arg);
