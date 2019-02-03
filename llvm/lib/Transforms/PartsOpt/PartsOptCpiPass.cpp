@@ -138,35 +138,37 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
 }
 
 Value *PartsOptCpiPass::generatePACedValue(Module *M, Instruction &I, Value *V) {
-  const auto VType = V->getType();
+  /*
+   * We need to sign two types of function pointer arguments:
+   *  1) a direct function
+   *  2) a direct function passed via BitCastOperator
+   *
+   * In both cases we want to sign the resulting value based on the *source* type!
+   * E.g., a function pointer bitcast to void* will be signed based on the source type.
+   */
+  auto VTypeInput = isa<BitCastOperator>(V)
+      ? dyn_cast<BitCastOperator>(V)->getSrcTy()
+      : V->getType();
 
   // We can directly skip if we don't need to do anything
-  if (! VType->isPointerTy())
+  if (! VTypeInput->isPointerTy())
     return nullptr;
 
-  // We want to PAC function, but ignore intrinsics.
-  if (isa<Function>(V) && !dyn_cast<Function>(V)->isIntrinsic()) {
+  // We need to inspect the source of the bitcast, otherwise the plain V
+  auto VInput = isa<BitCastOperator>(V) ? dyn_cast<BitCastOperator>(V)->getOperand(0) : V;
+
+  if (isa<Function>(VInput) && !dyn_cast<Function>(VInput)->isIntrinsic()) {
+    // Get the type of the V, i.e,. the value we are going to sign
+    const auto VType = V->getType();
+    assert((isa<BitCastOperator>(V) || VType == VTypeInput) && "Vtype and VTypeInput should match unless bitcast");
     // Generate Builder for inserting pa_pacia
     IRBuilder<> Builder(&I);
-    // Get pa_pacia declaration for correct input type
+    // Get pa_pacia declaration for correct type
     auto pacia = Intrinsic::getDeclaration(M, Intrinsic::pa_pacia, { VType });
     // Get type_id as Constant
     auto typeIdConstant = PartsTypeMetadata::idConstantFromType(M->getContext(), VType);
     // Insert intrinsics to generate PACed Value and return it
     return Builder.CreateCall(pacia, { V, typeIdConstant }, "");
-  }
-
-  // For bitcast we may want to PAC the input pointer
-  if (isa<BitCastOperator>(V)) {
-    auto BC = dyn_cast<BitCastOperator>(V);
-    auto paced = generatePACedValue(M, I, BC->getOperand(0));
-
-    if (paced != nullptr) {
-      BC->setOperand(0, paced);
-    }
-
-    // We can return nullptr, since all changes have already been made
-    return nullptr;
   }
 
   return nullptr;
