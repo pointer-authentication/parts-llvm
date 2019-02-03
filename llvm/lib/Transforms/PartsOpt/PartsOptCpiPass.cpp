@@ -19,7 +19,6 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
@@ -27,20 +26,16 @@ using namespace llvm::PARTS;
 
 #define DEBUG_TYPE "PartsOptCpiPass"
 
-//#undef DEBUG_PA
-//#define DEBUG_PA(x) x
+STATISTIC(StatSignStoreFunction, DEBUG_TYPE ": Number of code pointers signed on store");
+STATISTIC(StatSignFunctionArg, DEBUG_TYPE ": Number of code pointers signed when passed as arguments");
+STATISTIC(StatAuthenticateIndirectCall, DEBUG_TYPE ": Number of code pointers authenticated on indirect call");
 
 namespace {
 
 struct PartsOptCpiPass : public FunctionPass {
   static char ID;
 
-  PartsLog_ptr log;
-
-  PartsOptCpiPass() : FunctionPass(ID), log(PartsLog::getLogger(DEBUG_TYPE))
-  {
-    DEBUG_PA(log->enable());
-  }
+  PartsOptCpiPass() : FunctionPass(ID) {}
 
   bool runOnFunction(Function &F) override;
 
@@ -78,7 +73,7 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
 
           auto paced = generatePACedValue(F.getParent(), I, SI->getValueOperand());
           if (paced != nullptr) {
-            log->inc(DEBUG_TYPE ".PacStoreFunction", true, F.getName()) << "PACing store of function address\n";
+            ++StatSignStoreFunction;
             SI->setOperand(0, paced);
           }
           break;
@@ -87,7 +82,6 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
           for (unsigned i = 0, end = I.getNumOperands(); i < end; ++i) {
             auto paced = generatePACedValue(F.getParent(), I, I.getOperand(i));
             if (paced != nullptr) {
-              log->inc(DEBUG_TYPE ".PacSelect", true, F.getName()) << "PACing store of function address\n";
               I.setOperand(i, paced);
             }
           }
@@ -105,7 +99,7 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
           for (auto i = 0U, end = CI->getNumArgOperands(); i < end; ++i) {
             auto paced = generatePACedValue(F.getParent(), I, CI->getArgOperand(i));
             if (paced != nullptr) {
-              log->inc(DEBUG_TYPE ".PacFunctionArgument", true, F.getName()) << "PACing function argument\n";
+              ++StatSignFunctionArg;
               CI->setArgOperand(i, paced);
             }
           }
@@ -115,7 +109,7 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
             auto calledValue = CI->getCalledValue();
             const auto calledValueType = calledValue->getType();
 
-            log->inc(DEBUG_TYPE ".AutIndirectCall", true, F.getName()) << "found indirect call!!!!\n";
+            ++StatAuthenticateIndirectCall;
             // Generate Builder for inserting pa_autia
             IRBuilder<> Builder(&I);
             // Get pa_autia declaration for correct input type
