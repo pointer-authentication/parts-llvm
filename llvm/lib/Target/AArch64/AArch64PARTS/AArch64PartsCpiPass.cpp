@@ -13,6 +13,7 @@
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
@@ -32,6 +33,8 @@
 #include "PartsUtils.h"
 
 #define DEBUG_TYPE "AArch64PartsCpiPass"
+
+STATISTIC(StatAutia, DEBUG_TYPE ": code pointers authenticated and unPACed");
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -130,6 +133,31 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
       partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrCreate);
       partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
 
+      return true;
+    }
+    case AArch64::PARTS_AUTIA: {
+      auto &MI = *MIi--;
+      const auto DL = MIi->getDebugLoc();
+
+      const unsigned mod = MI.getOperand(2).getReg();
+      const unsigned src = MI.getOperand(1).getReg();
+      const unsigned dst = MI.getOperand(0).getReg();
+
+      // Copy source to destination
+      BuildMI(MBB, MI, DL, TII->get(AArch64::ORRXrs))
+          .addUse(dst)
+          .addUse(AArch64::XZR)
+          .addUse(src)
+          .addImm(0);
+      // Authenticate only the destination
+      BuildMI(MBB, MI, DL, TII->get(AArch64::AUTIA))
+          .addUse(dst)
+          .addUse(mod);
+
+      // Remoe the PARTS_AUTIA intrinsic
+      MI.removeFromParent();
+
+      ++StatAutia;
       return true;
     }
     case AArch64::PARTS_AUTCALL: {
