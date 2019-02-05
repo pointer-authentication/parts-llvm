@@ -73,6 +73,7 @@ namespace {
    inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
    inline bool isIndirectCall(const MachineInstr &MI) const;
+   inline void InsertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
 
  };
 } // end anonymous namespace
@@ -192,9 +193,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
   } else {
     if (MI_indcall->getOpcode() == AArch64::BLR) {
       // Normal indirect call
-      auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
-      BMI.addUse(src);
-      BMI.addUse(mod);
+      InsertAuthenticateBranchInstr(MBB, MI_indcall, src, mod, TII->get(AArch64::BLRAA));
     } else {
        auto MOVMI = BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs), dst);
        MOVMI.addUse(AArch64::XZR);
@@ -205,9 +204,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
       // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
       //  the tail-called function can return immediately to the current callee, without
       //  going through the currently active function.)
-      auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BRAA));
-      BMI.addUse(dst);
-      BMI.addUse(mod);
+      InsertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, TII->get(AArch64::BRAA));
     }
 
     // Remove the replaced BR instruction
@@ -235,4 +232,14 @@ inline bool AArch64PartsCpiPass::isIndirectCall(const MachineInstr &MI) const {
       return true;
   }
   return false;
+}
+
+inline void AArch64PartsCpiPass::InsertAuthenticateBranchInstr(MachineBasicBlock &MBB,
+                                                                MachineInstr *MI_indcall,
+                                                                unsigned dstReg,
+                                                                unsigned modReg,
+                                                                const MCInstrDesc &InstrDesc) {
+      auto BMI = BuildMI(MBB, MI_indcall, MI_indcall->getDebugLoc(), InstrDesc);
+      BMI.addUse(dstReg);
+      BMI.addUse(modReg);
 }
