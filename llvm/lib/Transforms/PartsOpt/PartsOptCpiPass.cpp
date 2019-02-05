@@ -39,6 +39,8 @@ struct PartsOptCpiPass : public FunctionPass {
 
   bool runOnFunction(Function &F) override;
 
+private:
+
   /**
    * Check the input Value V and recursively change inner parameters, or
    * if V itself needs to be replaced in the containing function, then
@@ -90,19 +92,32 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
         case Instruction::Call: {
           /*
            * For functions we need to do two things:
-           * 1: Make sure any function args are PACed (e.g., ~ 'func(printf)' -> 'func(pacia(printf)))';
+           * 1: Either sign or unsign pointer args based on function linkage
+           *        e.g., ~ func(printf)        -> func(pacia(printf)))
+           *              ~ qsort(..., compare) -> qsort(..., compare)
+           *              ~ qsort(..., ptr)     -> qsort(..., autia(compare))
            * 2: Make sure indirect function calls are authenticated.
            * FIXME: handle pointers InlineAsm
            * FIXME: handle indirect calls using BitCastOperator (could perhaps be casting function pointer?)
            */
           auto CI = dyn_cast<CallInst>(&I);
-          for (auto i = 0U, end = CI->getNumArgOperands(); i < end; ++i) {
-            auto paced = generatePACedValue(F.getParent(), I, CI->getArgOperand(i));
-            if (paced != nullptr) {
-              ++StatSignFunctionArg;
-              CI->setArgOperand(i, paced);
+          auto CalledFunction = CI->getCalledFunction();
+
+          if (CalledFunction != nullptr && CalledFunction->isDeclaration() &&
+              !CalledFunction->hasFnAttribute("parts-cpi")) {
+            // We assume externally linked function do not have Parts instrumentation
+            // NOTE: This cannot detect indirect calls to externally linked functions!
+          } else {
+            // Make sure args are signed for non-externally linked functions
+            for (auto i = 0U, end = CI->getNumArgOperands(); i < end; ++i) {
+              auto paced = generatePACedValue(F.getParent(), I, CI->getArgOperand(i));
+              if (paced != nullptr) {
+                ++StatSignFunctionArg;
+                CI->setArgOperand(i, paced);
+              }
             }
           }
+
 
           // 2: Handle indirect function calls
           if (CallSite(CI).isIndirectCall()) {
@@ -133,12 +148,12 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
 
 Value *PartsOptCpiPass::generatePACedValue(Module *M, Instruction &I, Value *V) {
   /*
-   * We need to sign two types of function pointer arguments:
+   * We need to handle two types of function pointer arguments:
    *  1) a direct function
    *  2) a direct function passed via BitCastOperator
    *
-   * In both cases we want to sign the resulting value based on the *source* type!
-   * E.g., a function pointer bitcast to void* will be signed based on the source type.
+   * In both cases we want to (un)sign the resulting value based on the *source* type!
+   * E.g., a function pointer bitcast to void* will be (un)signed based on the source type.
    */
   auto VTypeInput = isa<BitCastOperator>(V)
       ? dyn_cast<BitCastOperator>(V)->getSrcTy()
