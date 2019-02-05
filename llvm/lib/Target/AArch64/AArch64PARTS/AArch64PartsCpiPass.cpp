@@ -68,6 +68,9 @@ namespace {
 
    Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
+
+   inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+
  };
 } // end anonymous namespace
 
@@ -120,19 +123,11 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
                                                    MachineBasicBlock &MBB,
                                                    MachineBasicBlock::instr_iterator &MIi) {
   const auto MIOpcode = MIi->getOpcode();
+  bool res = false;
 
   if (MIOpcode == AArch64::PARTS_PACIA) {
-    log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_PACIA\n";
-
-    auto &MI = *MIi--;
-
-    partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrCreate);
-    partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
-
-    return true;
-  }
-
-  if (MIOpcode == AArch64::PARTS_AUTIA) {
+    res = LowerPARTSPACIA(MF, MBB, MIi);
+  } else if (MIOpcode == AArch64::PARTS_AUTIA) {
     log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
 
     auto &MI_autia = *MIi;
@@ -205,8 +200,21 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
     // Remove the PARTS intrinsic!
     MI_autia.removeFromParent();
 
-    return true;
+    res = true;
   }
 
-  return false;
+  return res;
+}
+
+inline bool AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
+                                                  MachineBasicBlock &MBB,
+                                                  MachineBasicBlock::instr_iterator &MIi) {
+    auto &MI = *MIi--;
+
+    log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_PACIA\n";
+
+    partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrCreate);
+    partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
+
+    return true;
 }
