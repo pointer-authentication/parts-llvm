@@ -168,15 +168,15 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
    MOVMI.addUse(src);
    MOVMI.addImm(0);
 #endif
-  MachineInstr *MI_blr = FindIndirectCallMachineInstr(MI_autia);
-  if (MI_blr == nullptr) {
+  MachineInstr *MI_indcall = FindIndirectCallMachineInstr(MI_autia);
+  if (MI_indcall == nullptr) {
       // This shouldn't happen, as it indicates that we didn't find what we were looking for
       // and have an orphaned pacia.
       DEBUG(MBB.dump()); // dump for debugging...
       llvm_unreachable("failed to find BLR for AUTIA");
     }
 
-  auto *loc = MI_blr;
+  auto *loc = MI_indcall;
   const auto DL = loc->getDebugLoc();
 #if 0
   // But this is the IR intrinsic that has the needed info!
@@ -190,7 +190,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
     // FIXME: This might break if the pointer is reused elsewhere!!!
     partsUtils->addNops(MBB, loc, src, mod, DL);
   } else {
-    if (MI_blr->getOpcode() == AArch64::BLR) {
+    if (MI_indcall->getOpcode() == AArch64::BLR) {
       // Normal indirect call
       auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
       BMI.addUse(src);
@@ -211,7 +211,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
     }
 
     // Remove the replaced BR instruction
-    MI_blr->removeFromParent();
+    MI_indcall->removeFromParent();
   }
 
   // Remove the PARTS intrinsic!
@@ -222,12 +222,12 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
 
 inline MachineInstr *AArch64PartsCpiPass::FindIndirectCallMachineInstr(MachineInstr &MI) {
 
-  MachineInstr *MI_blr = &MI;
+  MachineInstr *MI_indcall = &MI;
   do {
-    MI_blr = MI_blr->getNextNode();
-  } while (MI_blr != nullptr && !isIndirectCall(*MI_blr));
+    MI_indcall = MI_indcall->getNextNode();
+  } while (MI_indcall != nullptr && !isIndirectCall(*MI_indcall));
 
-  return MI_blr;
+  return MI_indcall;
 }
 
 inline bool AArch64PartsCpiPass::isIndirectCall(const MachineInstr &MI) const {
