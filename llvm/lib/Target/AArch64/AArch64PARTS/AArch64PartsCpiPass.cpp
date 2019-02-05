@@ -71,7 +71,7 @@ namespace {
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr &MI);
+   inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
    inline bool isIndirectCall(const MachineInstr &MI) const;
 
  };
@@ -168,7 +168,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
    MOVMI.addUse(src);
    MOVMI.addImm(0);
 #endif
-  MachineInstr *MI_indcall = FindIndirectCallMachineInstr(MI_autia);
+  MachineInstr *MI_indcall = FindIndirectCallMachineInstr(MI_autia.getNextNode());
   if (MI_indcall == nullptr) {
       // This shouldn't happen, as it indicates that we didn't find what we were looking for
       // and have an orphaned pacia.
@@ -220,14 +220,11 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
   return true;
 }
 
-inline MachineInstr *AArch64PartsCpiPass::FindIndirectCallMachineInstr(MachineInstr &MI) {
+inline MachineInstr *AArch64PartsCpiPass::FindIndirectCallMachineInstr(MachineInstr *MI) {
+  while (MI != nullptr && !isIndirectCall(*MI))
+    MI = MI->getNextNode();
 
-  MachineInstr *MI_indcall = &MI;
-  do {
-    MI_indcall = MI_indcall->getNextNode();
-  } while (MI_indcall != nullptr && !isIndirectCall(*MI_indcall));
-
-  return MI_indcall;
+  return MI;
 }
 
 inline bool AArch64PartsCpiPass::isIndirectCall(const MachineInstr &MI) const {
