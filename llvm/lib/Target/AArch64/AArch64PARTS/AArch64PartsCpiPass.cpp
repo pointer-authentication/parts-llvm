@@ -163,12 +163,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
   const unsigned mod = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
-#if 0
-   auto MOVMI = BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs), dst);
-   MOVMI.addUse(AArch64::XZR);
-   MOVMI.addUse(src);
-   MOVMI.addImm(0);
-#endif
+
   MachineInstr *MI_indcall = FindIndirectCallMachineInstr(MI_autia.getNextNode());
   if (MI_indcall == nullptr) {
       // This shouldn't happen, as it indicates that we didn't find what we were looking for
@@ -177,12 +172,6 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
       llvm_unreachable("failed to find BLR for AUTIA");
     }
 
-#if 0
-  // But this is the IR intrinsic that has the needed info!
-  const unsigned mod = MI_autia.getOperand(2).getReg();
-  const unsigned src = MI_autia.getOperand(1).getReg();
-  const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
-#endif
   const auto DL = MI_indcall->getDebugLoc();
   partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
 
