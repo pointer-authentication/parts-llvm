@@ -126,11 +126,11 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
   const auto MIOpcode = MIi->getOpcode();
   bool res = false;
 
-  if (MIOpcode == AArch64::PARTS_PACIA) {
+  if (MIOpcode == AArch64::PARTS_PACIA)
     res = LowerPARTSPACIA(MF, MBB, MIi);
-  } else if (MIOpcode == AArch64::PARTS_AUTIA) {
+  else if (MIOpcode == AArch64::PARTS_AUTIA)
     res = LowerPARTSAUTIA(MF, MBB, MIi);
-  }
+
   return res;
 }
 
@@ -224,5 +224,3 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
 
   return true;
 }
-
-
