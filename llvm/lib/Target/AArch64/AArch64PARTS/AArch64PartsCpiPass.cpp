@@ -75,6 +75,7 @@ namespace {
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void InsertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
    inline void InsertMoveDstAddress(MachineBasicBlock &MBB, MachineInstr *MI_autia, unsigned dstReg, unsigned srcReg, const MCInstrDesc &InstrDesc);
+   inline bool isNormalIndirectCall(const MachineInstr *MI) const;
 
  };
 } // end anonymous namespace
@@ -178,8 +179,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
     // FIXME: This might break if the pointer is reused elsewhere!!!
     partsUtils->addNops(MBB, MI_indcall, src, mod, DL);
   } else {
-    if (MI_indcall->getOpcode() == AArch64::BLR) {
-      // Normal indirect call
+    if (isNormalIndirectCall(MI_indcall)) {
       InsertAuthenticateBranchInstr(MBB, MI_indcall, src, mod, TII->get(AArch64::BLRAA));
     } else {
       InsertMoveDstAddress(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
@@ -236,5 +236,9 @@ inline void AArch64PartsCpiPass::InsertMoveDstAddress(MachineBasicBlock &MBB,
   MOVMI.addUse(AArch64::XZR);
   MOVMI.addUse(srcReg);
   MOVMI.addImm(0);
+}
+
+inline bool AArch64PartsCpiPass::isNormalIndirectCall(const MachineInstr *MI) const {
+  return MI->getOpcode() == AArch64::BLR;
 }
 
