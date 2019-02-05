@@ -118,21 +118,20 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
             }
           }
 
-
           // 2: Handle indirect function calls
           if (CallSite(CI).isIndirectCall()) {
             auto calledValue = CI->getCalledValue();
             const auto calledValueType = calledValue->getType();
 
             ++StatAuthenticateIndirectCall;
-            // Generate Builder for inserting pa_autia
+            // Generate Builder for inserting pa_autcall
             IRBuilder<> Builder(&I);
             // Get pa_autia declaration for correct input type
-            auto autia = Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, { calledValueType });
+            auto autcall = Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autcall, { calledValueType });
             // Get type_id as Constant
             auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), calledValueType);
             // Insert intrinsics to authenticated the signed function pointer
-            auto paced = Builder.CreateCall(autia, { calledValue, typeIdConstant }, "");
+            auto paced = Builder.CreateCall(autcall, { calledValue, typeIdConstant }, "");
 
             // Replace signed pointer with the authenticated one
             CI->setCalledFunction(paced);
