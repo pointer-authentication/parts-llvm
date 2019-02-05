@@ -54,6 +54,7 @@ namespace {
 
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
+   inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
 
  private:
 
@@ -67,13 +68,6 @@ namespace {
 
    Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
-
-   inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr &MI);
-   inline bool isIndirectCall(const MachineInstr &MI) const;
-
  };
 } // end anonymous namespace
 
@@ -104,7 +98,7 @@ bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
   for (auto &MBB : MF) {
     DEBUG_PA(log->debug(MF.getName()) << "  block " << MBB.getName() << "\n");
 
-    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi) {
+    for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
 
       found = handleInstruction(MF, MBB, MIi) || found;
@@ -126,116 +120,91 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
                                                    MachineBasicBlock &MBB,
                                                    MachineBasicBlock::instr_iterator &MIi) {
   const auto MIOpcode = MIi->getOpcode();
-  bool res = false;
 
-  if (MIOpcode == AArch64::PARTS_PACIA)
-    res = LowerPARTSPACIA(MF, MBB, MIi);
-  else if (MIOpcode == AArch64::PARTS_AUTIA)
-    res = LowerPARTSAUTIA(MF, MBB, MIi);
-
-  return res;
-}
-
-inline bool AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
-                                                  MachineBasicBlock &MBB,
-                                                  MachineBasicBlock::instr_iterator &MIi) {
-    auto &MI = *MIi--;
-
+  if (MIOpcode == AArch64::PARTS_PACIA) {
     log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_PACIA\n";
+
+    auto &MI = *MIi--;
 
     partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrCreate);
     partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
 
     return true;
-}
+  }
 
-inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
-                                                  MachineBasicBlock &MBB,
-                                                  MachineBasicBlock::instr_iterator &MIi) {
-  log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
+  if (MIOpcode == AArch64::PARTS_AUTCALL) {
+    log->inc(DEBUG_TYPE ".autcall", true) << "converting PARTS_AUTCALL\n";
 
-  auto &MI_autia = *MIi;
-  MachineInstr *loc_mov = &*MIi;
-  MIi--; // move iterator back since we're gonna change latter stuff
+    auto &MI_autcall = *MIi;
+    MachineInstr *loc_mov = &*MIi;
+    MIi--; // move iterator back since we're gonna change latter stuff
 
-  const auto MOVDL = loc_mov->getDebugLoc();
-  const unsigned mod = MI_autia.getOperand(2).getReg();
-  const unsigned src = MI_autia.getOperand(1).getReg();
-  const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
-#if 0
-   auto MOVMI = BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs), dst);
-   MOVMI.addUse(AArch64::XZR);
-   MOVMI.addUse(src);
-   MOVMI.addImm(0);
-#endif
-  MachineInstr *MI_blr = FindIndirectCallMachineInstr(MI_autia);
-  if (MI_blr == nullptr) {
-      // This shouldn't happen, as it indicates that we didn't find what we were looking for
-      // and have an orphaned pacia.
-      DEBUG(MBB.dump()); // dump for debugging...
-      llvm_unreachable("failed to find BLR for AUTIA");
-    }
+    const auto MOVDL = loc_mov->getDebugLoc();
+    const unsigned mod_src = MI_autcall.getOperand(2).getReg();
+    const unsigned mod_dst = PARTS::getModifierReg();
+    const unsigned src = MI_autcall.getOperand(1).getReg();
+    const unsigned dst = MI_autcall.getOperand(0).getReg();
 
-  auto *loc = MI_blr;
-  const auto DL = loc->getDebugLoc();
-#if 0
-  // But this is the IR intrinsic that has the needed info!
-  const unsigned mod = MI_autia.getOperand(2).getReg();
-  const unsigned src = MI_autia.getOperand(1).getReg();
-  const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
-#endif
-  partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
+    if (mod_dst != mod_src)
+      BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs))
+          .addUse(mod_dst)
+          .addUse(AArch64::XZR)
+          .addUse(mod_src)
+          .addImm(0);
+    if (dst != src)
+      BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs))
+          .addUse(dst)
+          .addUse(AArch64::XZR)
+          .addUse(src)
+          .addImm(0);
 
-  if (PARTS::useDummy()) {
-    // FIXME: This might break if the pointer is reused elsewhere!!!
-    partsUtils->addNops(MBB, loc, src, mod, DL);
-  } else {
-    if (MI_blr->getOpcode() == AArch64::BLR) {
-      // Normal indirect call
-      auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA));
-      BMI.addUse(src);
-      BMI.addUse(mod);
+    // Try to find the corresponding BLR
+    MachineInstr *MI_blr = &MI_autcall;
+    do {
+      MI_blr = MI_blr->getNextNode();
+      if (MI_blr == nullptr) {
+        // This shouldn't happen, as it indicates that we didn't find what we were looking for
+        // and have an orphaned pacia.
+        DEBUG(MBB.dump()); // dump for debugging...
+        llvm_unreachable("failed to find BLR for AUTCALL");
+      }
+    } while (MI_blr->getOpcode() != AArch64::BLR &&
+             MI_blr->getOpcode() != AArch64::TCRETURNdi &&
+             MI_blr->getOpcode() != AArch64::TCRETURNri);
+
+
+    auto *loc = MI_blr;
+    const auto DL = loc->getDebugLoc();
+    partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
+
+    if (PARTS::useDummy()) {
+      // FIXME: This might break if the pointer is reused elsewhere!!!
+      partsUtils->addNops(MBB, loc, src, mod_src, DL);
     } else {
-       auto MOVMI = BuildMI(MBB, loc_mov, MOVDL, TII->get(AArch64::ORRXrs), dst);
-       MOVMI.addUse(AArch64::XZR);
-       MOVMI.addUse(src);
-       MOVMI.addImm(0);
+      if (MI_blr->getOpcode() == AArch64::BLR) {
+        // Normal indirect call
+        BuildMI(MBB, loc, DL, TII->get(AArch64::BLRAA))
+            .addUse(dst)
+            .addUse(mod_dst);
+      } else {
+        // This is a tail call return, and we need to use BRAA
+        // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
+        //  the tail-called function can return immediately to the current callee, without
+        //  going through the currently active function.)
+        BuildMI(MBB, loc, DL, TII->get(AArch64::BRAA))
+            .addUse(dst)
+            .addUse(mod_dst);
+      }
 
-   // This is a tail call return, and we need to use BRAA
-      // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
-      //  the tail-called function can return immediately to the current callee, without
-      //  going through the currently active function.)
-      auto BMI = BuildMI(MBB, loc, DL, TII->get(AArch64::BRAA));
-      BMI.addUse(dst);
-      BMI.addUse(mod);
+      // Remove the replaced BR instruction
+      MI_blr->removeFromParent();
     }
 
-    // Remove the replaced BR instruction
-    MI_blr->removeFromParent();
+    // Remove the PARTS intrinsic!
+    MI_autcall.removeFromParent();
+
+    return true;
   }
 
-  // Remove the PARTS intrinsic!
-  MI_autia.removeFromParent();
-
-  return true;
-}
-
-inline MachineInstr *AArch64PartsCpiPass::FindIndirectCallMachineInstr(MachineInstr &MI) {
-
-  MachineInstr *MI_blr = &MI;
-  do {
-    MI_blr = MI_blr->getNextNode();
-  } while (MI_blr != nullptr && !isIndirectCall(*MI_blr));
-
-  return MI_blr;
-}
-
-inline bool AArch64PartsCpiPass::isIndirectCall(const MachineInstr &MI) const {
-  switch (MI.getOpcode()) {
-    case AArch64::BLR:        // Normal indirect call
-    case AArch64::TCRETURNdi: // Indirect tail call
-    case AArch64::TCRETURNri: // Indirect tail call
-      return true;
-  }
   return false;
 }
