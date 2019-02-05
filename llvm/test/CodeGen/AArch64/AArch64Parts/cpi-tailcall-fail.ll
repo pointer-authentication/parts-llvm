@@ -22,12 +22,12 @@
 ; CHECK-NOT: mov [[PTR]], xzr
 ; CHECK: braa [[PTR]], x23
 define hidden void @test_funcptr(void (%struct.video_par*, i8*)* nocapture %func_ptr) local_unnamed_addr #3 {
-  %1 = call void (%struct.video_par*, i8*)* @llvm.pa.autia.p0f_isVoidp0s_struct.video_parsp0i8f(void (%struct.video_par*, i8*)* %func_ptr, i64 8293111894729183960)
+  %1 = call void (%struct.video_par*, i8*)* @llvm.pa.autcall.p0f_isVoidp0s_struct.video_parsp0i8f(void (%struct.video_par*, i8*)* %func_ptr, i64 8293111894729183960)
   tail call void %1(%struct.video_par* null, i8* null) #9
   ret void
 }
 
-declare void (%struct.video_par*, i8*)* @llvm.pa.autia.p0f_isVoidp0s_struct.video_parsp0i8f(void (%struct.video_par*, i8*)*, i64) #3
+declare void (%struct.video_par*, i8*)* @llvm.pa.autcall.p0f_isVoidp0s_struct.video_parsp0i8f(void (%struct.video_par*, i8*)*, i64) #3
 
 attributes #3 = { nounwind readnone "no-frame-pointer-elim-non-leaf" }
 attributes #9 = { nounwind }

@@ -14,11 +14,11 @@
 ; }
 ;
 
-declare void ()* @llvm.pa.autia.p0f_isVoidf(void ()*, i64) #6
+declare void ()* @llvm.pa.autcall.p0f_isVoidf(void ()*, i64) #6
 
 define hidden void @tail_caller(void ()* nocapture %f) local_unnamed_addr #2 {
 entry:
-  %0 = call void ()* @llvm.pa.autia.p0f_isVoidf(void ()* %f, i64 -8151429658862389052)
+  %0 = call void ()* @llvm.pa.autcall.p0f_isVoidf(void ()* %f, i64 -8151429658862389052)
   tail call void %0() #7
   ; CHECK: bra
   ; CHECK-NO: ret

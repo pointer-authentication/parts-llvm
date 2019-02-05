@@ -89,7 +89,7 @@ entry:
   %f.addr = alloca void ()*, align 8
   store void ()* %f, void ()** %f.addr, align 8
   %0 = load void ()*, void ()** %f.addr, align 8
-  %1 = call void ()* @llvm.pa.autia.p0f_isVoidf(void ()* %0, i64 -8151429658862389052)
+  %1 = call void ()* @llvm.pa.autcall.p0f_isVoidf(void ()* %0, i64 -8151429658862389052)
   call void %1()
   ; CHECK: blraa
   ret void
@@ -102,11 +102,11 @@ entry:
   store void ()* %f1, void ()** %f1.addr, align 8
   store void ()* %f2, void ()** %f2.addr, align 8
   %0 = load void ()*, void ()** %f1.addr, align 8
-  %1 = call void ()* @llvm.pa.autia.p0f_isVoidf(void ()* %0, i64 -8151429658862389052)
+  %1 = call void ()* @llvm.pa.autcall.p0f_isVoidf(void ()* %0, i64 -8151429658862389052)
   call void %1()
   ; CHECK: blraa
   %2 = load void ()*, void ()** %f2.addr, align 8
-  %3 = call void ()* @llvm.pa.autia.p0f_isVoidf(void ()* %2, i64 -8151429658862389052)
+  %3 = call void ()* @llvm.pa.autcall.p0f_isVoidf(void ()* %2, i64 -8151429658862389052)
   call void %3()
   ; CHECK: blraa
   ret void
@@ -124,13 +124,13 @@ entry:
   %1 = load i8**, i8*** %argv.addr, align 8
 
   %2 = load void ()*, void ()** @func1, align 8
-  %3 = call void ()* @llvm.pa.autia.p0f_isVoidf(void ()* %2, i64 -8151429658862389052)
+  %3 = call void ()* @llvm.pa.autcall.p0f_isVoidf(void ()* %2, i64 -8151429658862389052)
   ; CHECK-NO: autia
   call void %3()
   ; CHECK: blraa
 
   %4 = load void ()*, void ()** @func2, align 8
-  %5 = call void ()* @llvm.pa.autia.p0f_isVoidf(void ()* %4, i64 -8151429658862389052)
+  %5 = call void ()* @llvm.pa.autcall.p0f_isVoidf(void ()* %4, i64 -8151429658862389052)
   ; CHECK-NO: autia
   call void %5()
   ; CHECK: blraa
@@ -169,7 +169,7 @@ entry:
 declare void ()* @llvm.pa.pacia.p0f_isVoidf(void ()*, i64) #4
 
 ; Function Attrs: nounwind readnone
-declare void ()* @llvm.pa.autia.p0f_isVoidf(void ()*, i64) #4
+declare void ()* @llvm.pa.autcall.p0f_isVoidf(void ()*, i64) #4
 
 attributes #0 = { noinline nounwind optnone }
 ; attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" }
