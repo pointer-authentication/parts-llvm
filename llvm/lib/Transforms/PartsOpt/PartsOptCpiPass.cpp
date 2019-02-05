@@ -105,8 +105,25 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
 
           if (CalledFunction != nullptr && CalledFunction->isDeclaration() &&
               !CalledFunction->hasFnAttribute("parts-cpi")) {
-            // We assume externally linked function do not have Parts instrumentation
+            // We assume externally linked function do not have Parts instrumentation, and must, not only
+            // omit PACing of args, but also authenticate and unPAC ingoing signed pointers.
+            //
             // NOTE: This cannot detect indirect calls to externally linked functions!
+            for (auto i = 0U, end = CI->getNumArgOperands(); i < end; ++i) {
+              auto arg = CI->getArgOperand(i);
+              const auto argType = arg->getType();
+              if (argType->isPointerTy() &&
+                  argType->getPointerElementType()->isFunctionTy() &&
+                  !isa<Constant>(arg)) {
+
+                IRBuilder<> Builder(&I);
+                auto authenticatedArg =  Builder.CreateCall(
+                    Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, { argType }),
+                    { arg, PartsTypeMetadata::idConstantFromType(F.getContext(), argType) }
+                );
+                CI->setArgOperand(i, authenticatedArg);
+              }
+            }
           } else {
             // Make sure args are signed for non-externally linked functions
             for (auto i = 0U, end = CI->getNumArgOperands(); i < end; ++i) {
@@ -117,6 +134,19 @@ bool PartsOptCpiPass::runOnFunction(Function &F) {
               }
             }
           }
+
+          /*
+          const Value *V = getCalledValue();
+          if (!V)
+            return false;
+          if (isa<FunTy>(V) || isa<Constant>(V))
+            return false;
+          if (const CallInst *CI = dyn_cast<CallInst>(getInstruction())) {
+            if (CI->isInlineAsm())
+              return false;
+          }
+          return true;
+           */
 
           // 2: Handle indirect function calls
           if (CallSite(CI).isIndirectCall()) {
