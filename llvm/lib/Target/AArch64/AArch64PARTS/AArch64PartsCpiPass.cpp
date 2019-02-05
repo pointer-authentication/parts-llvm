@@ -98,7 +98,7 @@ bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
   for (auto &MBB : MF) {
     DEBUG_PA(log->debug(MF.getName()) << "  block " << MBB.getName() << "\n");
 
-    for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
+    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi) {
       DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
 
       found = handleInstruction(MF, MBB, MIi) || found;
