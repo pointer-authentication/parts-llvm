@@ -177,19 +177,18 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
       llvm_unreachable("failed to find BLR for AUTIA");
     }
 
-  auto *loc = MI_indcall;
-  const auto DL = loc->getDebugLoc();
 #if 0
   // But this is the IR intrinsic that has the needed info!
   const unsigned mod = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
 #endif
+  const auto DL = MI_indcall->getDebugLoc();
   partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
 
   if (PARTS::useDummy()) {
     // FIXME: This might break if the pointer is reused elsewhere!!!
-    partsUtils->addNops(MBB, loc, src, mod, DL);
+    partsUtils->addNops(MBB, MI_indcall, src, mod, DL);
   } else {
     if (MI_indcall->getOpcode() == AArch64::BLR) {
       // Normal indirect call
