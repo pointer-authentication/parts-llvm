@@ -30,11 +30,11 @@ define i32 @do_something(void (%struct.video_par.1072*, i8*)* %fptrmod, %struct.
     ; Load global function pointer can call it
     %1 = load void (%struct.video_par*, i8*)*, void (%struct.video_par*, i8*)** @func_ptr
     call void %1(%struct.video_par* %splain, i8* null)
-    ; CHECK: autia{{.*}}, i64 [[TYPEID]]{{\)$}}
+    ; CHECK: autcall{{.*}}, i64 [[TYPEID]]{{\)$}}
 
     ; Call the argument function pointer
     call void %fptrmod(%struct.video_par.1072* %smod, i8* null)
-    ; CHECK: autia{{.*}}, i64 [[TYPEID]]{{\)$}}
+    ; CHECK: autcall{{.*}}, i64 [[TYPEID]]{{\)$}}
 
     ret i32 0
 }
