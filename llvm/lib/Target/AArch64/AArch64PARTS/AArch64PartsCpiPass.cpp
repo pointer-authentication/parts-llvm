@@ -24,6 +24,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/CodeGen/RegisterScavenging.h"
 // PARTS includes
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/PartsLog.h"
@@ -157,12 +158,24 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
                                                   MachineBasicBlock::instr_iterator &MIi) {
   log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
 
-  auto &MI_autia = *MIi;
+  MachineInstr &MI_autia = *MIi;
   MIi--; // move iterator back since we're gonna change latter stuff
 
-  const unsigned mod = MI_autia.getOperand(2).getReg();
+  const unsigned mod2 = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
+
+  RegScavenger RS;
+  RS.enterBasicBlockEnd(MBB);
+  auto &RC = AArch64::GPR64commonRegClass;
+  MachineFrameInfo &MFI = MF.getFrameInfo();
+  unsigned Size = TRI->getSpillSize(RC);
+  unsigned Align = TRI->getSpillAlignment(RC);
+  RS.addScavengingFrameIndex(MFI.CreateSpillStackObject(Size, Align)); // Add an emergency spill slot in the stack
+  const unsigned mod = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_autia), false, 0);
+  RS.setRegUsed(mod); // Tell the Register Scavenger that the register is alive.
+  InsertMoveDstAddress(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
+  InsertMoveDstAddress(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
 
   MachineInstr *MI_indcall = FindIndirectCallMachineInstr(MI_autia.getNextNode());
   if (MI_indcall == nullptr) {
@@ -180,10 +193,8 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
     partsUtils->addNops(MBB, MI_indcall, src, mod, DL);
   } else {
     if (isNormalIndirectCall(MI_indcall)) {
-      InsertAuthenticateBranchInstr(MBB, MI_indcall, src, mod, TII->get(AArch64::BLRAA));
+      InsertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, TII->get(AArch64::BLRAA));
     } else {
-      InsertMoveDstAddress(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
-
    // This is a tail call return, and we need to use BRAA
       // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
       //  the tail-called function can return immediately to the current callee, without
