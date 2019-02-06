@@ -183,6 +183,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
       InsertAuthenticateBranchInstr(MBB, MI_indcall, src, mod, TII->get(AArch64::BLRAA));
     } else {
       InsertMoveDstAddress(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
+
    // This is a tail call return, and we need to use BRAA
       // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
       //  the tail-called function can return immediately to the current callee, without
