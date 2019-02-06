@@ -13,6 +13,7 @@
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
@@ -33,6 +34,8 @@
 #include "PartsUtils.h"
 
 #define DEBUG_TYPE "AArch64PartsCpiPass"
+
+STATISTIC(StatAutia, DEBUG_TYPE ": code pointers authenticated and unPACed");
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -71,6 +74,7 @@ namespace {
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
    inline bool isIndirectCall(const MachineInstr &MI) const;
@@ -134,6 +138,8 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
 
   if (MIOpcode == AArch64::PARTS_PACIA)
     res = LowerPARTSPACIA(MF, MBB, MIi);
+  else if (MIOpcode == AArch64::PARTS_AUTCALL)
+    res = LowerPARTSAUTCALL(MF, MBB, MIi);
   else if (MIOpcode == AArch64::PARTS_AUTIA)
     res = LowerPARTSAUTIA(MF, MBB, MIi);
 
@@ -153,10 +159,10 @@ inline bool AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
     return true;
 }
 
-inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
+inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
                                                   MachineBasicBlock &MBB,
                                                   MachineBasicBlock::instr_iterator &MIi) {
-  log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
+  log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTCALL\n";
 
   MachineInstr &MI_autia = *MIi;
   MIi--; // move iterator back since we're gonna change latter stuff
@@ -182,7 +188,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
       // This shouldn't happen, as it indicates that we didn't find what we were looking for
       // and have an orphaned pacia.
       DEBUG(MBB.dump()); // dump for debugging...
-      llvm_unreachable("failed to find BLR for AUTIA");
+      llvm_unreachable("failed to find BLR for AUTCALL");
     }
 
   const auto DL = MI_indcall->getDebugLoc();
@@ -211,6 +217,41 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
 
   return true;
 }
+
+inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
+                                                  MachineBasicBlock &MBB,
+                                                  MachineBasicBlock::instr_iterator &MIi) {
+  log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
+
+  MachineInstr &MI_autia = *MIi;
+  MIi--; // move iterator back since we're gonna change latter stuff
+
+  const unsigned mod2 = MI_autia.getOperand(2).getReg();
+  const unsigned src = MI_autia.getOperand(1).getReg();
+  const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
+
+  RegScavenger RS;
+  RS.enterBasicBlockEnd(MBB);
+  auto &RC = AArch64::GPR64commonRegClass;
+  MachineFrameInfo &MFI = MF.getFrameInfo();
+  unsigned Size = TRI->getSpillSize(RC);
+  unsigned Align = TRI->getSpillAlignment(RC);
+  RS.addScavengingFrameIndex(MFI.CreateSpillStackObject(Size, Align)); // Add an emergency spill slot in the stack
+  const unsigned mod = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_autia), false, 0);
+  RS.setRegUsed(mod); // Tell the Register Scavenger that the register is alive.
+  InsertMoveDstAddress(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
+
+      BuildMI(MBB, MI_autia, MI_autia.getDebugLoc(), TII->get(AArch64::AUTIA))
+          .addUse(dst)
+          .addUse(mod);
+
+  ++StatAutia;
+   // Remove the PARTS intrinsic!
+  MI_autia.removeFromParent();
+
+  return true;
+}
+
 
 inline MachineInstr *AArch64PartsCpiPass::FindIndirectCallMachineInstr(MachineInstr *MI) {
   while (MI != nullptr && !isIndirectCall(*MI))
