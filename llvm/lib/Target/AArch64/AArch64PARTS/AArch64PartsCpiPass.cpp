@@ -77,6 +77,7 @@ namespace {
    inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
+   inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
    inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void InsertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
@@ -172,10 +173,6 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   const unsigned src = MI_autia.getOperand(1).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
 
-  RegScavenger RS;
-  RS.enterBasicBlockEnd(MBB);
-  auto &RC = AArch64::GPR64commonRegClass;
-
   MachineInstr *MI_indcall = FindIndirectCallMachineInstr(MI_autia.getNextNode());
   if (MI_indcall == nullptr) {
       // This shouldn't happen, as it indicates that we didn't find what we were looking for
@@ -184,9 +181,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
       llvm_unreachable("failed to find BLR for AUTCALL");
     }
 
-  RS.backward(--MachineBasicBlock::iterator(MI_indcall));
-  const unsigned mod = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_autia), false, 0);
-  RS.setRegUsed(mod); // Tell the Register Scavenger that the register is alive.
+  const unsigned mod = getFreeRegister(MBB, MI_indcall, MI_autia);
   InsertMovInstr(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
   if (src != dst)
     InsertMovInstr(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
@@ -208,6 +203,20 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   MI_autia.removeFromParent();
 
   return true;
+}
+
+inline unsigned AArch64PartsCpiPass::getFreeRegister( MachineBasicBlock &MBB,
+                                                            MachineInstr *MI_from,
+                                                            MachineInstr &MI_to) {
+  RegScavenger RS;
+  auto &RC = AArch64::GPR64commonRegClass;
+
+  RS.enterBasicBlockEnd(MBB);
+  RS.backward(--MachineBasicBlock::iterator(MI_from));
+  const unsigned reg = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_to), false, 0);
+  RS.setRegUsed(reg); // Tell the Register Scavenger that the register is alive. Needed !?
+
+  return reg;
 }
 
 inline const MCInstrDesc &AArch64PartsCpiPass::getIndirectCallMachineInstruction(MachineInstr *MI_indcall) {
