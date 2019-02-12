@@ -222,16 +222,14 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
                                                   MachineBasicBlock::instr_iterator &MIi) {
   log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
 
-  MachineInstr &MI_autia = *MIi;
-  MIi--; // move iterator back since we're gonna change latter stuff
+  MachineInstr &MI_autia = *MIi--; // move iterator back since we're gonna change latter stuff
 
   const unsigned mod = MI_autia.getOperand(2).getReg();
-  const unsigned src = MI_autia.getOperand(1).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
 
-      BuildMI(MBB, MI_autia, MI_autia.getDebugLoc(), TII->get(AArch64::AUTIA))
-          .addUse(dst)
-          .addUse(mod);
+  BuildMI(MBB, MI_autia, MI_autia.getDebugLoc(), TII->get(AArch64::AUTIA))
+    .addUse(dst)
+    .addUse(mod);
 
   ++StatAutia;
    // Remove the PARTS intrinsic!
