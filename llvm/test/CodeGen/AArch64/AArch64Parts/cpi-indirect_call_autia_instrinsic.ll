@@ -18,16 +18,18 @@ attributes #0 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-
 attributes #1 = { noinline nounwind optnone "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="generic" "target-features"="+neon" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #2 = { nounwind readnone }
 
-; Generated code to check
-
 ; CHECK-LABEL: @indcall
-; CHECK:	adrp	[[PTR:x[0-9]+]], indfunc
-; CHECK:	add	[[PTR]], [[PTR]], :lo12:indfunc
-; CHECK:	ldr	[[PTR]], {{\[}}[[PTR]]{{\]}}
-; CHECK:    mov    [[MODREG:x[0-9]+]], #{{[0-9]+}}
-; CHECK:    movk   [[MODREG]], #{{[0-9]+}}, lsl #16
-; CHECK:    movk   [[MODREG]], #{{[0-9]+}}, lsl #32
-; CHECK:    movk   [[MODREG]], #{{[0-9]+}}, lsl #48
-; CHECK: 	mov	    [[MODREG_FINAL:x[0-9]+]], [[MODREG]]
-; CHECK:	blraa	[[PTR]], [[MODREG_FINAL]]
-; CHECK:	ret
+; CHECK: 	stp	x29, x30, [sp, #-16]!
+; CHECK: 	mov	x29, sp
+; CHECK: 	adrp	x8, indfunc
+; CHECK: 	add	x8, x8, :lo12:indfunc
+; CHECK: 	ldr	x8, [x8]
+; CHECK: 	mov   [[MODSRC:x[0-9]+]], #{{[0-9]+}}
+; CHECK: 	movk  [[MODSRC]], #{{[0-9]+}}, lsl #16
+; CHECK: 	movk  [[MODSRC]], #{{[0-9]+}}, lsl #32
+; CHECK: 	movk  [[MODSRC]], #{{[0-9]+}}, lsl #48
+; CHECK: 	mov   [[MODDST:x[0-9]+]], [[MODSRC]]
+; CHECK: 	mov	x8, x8
+; CHECK: 	blraa	x8, [[MODDST]]
+; CHECK: 	ldp	x29, x30, [sp], #16
+; CHECK: 	ret
