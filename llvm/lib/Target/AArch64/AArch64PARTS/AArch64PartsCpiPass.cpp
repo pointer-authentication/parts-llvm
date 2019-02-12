@@ -224,21 +224,9 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
   MachineInstr &MI_autia = *MIi;
   MIi--; // move iterator back since we're gonna change latter stuff
 
-  const unsigned mod2 = MI_autia.getOperand(2).getReg();
+  const unsigned mod = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
-
-  RegScavenger RS;
-  RS.enterBasicBlockEnd(MBB);
-  auto &RC = AArch64::GPR64commonRegClass;
-  MachineFrameInfo &MFI = MF.getFrameInfo();
-  unsigned Size = TRI->getSpillSize(RC);
-  unsigned Align = TRI->getSpillAlignment(RC);
-  RS.addScavengingFrameIndex(MFI.CreateSpillStackObject(Size, Align)); // Add an emergency spill slot in the stack
-  RS.backward(); /* Find a reg that it is not used by last instruction and in case of spill restore before that one.*/
-  const unsigned mod = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_autia), false, 0);
-  RS.setRegUsed(mod); // Tell the Register Scavenger that the register is alive.
-  InsertMoveDstAddress(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
 
       BuildMI(MBB, MI_autia, MI_autia.getDebugLoc(), TII->get(AArch64::AUTIA))
           .addUse(dst)
