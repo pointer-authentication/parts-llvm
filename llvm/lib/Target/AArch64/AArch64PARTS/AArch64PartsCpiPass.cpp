@@ -187,7 +187,8 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   const unsigned mod = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_autia), false, 0);
   RS.setRegUsed(mod); // Tell the Register Scavenger that the register is alive.
   InsertMoveDstAddress(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
-  InsertMoveDstAddress(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
+  if (src != dst)
+    InsertMoveDstAddress(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
 
   const auto DL = MI_indcall->getDebugLoc();
   partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);

@@ -29,7 +29,7 @@ attributes #2 = { nounwind readnone }
 ; CHECK: 	movk  [[MODSRC]], #{{[0-9]+}}, lsl #32
 ; CHECK: 	movk  [[MODSRC]], #{{[0-9]+}}, lsl #48
 ; CHECK: 	mov   [[MODDST:x[0-9]+]], [[MODSRC]]
-; CHECK: 	mov	x8, x8
+; CHECK-NOT: 	mov	x8, x8
 ; CHECK: 	blraa	x8, [[MODDST]]
 ; CHECK: 	ldp	x29, x30, [sp], #16
 ; CHECK: 	ret
