@@ -28,6 +28,6 @@ attributes #2 = { nounwind readnone }
 ; CHECK:    movk   [[MODREG]], #{{[0-9]+}}, lsl #16
 ; CHECK:    movk   [[MODREG]], #{{[0-9]+}}, lsl #32
 ; CHECK:    movk   [[MODREG]], #{{[0-9]+}}, lsl #48
-; CHECK: 	mov	    x23, [[MODREG]]
-; CHECK:	blraa	[[PTR]], x23
+; CHECK: 	mov	    [[MODREG_FINAL:x[0-9]+]], [[MODREG]]
+; CHECK:	blraa	[[PTR]], [[MODREG_FINAL]]
 ; CHECK:	ret

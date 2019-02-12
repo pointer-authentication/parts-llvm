@@ -14,13 +14,13 @@ attributes #1 = { nounwind readnone }
 attributes #2 = { noreturn nounwind }
 
 ; CHECK-LABEL: @tail_call_no_return
-; CHECK: 	mov	    [[MODSRC:x[0-9]+]], #59133
+; CHECK: 	mov	  [[MODSRC:x[0-9]+]], #59133
 ; CHECK: 	movk	[[MODSRC]], #60498, lsl #16
 ; CHECK: 	movk	[[MODSRC]], #2582, lsl #32
 ; CHECK: 	movk	[[MODSRC]], #10143, lsl #48
-; CHECK: 	mov	    x23, [[MODSRC]]
+; CHECK: 	mov	  [[MODDST:x[0-9]+]], [[MODSRC]]
 ; CHECK: 	mov	x8, x0
 ; CHECK: 	mov	w0, w1
 ; CHECK: 	mov	x29, sp
-; CHECK: 	blraa	x8, x23
+; CHECK: 	blraa	x8, [[MODDST]]
 ; CHECK: .Lfunc_end0:

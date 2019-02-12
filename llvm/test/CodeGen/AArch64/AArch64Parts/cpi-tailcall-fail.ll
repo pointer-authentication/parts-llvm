@@ -13,17 +13,42 @@
 
 %struct.video_par = type { i64, i64 }
 
+declare hidden void @func() #3
+
+define hidden void @test_funcptr(void (%struct.video_par*, i8*)* nocapture %func_ptr) local_unnamed_addr #3 {
+  ;
+  ; This works okay, i.e., x0 is saved before it is zeroed:
+  ; tail call void %func_ptr(%struct.video_par* null, i8* null) #9
+  ;
+
+  %1 = call void (%struct.video_par*, i8*)* @llvm.pa.autcall.p0f_isVoidp0s_struct.video_parsp0i8f(void (%struct.video_par*, i8*)* %func_ptr, i64 8293111894729183960)
+  tail call void %1(%struct.video_par* null, i8* null) #9
+  ret void
+}
 ; CHECK-LABEL: @test_funcptr
 ; CHECK: mov    [[MODREG:x[0-9]+]], #{{[0-9]+}}
 ; CHECK: movk   [[MODREG]], #{{[0-9]+}}, lsl #16
 ; CHECK: movk   [[MODREG]], #{{[0-9]+}}, lsl #32
 ; CHECK: movk   [[MODREG]], #{{[0-9]+}}, lsl #48
+; CHECK: mov	  [[MODDST:x[0-9]+]], [[MODREG]]
 ; CHECK: mov [[PTR:x[0-9]+]], x0
 ; CHECK-NOT: mov [[PTR]], xzr
-; CHECK: braa [[PTR]], x23
-define hidden void @test_funcptr(void (%struct.video_par*, i8*)* nocapture %func_ptr) local_unnamed_addr #3 {
+; CHECK: braa [[PTR]], [[MODDST]]
+
+define hidden void @test_funcptr2(void (%struct.video_par*, i8*)* nocapture %func_ptr) local_unnamed_addr #3 {
+  ; CHECK: mov x19, x0
+  call void () @func() #3
+  ; CHECK: bl
   %1 = call void (%struct.video_par*, i8*)* @llvm.pa.autcall.p0f_isVoidp0s_struct.video_parsp0i8f(void (%struct.video_par*, i8*)* %func_ptr, i64 8293111894729183960)
   tail call void %1(%struct.video_par* null, i8* null) #9
+  ; CHECK: mov    [[MODREG:x[0-9]+]], #{{[0-9]+}}
+  ; CHECK: movk   [[MODREG]], #{{[0-9]+}}, lsl #16
+  ; CHECK: movk   [[MODREG]], #{{[0-9]+}}, lsl #32
+  ; CHECK: movk   [[MODREG]], #{{[0-9]+}}, lsl #48
+  ; CHECK: mov	  [[MODDST:x[0-9]+]], [[MODREG]]
+  ; CHECK: mov [[REGISTER:x[0-9]+]], x19
+  ; CHECK-NOT: mov [[REGISTER]], xzr
+  ; CHECK: braa [[REGISTER]], [[MODDST]]
   ret void
 }
 
