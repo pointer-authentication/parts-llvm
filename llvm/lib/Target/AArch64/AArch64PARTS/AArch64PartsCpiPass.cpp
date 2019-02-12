@@ -174,9 +174,6 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   RegScavenger RS;
   RS.enterBasicBlockEnd(MBB);
   auto &RC = AArch64::GPR64commonRegClass;
-  MachineFrameInfo &MFI = MF.getFrameInfo();
-  unsigned Size = TRI->getSpillSize(RC);
-  unsigned Align = TRI->getSpillAlignment(RC);
 
   MachineInstr *MI_indcall = FindIndirectCallMachineInstr(MI_autia.getNextNode());
   if (MI_indcall == nullptr) {
@@ -186,13 +183,11 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
       llvm_unreachable("failed to find BLR for AUTCALL");
     }
 
-  RS.backward(MachineBasicBlock::iterator(MI_indcall));
-  RS.addScavengingFrameIndex(MFI.CreateSpillStackObject(Size, Align)); // Add an emergency spill slot in the stack
+  RS.backward(--MachineBasicBlock::iterator(MI_indcall));
   const unsigned mod = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_autia), false, 0);
   RS.setRegUsed(mod); // Tell the Register Scavenger that the register is alive.
   InsertMoveDstAddress(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
   InsertMoveDstAddress(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
-
 
   const auto DL = MI_indcall->getDebugLoc();
   partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
