@@ -77,6 +77,7 @@ namespace {
    inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
+   inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void InsertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
    inline void InsertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI_autia, unsigned dstReg, unsigned srcReg, const MCInstrDesc &InstrDesc);
@@ -197,16 +198,8 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
     // FIXME: This might break if the pointer is reused elsewhere!!!
     partsUtils->addNops(MBB, MI_indcall, src, mod, DL);
   } else {
-    if (isNormalIndirectCall(MI_indcall)) {
-      InsertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, TII->get(AArch64::BLRAA));
-    } else {
-   // This is a tail call return, and we need to use BRAA
-      // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
-      //  the tail-called function can return immediately to the current callee, without
-      //  going through the currently active function.)
-      InsertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, TII->get(AArch64::BRAA));
-    }
-
+    auto &MCI = getIndirectCallMachineInstruction(MI_indcall);
+    InsertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, MCI);
     // Remove the replaced BR instruction
     MI_indcall->removeFromParent();
   }
@@ -215,6 +208,19 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   MI_autia.removeFromParent();
 
   return true;
+}
+
+inline const MCInstrDesc &AArch64PartsCpiPass::getIndirectCallMachineInstruction(MachineInstr *MI_indcall) {
+
+  if (isNormalIndirectCall(MI_indcall))
+   return TII->get(AArch64::BLRAA);
+
+  // This is a tail call return, and we need to use BRAA
+  // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
+  // the tail-called function can return immediately to the current callee, without
+  // going through the currently active function.)
+
+ return TII->get(AArch64::BRAA);
 }
 
 inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
