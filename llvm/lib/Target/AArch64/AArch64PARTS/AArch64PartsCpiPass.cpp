@@ -79,7 +79,7 @@ namespace {
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void InsertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
-   inline void InsertMoveDstAddress(MachineBasicBlock &MBB, MachineInstr *MI_autia, unsigned dstReg, unsigned srcReg, const MCInstrDesc &InstrDesc);
+   inline void InsertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI_autia, unsigned dstReg, unsigned srcReg, const MCInstrDesc &InstrDesc);
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
 
  };
@@ -186,9 +186,9 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   RS.backward(--MachineBasicBlock::iterator(MI_indcall));
   const unsigned mod = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_autia), false, 0);
   RS.setRegUsed(mod); // Tell the Register Scavenger that the register is alive.
-  InsertMoveDstAddress(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
+  InsertMovInstr(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
   if (src != dst)
-    InsertMoveDstAddress(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
+    InsertMovInstr(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
 
   const auto DL = MI_indcall->getDebugLoc();
   partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
@@ -225,15 +225,14 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
   MachineInstr &MI_autia = *MIi--; // move iterator back since we're gonna change latter stuff
 
   const unsigned mod = MI_autia.getOperand(2).getReg();
-  const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
+  const unsigned dst = MI_autia.getOperand(0).getReg();
 
   BuildMI(MBB, MI_autia, MI_autia.getDebugLoc(), TII->get(AArch64::AUTIA))
     .addUse(dst)
     .addUse(mod);
 
   ++StatAutia;
-   // Remove the PARTS intrinsic!
-  MI_autia.removeFromParent();
+  MI_autia.removeFromParent(); // Remove the PARTS intrinsic!
 
   return true;
 }
@@ -265,7 +264,7 @@ inline void AArch64PartsCpiPass::InsertAuthenticateBranchInstr(MachineBasicBlock
       BMI.addUse(modReg);
 }
 
-inline void AArch64PartsCpiPass::InsertMoveDstAddress(MachineBasicBlock &MBB,
+inline void AArch64PartsCpiPass::InsertMovInstr(MachineBasicBlock &MBB,
                                                                 MachineInstr *MI_autia,
                                                                 unsigned dstReg,
                                                                 unsigned srcReg,
