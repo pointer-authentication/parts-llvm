@@ -73,10 +73,10 @@ namespace {
    Function *funcCountCodePtrCreate = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline bool handlePartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi, unsigned MIOpcode);
-   inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-   inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-   inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   inline void handlePartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi, unsigned MIOpcode);
+   inline void LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   inline void LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   inline void LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
    inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
    inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
@@ -138,30 +138,26 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
                                                    MachineBasicBlock &MBB,
                                                    MachineBasicBlock::instr_iterator &MIi) {
   const auto MIOpcode = MIi->getOpcode();
-  bool res = false;
 
   if (!isPartsIntrinsic(MIOpcode))
     return false;
 
-  res = handlePartsIntrinsic(MF, MBB, MIi, MIOpcode);
-  return res;
+  handlePartsIntrinsic(MF, MBB, MIi, MIOpcode);
+  return true;;
 }
 
-inline bool AArch64PartsCpiPass::handlePartsIntrinsic(MachineFunction &MF,
+inline void AArch64PartsCpiPass::handlePartsIntrinsic(MachineFunction &MF,
                                                        MachineBasicBlock &MBB,
                                                        MachineBasicBlock::instr_iterator &MIi,
                                                        unsigned MIOpcode) {
   auto &MI = *MIi--;
-  bool res;
 
   if (MIOpcode == AArch64::PARTS_PACIA)
-    res = LowerPARTSPACIA(MF, MBB, MI);
+    LowerPARTSPACIA(MF, MBB, MI);
   else if (MIOpcode == AArch64::PARTS_AUTIA)
-    res = LowerPARTSAUTIA(MF, MBB, MI);
+    LowerPARTSAUTIA(MF, MBB, MI);
   else
-    res = LowerPARTSAUTCALL(MF, MBB, MI);
-
-  return res;
+    LowerPARTSAUTCALL(MF, MBB, MI);
 }
 
 inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
@@ -174,7 +170,7 @@ inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
 
   return false;
 }
-inline bool AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
+inline void AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
                                                   MachineBasicBlock &MBB,
                                                   MachineInstr &MI) {
 
@@ -182,11 +178,9 @@ inline bool AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
 
     partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
     partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
-
-    return true;
 }
 
-inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
+inline void AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
                                                   MachineBasicBlock &MBB,
                                                   MachineInstr &MI_autia) {
   log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTCALL\n";
@@ -223,8 +217,6 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
 
   // Remove the PARTS intrinsic!
   MI_autia.removeFromParent();
-
-  return true;
 }
 
 inline unsigned AArch64PartsCpiPass::getFreeRegister( MachineBasicBlock &MBB,
@@ -254,7 +246,7 @@ inline const MCInstrDesc &AArch64PartsCpiPass::getIndirectCallMachineInstruction
  return TII->get(AArch64::BRAA);
 }
 
-inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
+inline void AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
                                                   MachineBasicBlock &MBB,
                                                   MachineInstr &MI_autia) {
   log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
@@ -268,8 +260,6 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
 
   ++StatAutia;
   MI_autia.removeFromParent(); // Remove the PARTS intrinsic!
-
-  return true;
 }
 
 
