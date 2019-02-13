@@ -79,6 +79,7 @@ namespace {
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
+   inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
    inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
    inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
    inline bool isPartsIntrinsic(unsigned Opcode);
@@ -195,12 +196,8 @@ inline void AArch64PartsCpiPass::lowerPARTSAUTCALL( MachineFunction &MF,
   const unsigned dst = MI_autia.getOperand(0).getReg();
 
   MachineInstr *MI_indcall = findIndirectCallMachineInstr(MI_autia.getNextNode());
-  if (MI_indcall == nullptr) {
-      // This shouldn't happen, as it indicates that we didn't find what we were looking for
-      // and have an orphaned pacia.
-      DEBUG(MBB.dump()); // dump for debugging...
-      llvm_unreachable("failed to find BLR for AUTCALL");
-  }
+  if (MI_indcall == nullptr)
+    triggerCompilationErrorOrphanAUTCALL(MBB);
 
   const unsigned mod = getFreeRegister(MBB, MI_indcall, MI_autia);
   insertMovInstr(MBB, &MI_autia, mod, mod_orig);
@@ -217,6 +214,11 @@ inline void AArch64PartsCpiPass::lowerPARTSAUTCALL( MachineFunction &MF,
 
   // Remove the PARTS intrinsic!
   MI_autia.removeFromParent();
+}
+
+inline void AArch64PartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
+      DEBUG(MBB.dump());
+      llvm_unreachable("failed to find BLR for AUTCALL");
 }
 
 inline void AArch64PartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
@@ -270,7 +272,6 @@ inline void AArch64PartsCpiPass::lowerPARTSAUTIA( MachineFunction &MF,
   ++StatAutia;
   MI_autia.removeFromParent(); // Remove the PARTS intrinsic!
 }
-
 
 inline MachineInstr *AArch64PartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
   while (MI != nullptr && !isIndirectCall(*MI))
