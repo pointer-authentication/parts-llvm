@@ -142,16 +142,15 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
   if (!isPartsIntrinsic(MIOpcode))
     return false;
 
-  if (MIOpcode == AArch64::PARTS_PACIA) {
-    auto &MI = *MIi--;
+  auto &MI = *MIi--;
+
+  if (MIOpcode == AArch64::PARTS_PACIA)
     res = LowerPARTSPACIA(MF, MBB, MI);
-  } else if (MIOpcode == AArch64::PARTS_AUTCALL) {
-    auto &MI = *MIi--;
+  else if (MIOpcode == AArch64::PARTS_AUTCALL)
     res = LowerPARTSAUTCALL(MF, MBB, MI);
-  } else if (MIOpcode == AArch64::PARTS_AUTIA) {
-    auto &MI = *MIi--;
+  else if (MIOpcode == AArch64::PARTS_AUTIA)
     res = LowerPARTSAUTIA(MF, MBB, MI);
-  }
+
   return res;
 }
 
