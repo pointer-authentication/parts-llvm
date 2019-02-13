@@ -83,7 +83,7 @@ namespace {
    inline bool isPartsIntrinsic(unsigned Opcode);
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void InsertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
-   inline void InsertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI_autia, unsigned dstReg, unsigned srcReg, const MCInstrDesc &InstrDesc);
+   inline void InsertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI_autia, unsigned dstReg, unsigned srcReg);
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
 
  };
@@ -196,9 +196,9 @@ inline void AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   }
 
   const unsigned mod = getFreeRegister(MBB, MI_indcall, MI_autia);
-  InsertMovInstr(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
+  InsertMovInstr(MBB, &MI_autia, mod, mod2);
   if (src != dst)
-    InsertMovInstr(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
+    InsertMovInstr(MBB, &MI_autia, dst, src);
 
   const auto DL = MI_indcall->getDebugLoc();
   partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), DL, funcCountCodePtrBranch);
@@ -288,11 +288,10 @@ inline void AArch64PartsCpiPass::InsertAuthenticateBranchInstr(MachineBasicBlock
 }
 
 inline void AArch64PartsCpiPass::InsertMovInstr(MachineBasicBlock &MBB,
-                                                                MachineInstr *MI_autia,
-                                                                unsigned dstReg,
-                                                                unsigned srcReg,
-                                                                const MCInstrDesc &InstrDesc) {
-  auto MOVMI = BuildMI(MBB, MI_autia, MI_autia->getDebugLoc(), InstrDesc, dstReg);
+                                                MachineInstr *MI_autia,
+                                                unsigned dstReg,
+                                                unsigned srcReg) {
+  auto MOVMI = BuildMI(MBB, MI_autia, MI_autia->getDebugLoc(), TII->get(AArch64::ORRXrs), dstReg);
   MOVMI.addUse(AArch64::XZR);
   MOVMI.addUse(srcReg);
   MOVMI.addImm(0);
