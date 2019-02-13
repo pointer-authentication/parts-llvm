@@ -32,7 +32,8 @@ STATISTIC(StatAuthenticateIndirectCall, DEBUG_TYPE ": Number of code pointers au
 
 namespace {
 
-struct PartsOptCpiPass : public FunctionPass {
+class PartsOptCpiPass : public FunctionPass {
+public:
   static char ID;
 
   PartsOptCpiPass() : FunctionPass(ID) {}
