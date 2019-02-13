@@ -74,6 +74,7 @@ namespace {
    inline void initPartsOnMachineFunction(MachineFunction &MF);
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline void handlePartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi, unsigned MIOpcode);
+   inline void handlePartsAuthIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, unsigned MIOpcode);
    inline void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
@@ -159,10 +160,20 @@ inline void AArch64PartsCpiPass::handlePartsIntrinsic(MachineFunction &MF,
 
   if (MIOpcode == AArch64::PARTS_PACIA)
     lowerPARTSPACIA(MF, MBB, MI);
-  else if (MIOpcode == AArch64::PARTS_AUTIA)
+  else
+    handlePartsAuthIntrinsic(MF, MBB, MI, MIOpcode);
+}
+
+inline void AArch64PartsCpiPass::handlePartsAuthIntrinsic(MachineFunction &MF,
+                                                       MachineBasicBlock &MBB,
+                                                       MachineInstr &MI,
+                                                       unsigned MIOpcode) {
+  if (MIOpcode == AArch64::PARTS_AUTIA)
     lowerPARTSAUTIA(MF, MBB, MI);
   else
     lowerPARTSAUTCALL(MF, MBB, MI);
+
+  MI.removeFromParent(); // Remove the PARTS intrinsic!
 }
 
 inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
@@ -210,8 +221,6 @@ inline void AArch64PartsCpiPass::lowerPARTSAUTCALL( MachineFunction &MF,
     partsUtils->addNops(MBB, MI_indcall, src, mod, DL); // FIXME: This might break if the pointer is reused elsewhere!!!
   else
     replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
-
-  MI_autia.removeFromParent(); // Remove the PARTS intrinsic!
 }
 
 inline void AArch64PartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
@@ -268,7 +277,6 @@ inline void AArch64PartsCpiPass::lowerPARTSAUTIA( MachineFunction &MF,
     .addUse(mod);
 
   ++StatAutia;
-  MI_autia.removeFromParent(); // Remove the PARTS intrinsic!
 }
 
 inline MachineInstr *AArch64PartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
