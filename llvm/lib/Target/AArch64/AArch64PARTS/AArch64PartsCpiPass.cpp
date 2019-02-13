@@ -73,9 +73,9 @@ namespace {
    Function *funcCountCodePtrCreate = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
    inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
    inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
@@ -138,9 +138,10 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
   const auto MIOpcode = MIi->getOpcode();
   bool res = false;
 
-  if (MIOpcode == AArch64::PARTS_PACIA)
-    res = LowerPARTSPACIA(MF, MBB, MIi);
-  else if (MIOpcode == AArch64::PARTS_AUTCALL)
+  if (MIOpcode == AArch64::PARTS_PACIA) {
+    auto &MI = *MIi--;
+    res = LowerPARTSPACIA(MF, MBB, MI);
+  } else if (MIOpcode == AArch64::PARTS_AUTCALL)
     res = LowerPARTSAUTCALL(MF, MBB, MIi);
   else if (MIOpcode == AArch64::PARTS_AUTIA)
     res = LowerPARTSAUTIA(MF, MBB, MIi);
@@ -150,12 +151,11 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
 
 inline bool AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
                                                   MachineBasicBlock &MBB,
-                                                  MachineBasicBlock::instr_iterator &MIi) {
-    auto &MI = *MIi--;
+                                                  MachineInstr &MI) {
 
     log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_PACIA\n";
 
-    partsUtils->addEventCallFunction(MBB, MI, MIi->getDebugLoc(), funcCountCodePtrCreate);
+    partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
     partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
 
     return true;
