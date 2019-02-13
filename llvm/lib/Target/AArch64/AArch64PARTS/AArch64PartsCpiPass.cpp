@@ -73,6 +73,7 @@ namespace {
    Function *funcCountCodePtrCreate = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   inline bool handlePartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi, unsigned MIOpcode);
    inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
@@ -142,14 +143,23 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
   if (!isPartsIntrinsic(MIOpcode))
     return false;
 
+  res = handlePartsIntrinsic(MF, MBB, MIi, MIOpcode);
+  return res;
+}
+
+inline bool AArch64PartsCpiPass::handlePartsIntrinsic(MachineFunction &MF,
+                                                       MachineBasicBlock &MBB,
+                                                       MachineBasicBlock::instr_iterator &MIi,
+                                                       unsigned MIOpcode) {
   auto &MI = *MIi--;
+  bool res;
 
   if (MIOpcode == AArch64::PARTS_PACIA)
     res = LowerPARTSPACIA(MF, MBB, MI);
-  else if (MIOpcode == AArch64::PARTS_AUTCALL)
-    res = LowerPARTSAUTCALL(MF, MBB, MI);
   else if (MIOpcode == AArch64::PARTS_AUTIA)
     res = LowerPARTSAUTIA(MF, MBB, MI);
+  else
+    res = LowerPARTSAUTCALL(MF, MBB, MI);
 
   return res;
 }
