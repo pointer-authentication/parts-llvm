@@ -216,7 +216,7 @@ inline void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
   if (src != dst)
     insertMovInstr(MBB, &MI_autia, dst, src);
 
-  if (PARTS::useDummy())
+  if (PARTS::useDummy())  // True if we want to emulate auth instructions timings.
     partsUtils->addNops(MBB, MI_indcall, src, mod, DL); // FIXME: This might break if the pointer is reused elsewhere!!!
   else
     replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
