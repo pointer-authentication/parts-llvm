@@ -190,7 +190,7 @@ inline void AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
                                                   MachineInstr &MI_autia) {
   log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTCALL\n";
 
-  const unsigned mod2 = MI_autia.getOperand(2).getReg();
+  const unsigned mod_orig = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg();
 
@@ -203,7 +203,7 @@ inline void AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   }
 
   const unsigned mod = getFreeRegister(MBB, MI_indcall, MI_autia);
-  InsertMovInstr(MBB, &MI_autia, mod, mod2);
+  InsertMovInstr(MBB, &MI_autia, mod, mod_orig);
   if (src != dst)
     InsertMovInstr(MBB, &MI_autia, dst, src);
 
