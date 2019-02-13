@@ -46,9 +46,9 @@ class PartsOptDpiPass : public FunctionPass {
     bool runOnFunction(Function &F) override;
 
   private:
-    PartsTypeMetadata_ptr createLoadMetadata(Function &F, Instruction &I);
-    PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
     inline bool handleInstruction(Function &F, Instruction &I);
+    PartsTypeMetadata_ptr createLoadMetadata(Instruction &I);
+    PartsTypeMetadata_ptr createStoreMetadata(Instruction &I);
     inline bool isLoadOrStore(const unsigned IOpcode);
     PartsTypeMetadata_ptr createMetadata(Value *V);
 };
@@ -84,9 +84,9 @@ inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I)
   PartsTypeMetadata_ptr MD;
 
   if (IOpcode == Instruction::Store)
-      MD = createStoreMetadata(F, I);
+      MD = createStoreMetadata(I);
   else
-      MD = createLoadMetadata(F, I);
+      MD = createLoadMetadata(I);
 
   MD->attach(F.getContext(), I);
   log->inc(DEBUG_TYPE ".MetadataAdded", !MD->isIgnored()) << "adding metadata: " << MD->toString() << "\n";
@@ -99,23 +99,21 @@ inline bool PartsOptDpiPass::isLoadOrStore(const unsigned IOpcode)
   return IOpcode == Instruction::Load || IOpcode ==Instruction::Store;
 }
 
-PartsTypeMetadata_ptr PartsOptDpiPass::createLoadMetadata(Function &F, Instruction &I) {
+PartsTypeMetadata_ptr PartsOptDpiPass::createLoadMetadata(Instruction &I) {
   assert(isa<LoadInst>(I));
-
   auto V = I.getOperand(0);
   assert(I.getType() == V->getType()->getPointerElementType());
 
   return createMetadata(V);
 }
 
-PartsTypeMetadata_ptr PartsOptDpiPass::createStoreMetadata(Function &F, Instruction &I) {
+PartsTypeMetadata_ptr PartsOptDpiPass::createStoreMetadata(Instruction &I) {
   assert(isa<StoreInst>(I));
-
   auto V = I.getOperand(1);
   assert(I.getOperand(0)->getType() == V->getType()->getPointerElementType());
 
   return createMetadata(V);
-  }
+}
 
 PartsTypeMetadata_ptr PartsOptDpiPass::createMetadata(Value *V) {
   PartsTypeMetadata_ptr MD;
