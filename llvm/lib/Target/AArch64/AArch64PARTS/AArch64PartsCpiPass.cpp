@@ -141,7 +141,8 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
     return false;
 
   handlePartsIntrinsic(MF, MBB, MIi, MIOpcode);
-  return true;;
+
+  return true;
 }
 
 inline void AArch64PartsCpiPass::handlePartsIntrinsic(MachineFunction &MF,
