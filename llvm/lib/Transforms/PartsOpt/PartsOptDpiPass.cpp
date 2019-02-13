@@ -80,27 +80,16 @@ inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I)
   if (!isLoadOrStore(IOpcode))
     return false;
 
-  PartsTypeMetadata_ptr MD = nullptr;
+  PartsTypeMetadata_ptr MD;
 
-  switch(IOpcode) {
-    case Instruction::Store:
+  if (IOpcode == Instruction::Store)
       MD = createStoreMetadata(F, I);
-      break;
-    case Instruction::Load:
+  else
       MD = createLoadMetadata(F, I);
-      break;
-    default:
-      break;
-  }
-  auto &C = F.getContext();
 
-  if (MD != nullptr) {
-    MD->attach(C, I);
-    log->inc(DEBUG_TYPE ".MetadataAdded", !MD->isIgnored()) << "adding metadata: " << MD->toString() << "\n";
-  } else {
-    log->inc(DEBUG_TYPE ".MetadataMissing") << "missing metadata\n";
-    return false;
-  }
+  MD->attach(F.getContext(), I);
+  log->inc(DEBUG_TYPE ".MetadataAdded", !MD->isIgnored()) << "adding metadata: " << MD->toString() << "\n";
+
   return true;
 }
 
