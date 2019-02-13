@@ -112,7 +112,6 @@ bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
   TRI = STI->getRegisterInfo();
   partsUtils = PartsUtils::get(TRI, TII);
 
-  //MF.dump();
   for (auto &MBB : MF) {
     DEBUG_PA(log->debug(MF.getName()) << "  block " << MBB.getName() << "\n");
 
@@ -125,7 +124,6 @@ bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
 
   return found;
 }
-
 
 /**
  *
@@ -187,7 +185,7 @@ inline void AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
 
   const unsigned mod2 = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
-  const unsigned dst = MI_autia.getOperand(0).getReg(); // unused!
+  const unsigned dst = MI_autia.getOperand(0).getReg();
 
   MachineInstr *MI_indcall = FindIndirectCallMachineInstr(MI_autia.getNextNode());
   if (MI_indcall == nullptr) {
@@ -195,7 +193,7 @@ inline void AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
       // and have an orphaned pacia.
       DEBUG(MBB.dump()); // dump for debugging...
       llvm_unreachable("failed to find BLR for AUTCALL");
-    }
+  }
 
   const unsigned mod = getFreeRegister(MBB, MI_indcall, MI_autia);
   InsertMovInstr(MBB, &MI_autia, mod, mod2, TII->get(AArch64::ORRXrs));
@@ -284,9 +282,9 @@ inline void AArch64PartsCpiPass::InsertAuthenticateBranchInstr(MachineBasicBlock
                                                                 unsigned dstReg,
                                                                 unsigned modReg,
                                                                 const MCInstrDesc &InstrDesc) {
-      auto BMI = BuildMI(MBB, MI_indcall, MI_indcall->getDebugLoc(), InstrDesc);
-      BMI.addUse(dstReg);
-      BMI.addUse(modReg);
+  auto BMI = BuildMI(MBB, MI_indcall, MI_indcall->getDebugLoc(), InstrDesc);
+  BMI.addUse(dstReg);
+  BMI.addUse(modReg);
 }
 
 inline void AArch64PartsCpiPass::InsertMovInstr(MachineBasicBlock &MBB,
@@ -303,4 +301,3 @@ inline void AArch64PartsCpiPass::InsertMovInstr(MachineBasicBlock &MBB,
 inline bool AArch64PartsCpiPass::isNormalIndirectCall(const MachineInstr *MI) const {
   return MI->getOpcode() == AArch64::BLR;
 }
-
