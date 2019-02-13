@@ -85,6 +85,7 @@ namespace {
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void InsertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
    inline void InsertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI_autia, unsigned dstReg, unsigned srcReg);
+   inline void ReplaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
 
  };
@@ -209,18 +210,22 @@ inline void AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
   const auto DL = MI_indcall->getDebugLoc();
   partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), DL, funcCountCodePtrBranch);
 
-  if (PARTS::useDummy()) {
-    // FIXME: This might break if the pointer is reused elsewhere!!!
-    partsUtils->addNops(MBB, MI_indcall, src, mod, DL);
-  } else {
-    auto &MCI = getIndirectCallMachineInstruction(MI_indcall);
-    InsertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, MCI);
-    // Remove the replaced BR instruction
-    MI_indcall->removeFromParent();
-  }
+  if (PARTS::useDummy())
+    partsUtils->addNops(MBB, MI_indcall, src, mod, DL); // FIXME: This might break if the pointer is reused elsewhere!!!
+  else
+    ReplaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
 
   // Remove the PARTS intrinsic!
   MI_autia.removeFromParent();
+}
+
+inline void AArch64PartsCpiPass::ReplaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
+                                                                    MachineInstr *MI_indcall,
+                                                                    unsigned dst,
+                                                                    unsigned mod) {
+    auto &MCI = getIndirectCallMachineInstruction(MI_indcall);
+    InsertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, MCI);
+    MI_indcall->removeFromParent(); // Remove the replaced BR instruction
 }
 
 inline unsigned AArch64PartsCpiPass::getFreeRegister( MachineBasicBlock &MBB,
