@@ -49,6 +49,7 @@ class PartsOptDpiPass : public FunctionPass {
     PartsTypeMetadata_ptr createLoadMetadata(Function &F, Instruction &I);
     PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
     inline bool handleInstruction(Function &F, Instruction &I);
+    inline bool isLoadOrStore(const unsigned IOpcode);
 };
 
 } // anonymous namespace
@@ -74,8 +75,10 @@ bool PartsOptDpiPass::runOnFunction(Function &F) {
 
 inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I)
 {
-  auto &C = F.getContext();
   const auto IOpcode = I.getOpcode();
+
+  if (!isLoadOrStore(IOpcode))
+    return false;
 
   PartsTypeMetadata_ptr MD = nullptr;
 
@@ -89,6 +92,7 @@ inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I)
     default:
       break;
   }
+  auto &C = F.getContext();
 
   if (MD != nullptr) {
     MD->attach(C, I);
@@ -98,6 +102,11 @@ inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I)
     return false;
   }
   return true;
+}
+
+inline bool PartsOptDpiPass::isLoadOrStore(const unsigned IOpcode)
+{
+  return IOpcode == Instruction::Load || IOpcode ==Instruction::Store;
 }
 
 PartsTypeMetadata_ptr PartsOptDpiPass::createLoadMetadata(Function &F, Instruction &I) {
