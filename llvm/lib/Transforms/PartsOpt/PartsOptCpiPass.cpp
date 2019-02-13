@@ -54,6 +54,7 @@ private:
   Value *generatePACedValue(Module *M, Instruction &I, Value *V);
   bool handleInstruction(Function &F, Instruction &I);
   bool handleCallInstruction(Function &F, Instruction &I);
+  bool handleStoreInstruction(Function &F, Instruction &I);
 };
 
 } // anonymous namespace
@@ -81,17 +82,9 @@ bool PartsOptCpiPass::handleInstruction(Function &F, Instruction &I)
     default:
       return false;
       break;
-    case Instruction::Store: {
-      auto SI = dyn_cast<StoreInst>(&I);
-      assert(SI != nullptr && "this should always be a store instruction, maybe remove this assert?");
-
-      auto paced = generatePACedValue(F.getParent(), I, SI->getValueOperand());
-      if (paced != nullptr) {
-        ++StatSignStoreFunction;
-        SI->setOperand(0, paced);
-      }
+    case Instruction::Store:
+      return handleStoreInstruction(F, I);
       break;
-    }
     case Instruction::Select: {
       for (unsigned i = 0, end = I.getNumOperands(); i < end; ++i) {
         auto paced = generatePACedValue(F.getParent(), I, I.getOperand(i));
@@ -105,6 +98,21 @@ bool PartsOptCpiPass::handleInstruction(Function &F, Instruction &I)
       return handleCallInstruction(F, I);
       break;
   }
+
+  return true;
+}
+
+bool PartsOptCpiPass::handleStoreInstruction(Function &F, Instruction &I)
+{
+  auto SI = dyn_cast<StoreInst>(&I);
+  assert(SI != nullptr && "this should always be a store instruction, maybe remove this assert?");
+
+  auto paced = generatePACedValue(F.getParent(), I, SI->getValueOperand());
+  if (paced == nullptr)
+    return false;
+
+  ++StatSignStoreFunction;
+  SI->setOperand(0, paced);
 
   return true;
 }
