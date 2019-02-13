@@ -114,12 +114,8 @@ bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
 
   for (auto &MBB : MF) {
     DEBUG_PA(log->debug(MF.getName()) << "  block " << MBB.getName() << "\n");
-
-    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi) {
-      DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
-
+    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
       found = handleInstruction(MF, MBB, MIi) || found;
-    }
   }
 
   return found;
@@ -136,6 +132,8 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
                                                    MachineBasicBlock &MBB,
                                                    MachineBasicBlock::instr_iterator &MIi) {
   const auto MIOpcode = MIi->getOpcode();
+
+  DEBUG_PA(log->debug(MF.getName()) << "   " << MIi);
 
   if (!isPartsIntrinsic(MIOpcode))
     return false;
