@@ -73,7 +73,7 @@ namespace {
    Function *funcCountCodePtrCreate = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
@@ -142,7 +142,8 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
     auto &MI = *MIi--;
     res = LowerPARTSPACIA(MF, MBB, MI);
   } else if (MIOpcode == AArch64::PARTS_AUTCALL) {
-    res = LowerPARTSAUTCALL(MF, MBB, MIi);
+    auto &MI = *MIi--;
+    res = LowerPARTSAUTCALL(MF, MBB, MI);
   } else if (MIOpcode == AArch64::PARTS_AUTIA) {
     auto &MI = *MIi--;
     res = LowerPARTSAUTIA(MF, MBB, MI);
@@ -164,11 +165,8 @@ inline bool AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
 
 inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
                                                   MachineBasicBlock &MBB,
-                                                  MachineBasicBlock::instr_iterator &MIi) {
+                                                  MachineInstr &MI_autia) {
   log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTCALL\n";
-
-  MachineInstr &MI_autia = *MIi;
-  MIi--; // move iterator back since we're gonna change latter stuff
 
   const unsigned mod2 = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
@@ -188,7 +186,7 @@ inline bool AArch64PartsCpiPass::LowerPARTSAUTCALL( MachineFunction &MF,
     InsertMovInstr(MBB, &MI_autia, dst, src, TII->get(AArch64::ORRXrs));
 
   const auto DL = MI_indcall->getDebugLoc();
-  partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrBranch);
+  partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), DL, funcCountCodePtrBranch);
 
   if (PARTS::useDummy()) {
     // FIXME: This might break if the pointer is reused elsewhere!!!
