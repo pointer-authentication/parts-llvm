@@ -79,6 +79,7 @@ namespace {
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
    inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
    inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
+   inline bool isPartsIntrinsic(unsigned Opcode);
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void InsertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
    inline void InsertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI_autia, unsigned dstReg, unsigned srcReg, const MCInstrDesc &InstrDesc);
@@ -138,6 +139,9 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
   const auto MIOpcode = MIi->getOpcode();
   bool res = false;
 
+  if (!isPartsIntrinsic(MIOpcode))
+    return false;
+
   if (MIOpcode == AArch64::PARTS_PACIA) {
     auto &MI = *MIi--;
     res = LowerPARTSPACIA(MF, MBB, MI);
@@ -151,6 +155,16 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
   return res;
 }
 
+inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
+  switch (Opcode) {
+    case AArch64::PARTS_PACIA:
+    case AArch64::PARTS_AUTIA:
+    case AArch64::PARTS_AUTCALL:
+      return true;
+  }
+
+  return false;
+}
 inline bool AArch64PartsCpiPass::LowerPARTSPACIA( MachineFunction &MF,
                                                   MachineBasicBlock &MBB,
                                                   MachineInstr &MI) {
