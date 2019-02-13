@@ -46,7 +46,6 @@ namespace {
  public:
    static char ID;
 
-
    AArch64PartsCpiPass() :
    MachineFunctionPass(ID),
    log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
@@ -191,29 +190,28 @@ inline void AArch64PartsCpiPass::lowerPARTSAUTCALL( MachineFunction &MF,
                                                   MachineInstr &MI_autia) {
   log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTCALL\n";
 
-  const unsigned mod_orig = MI_autia.getOperand(2).getReg();
-  const unsigned src = MI_autia.getOperand(1).getReg();
-  const unsigned dst = MI_autia.getOperand(0).getReg();
-
   MachineInstr *MI_indcall = findIndirectCallMachineInstr(MI_autia.getNextNode());
   if (MI_indcall == nullptr)
     triggerCompilationErrorOrphanAUTCALL(MBB);
 
+  const auto DL = MI_indcall->getDebugLoc();
+  partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), DL, funcCountCodePtrBranch);
+
+  const unsigned mod_orig = MI_autia.getOperand(2).getReg();
+  const unsigned src = MI_autia.getOperand(1).getReg();
+  const unsigned dst = MI_autia.getOperand(0).getReg();
   const unsigned mod = getFreeRegister(MBB, MI_indcall, MI_autia);
+
   insertMovInstr(MBB, &MI_autia, mod, mod_orig);
   if (src != dst)
     insertMovInstr(MBB, &MI_autia, dst, src);
-
-  const auto DL = MI_indcall->getDebugLoc();
-  partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), DL, funcCountCodePtrBranch);
 
   if (PARTS::useDummy())
     partsUtils->addNops(MBB, MI_indcall, src, mod, DL); // FIXME: This might break if the pointer is reused elsewhere!!!
   else
     replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
 
-  // Remove the PARTS intrinsic!
-  MI_autia.removeFromParent();
+  MI_autia.removeFromParent(); // Remove the PARTS intrinsic!
 }
 
 inline void AArch64PartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
