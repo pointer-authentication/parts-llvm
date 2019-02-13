@@ -116,14 +116,8 @@ PartsTypeMetadata_ptr PartsOptDpiPass::createLoadMetadata(Function &F, Instructi
     MD = PartsTypeMetadata::get(V->getType()->getPointerElementType());
   }
 
-  if (MD->isCodePointer()) {
-    // Ignore all loaded function-pointers (at least for now)
-    MD->setIgnored(true);
-  } else if (MD->isDataPointer()) {
-    if (!PARTS::useDpi()) {
-      MD->setIgnored(true);
-    }
-  }
+  if (MD->isCodePointer())
+    MD->setIgnored(true); // Ignore all loaded function-pointers (at least for now)
 
   return MD;
 }
@@ -144,12 +138,8 @@ PartsTypeMetadata_ptr PartsOptDpiPass::createStoreMetadata(Function &F, Instruct
     MD = PartsTypeMetadata::get(V->getType()->getPointerElementType());
   }
 
-  if (MD->isCodePointer()) {
+  if (MD->isCodePointer())
     MD->setIgnored(true);
-  } else if (MD->isDataPointer()) {
-    if (!PARTS::useDpi())
-      MD->setIgnored(true);
-  }
 
   return MD;
 }
