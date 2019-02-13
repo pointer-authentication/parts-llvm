@@ -74,7 +74,7 @@ namespace {
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline bool LowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   inline bool LowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline bool LowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline MachineInstr *FindIndirectCallMachineInstr(MachineInstr *MI);
    inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
@@ -141,11 +141,12 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
   if (MIOpcode == AArch64::PARTS_PACIA) {
     auto &MI = *MIi--;
     res = LowerPARTSPACIA(MF, MBB, MI);
-  } else if (MIOpcode == AArch64::PARTS_AUTCALL)
+  } else if (MIOpcode == AArch64::PARTS_AUTCALL) {
     res = LowerPARTSAUTCALL(MF, MBB, MIi);
-  else if (MIOpcode == AArch64::PARTS_AUTIA)
-    res = LowerPARTSAUTIA(MF, MBB, MIi);
-
+  } else if (MIOpcode == AArch64::PARTS_AUTIA) {
+    auto &MI = *MIi--;
+    res = LowerPARTSAUTIA(MF, MBB, MI);
+  }
   return res;
 }
 
@@ -234,10 +235,8 @@ inline const MCInstrDesc &AArch64PartsCpiPass::getIndirectCallMachineInstruction
 
 inline bool AArch64PartsCpiPass::LowerPARTSAUTIA( MachineFunction &MF,
                                                   MachineBasicBlock &MBB,
-                                                  MachineBasicBlock::instr_iterator &MIi) {
+                                                  MachineInstr &MI_autia) {
   log->inc(DEBUG_TYPE ".autia", true) << "converting PARTS_AUTIA\n";
-
-  MachineInstr &MI_autia = *MIi--; // move iterator back since we're gonna change latter stuff
 
   const unsigned mod = MI_autia.getOperand(2).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg();
