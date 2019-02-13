@@ -50,6 +50,7 @@ class PartsOptDpiPass : public FunctionPass {
     PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
     inline bool handleInstruction(Function &F, Instruction &I);
     inline bool isLoadOrStore(const unsigned IOpcode);
+    PartsTypeMetadata_ptr createMetadata(Value *V);
 };
 
 } // anonymous namespace
@@ -104,20 +105,7 @@ PartsTypeMetadata_ptr PartsOptDpiPass::createLoadMetadata(Function &F, Instructi
   auto V = I.getOperand(0);
   assert(I.getType() == V->getType()->getPointerElementType());
 
-  PartsTypeMetadata_ptr MD = nullptr;
-
-  if (isa<BitCastInst>(V)) {
-    auto BC = dyn_cast<BitCastInst>(V);
-    MD = PartsTypeMetadata::get(BC->getSrcTy());
-    // FIXME: Ugly hack, will make all union types the same!!!
-  } else {
-    MD = PartsTypeMetadata::get(V->getType()->getPointerElementType());
-  }
-
-  if (MD->isCodePointer())
-    MD->setIgnored(true); // Ignore all loaded function-pointers (at least for now)
-
-  return MD;
+  return createMetadata(V);
 }
 
 PartsTypeMetadata_ptr PartsOptDpiPass::createStoreMetadata(Function &F, Instruction &I) {
@@ -126,7 +114,11 @@ PartsTypeMetadata_ptr PartsOptDpiPass::createStoreMetadata(Function &F, Instruct
   auto V = I.getOperand(1);
   assert(I.getOperand(0)->getType() == V->getType()->getPointerElementType());
 
-  PartsTypeMetadata_ptr MD = nullptr;
+  return createMetadata(V);
+  }
+
+PartsTypeMetadata_ptr PartsOptDpiPass::createMetadata(Value *V) {
+  PartsTypeMetadata_ptr MD;
 
   if (isa<BitCastInst>(V)) {
     auto BC = dyn_cast<BitCastInst>(V);
