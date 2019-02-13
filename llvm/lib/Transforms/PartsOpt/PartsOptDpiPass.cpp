@@ -64,8 +64,10 @@ bool PartsOptDpiPass::runOnFunction(Function &F) {
   bool function_modified = false;
 
   for (auto &BB:F)
-    for (auto &I: BB)
+    for (auto &I: BB) {
+      DEBUG_PA(log->debug() << F.getName() << "->" << BB.getName() << "->" << I << "\n");
       function_modified |= handleInstruction(F, I);
+  }
 
   return function_modified;
 }
@@ -73,9 +75,6 @@ bool PartsOptDpiPass::runOnFunction(Function &F) {
 inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I)
 {
   auto &C = F.getContext();
-
-  DEBUG_PA(log->debug() << F.getName() << "->" << BB.getName() << "->" << I << "\n");
-
   const auto IOpcode = I.getOpcode();
 
   PartsTypeMetadata_ptr MD = nullptr;
