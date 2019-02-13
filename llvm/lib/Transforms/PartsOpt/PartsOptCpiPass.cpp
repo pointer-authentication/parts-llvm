@@ -79,17 +79,12 @@ bool PartsOptCpiPass::handleInstruction(Function &F, Instruction &I)
 {
   const auto IOpcode = I.getOpcode();
 
-  switch(IOpcode) {
-    case Instruction::Store:
-      return handleStoreInstruction(F, I);
-      break;
-    case Instruction::Select:
-      return handleSelectInstruction(F, I);
-      break;
-    case Instruction::Call:
-      return handleCallInstruction(F, I);
-      break;
-  }
+  if (IOpcode == Instruction::Store)
+    return handleStoreInstruction(F, I);
+  else if (IOpcode == Instruction::Select)
+    return handleSelectInstruction(F, I);
+  else if (IOpcode == Instruction::Call)
+    return handleCallInstruction(F, I);
 
   return false;
 }
