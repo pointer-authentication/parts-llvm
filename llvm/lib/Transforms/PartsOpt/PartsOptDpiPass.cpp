@@ -69,7 +69,7 @@ bool PartsOptDpiPass::runOnFunction(Function &F) {
     for (auto &I: BB) {
       DEBUG_PA(log->debug() << F.getName() << "->" << BB.getName() << "->" << I << "\n");
       function_modified = handleInstruction(F, I) || function_modified;
-  }
+    }
 
   return function_modified;
 }
