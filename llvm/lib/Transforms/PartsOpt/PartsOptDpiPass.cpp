@@ -30,23 +30,25 @@ using namespace llvm::PARTS;
 
 namespace {
 
-struct PartsOptDpiPass : public FunctionPass {
-  static char ID; // Pass identification, replacement for typeid
+class PartsOptDpiPass : public FunctionPass {
+  public:
+    static char ID; // Pass identification, replacement for typeid
 
-  PartsLog_ptr log;
+    PartsLog_ptr log;
 
-  PartsOptDpiPass() :
-      FunctionPass(ID),
-      log(PartsLog::getLogger(DEBUG_TYPE))
-  {
-    DEBUG_PA(log->enable());
-  }
+    PartsOptDpiPass() :
+        FunctionPass(ID),
+        log(PartsLog::getLogger(DEBUG_TYPE))
+    {
+      DEBUG_PA(log->enable());
+    }
 
-  bool runOnFunction(Function &F) override;
+    bool runOnFunction(Function &F) override;
 
-  PartsTypeMetadata_ptr createLoadMetadata(Function &F, Instruction &I);
-  PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
-  inline bool handleInstruction(Function &F, Instruction &I);
+  private:
+    PartsTypeMetadata_ptr createLoadMetadata(Function &F, Instruction &I);
+    PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
+    inline bool handleInstruction(Function &F, Instruction &I);
 };
 
 } // anonymous namespace
