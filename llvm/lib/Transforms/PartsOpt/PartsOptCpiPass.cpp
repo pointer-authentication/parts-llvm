@@ -55,6 +55,7 @@ private:
   bool handleInstruction(Function &F, Instruction &I);
   bool handleCallInstruction(Function &F, Instruction &I);
   bool handleStoreInstruction(Function &F, Instruction &I);
+  bool handleSelectInstruction(Function &F, Instruction &I);
 };
 
 } // anonymous namespace
@@ -79,27 +80,18 @@ bool PartsOptCpiPass::handleInstruction(Function &F, Instruction &I)
   const auto IOpcode = I.getOpcode();
 
   switch(IOpcode) {
-    default:
-      return false;
-      break;
     case Instruction::Store:
       return handleStoreInstruction(F, I);
       break;
-    case Instruction::Select: {
-      for (unsigned i = 0, end = I.getNumOperands(); i < end; ++i) {
-        auto paced = generatePACedValue(F.getParent(), I, I.getOperand(i));
-        if (paced != nullptr) {
-          I.setOperand(i, paced);
-        }
-      }
+    case Instruction::Select:
+      return handleSelectInstruction(F, I);
       break;
-    }
     case Instruction::Call:
       return handleCallInstruction(F, I);
       break;
   }
 
-  return true;
+  return false;
 }
 
 bool PartsOptCpiPass::handleStoreInstruction(Function &F, Instruction &I)
@@ -117,6 +109,20 @@ bool PartsOptCpiPass::handleStoreInstruction(Function &F, Instruction &I)
   return true;
 }
 
+bool PartsOptCpiPass::handleSelectInstruction(Function &F, Instruction &I) {
+
+  bool modified = false;
+
+  for (unsigned i = 0, end = I.getNumOperands(); i < end; ++i) {
+    auto paced = generatePACedValue(F.getParent(), I, I.getOperand(i));
+    if (paced != nullptr) {
+      modified = true;
+      I.setOperand(i, paced);
+    }
+  }
+
+  return modified;
+}
 bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
 {
   /*
