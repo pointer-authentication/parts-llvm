@@ -46,6 +46,7 @@ struct PartsOptDpiPass : public FunctionPass {
 
   PartsTypeMetadata_ptr createLoadMetadata(Function &F, Instruction &I);
   PartsTypeMetadata_ptr createStoreMetadata(Function &F, Instruction &I);
+  inline bool handleInstruction(Function &F, Instruction &I);
 };
 
 } // anonymous namespace
@@ -54,39 +55,47 @@ char PartsOptDpiPass::ID = 0;
 static RegisterPass<PartsOptDpiPass> X("parts-opt-dpi", "PARTS DPI pass");
 
 bool PartsOptDpiPass::runOnFunction(Function &F) {
+
   if (!PARTS::useDpi())
     return false;
 
+  bool function_modified = false;
+
+  for (auto &BB:F)
+    for (auto &I: BB)
+      function_modified |= handleInstruction(F, I);
+
+  return function_modified;
+}
+
+inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I)
+{
   auto &C = F.getContext();
 
-  for (auto &BB:F){
-    for (auto &I: BB) {
-      DEBUG_PA(log->debug() << F.getName() << "->" << BB.getName() << "->" << I << "\n");
+  DEBUG_PA(log->debug() << F.getName() << "->" << BB.getName() << "->" << I << "\n");
 
-      const auto IOpcode = I.getOpcode();
+  const auto IOpcode = I.getOpcode();
 
-      PartsTypeMetadata_ptr MD = nullptr;
+  PartsTypeMetadata_ptr MD = nullptr;
 
-      switch(IOpcode) {
-        case Instruction::Store:
-          MD = createStoreMetadata(F, I);
-          break;
-        case Instruction::Load:
-          MD = createLoadMetadata(F, I);
-          break;
-        default:
-          break;
-      }
-
-      if (MD != nullptr) {
-        MD->attach(C, I);
-        log->inc(DEBUG_TYPE ".MetadataAdded", !MD->isIgnored()) << "adding metadata: " << MD->toString() << "\n";
-      } else {
-        log->inc(DEBUG_TYPE ".MetadataMissing") << "missing metadata\n";
-      }
-    }
+  switch(IOpcode) {
+    case Instruction::Store:
+      MD = createStoreMetadata(F, I);
+      break;
+    case Instruction::Load:
+      MD = createLoadMetadata(F, I);
+      break;
+    default:
+      break;
   }
 
+  if (MD != nullptr) {
+    MD->attach(C, I);
+    log->inc(DEBUG_TYPE ".MetadataAdded", !MD->isIgnored()) << "adding metadata: " << MD->toString() << "\n";
+  } else {
+    log->inc(DEBUG_TYPE ".MetadataMissing") << "missing metadata\n";
+    return false;
+  }
   return true;
 }
 
