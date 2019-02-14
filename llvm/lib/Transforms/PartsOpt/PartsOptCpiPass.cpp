@@ -56,7 +56,7 @@ private:
   bool handleCallInstruction(Function &F, Instruction &I);
   bool handleStoreInstruction(Function &F, Instruction &I);
   bool handleSelectInstruction(Function &F, Instruction &I);
-  Value *CreatePartsAuthIntrinsic(Function &F, Instruction &I, Value *calledValue);
+  Value *CreatePartsAuthIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
 };
 
 } // anonymous namespace
@@ -146,13 +146,8 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
       if (argType->isPointerTy() &&
           argType->getPointerElementType()->isFunctionTy() &&
           !isa<Constant>(arg)) {
-
-        IRBuilder<> Builder(&I);
-        auto authenticatedArg =  Builder.CreateCall(
-            Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, { argType }),
-            { arg, PartsTypeMetadata::idConstantFromType(F.getContext(), argType) }
-        );
-        CI->setArgOperand(i, authenticatedArg);
+       auto paced = CreatePartsAuthIntrinsic(F, I, arg, Intrinsic::pa_autia);
+       CI->setArgOperand(i, paced);
       }
     }
   } else {
@@ -182,7 +177,7 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
   // 2: Handle indirect function calls
   if (CallSite(CI).isIndirectCall()) {
     auto calledValue = CI->getCalledValue();
-    auto paced = CreatePartsAuthIntrinsic(F, I, calledValue);
+    auto paced = CreatePartsAuthIntrinsic(F, I, calledValue, Intrinsic::pa_autcall);
     // Replace signed pointer with the authenticated one
     CI->setCalledFunction(paced);
     ++StatAuthenticateIndirectCall;
@@ -191,13 +186,16 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
   return true;
 }
 
-Value *PartsOptCpiPass::CreatePartsAuthIntrinsic(Function &F, Instruction &I, Value *calledValue) {
+Value *PartsOptCpiPass::CreatePartsAuthIntrinsic(Function &F,
+                                                 Instruction &I,
+                                                 Value *calledValue,
+                                                 Intrinsic::ID intrinsicID) {
     const auto calledValueType = calledValue->getType();
 
     // Generate Builder for inserting pa_autcall
     IRBuilder<> Builder(&I);
     // Get pa_autia declaration for correct input type
-    auto autcall = Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autcall, { calledValueType });
+    auto autcall = Intrinsic::getDeclaration(F.getParent(), intrinsicID, { calledValueType });
     // Get type_id as Constant
     auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), calledValueType);
     // Insert intrinsics to authenticated the signed function pointer
