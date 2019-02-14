@@ -72,8 +72,6 @@ namespace {
    Function *funcCountCodePtrCreate = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline void handlePartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi, unsigned MIOpcode);
-   inline void handlePartsAuthIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, unsigned MIOpcode);
    inline void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
@@ -141,33 +139,25 @@ inline bool AArch64PartsCpiPass::handleInstruction(MachineFunction &MF,
   if (!isPartsIntrinsic(MIOpcode))
     return false;
 
-  handlePartsIntrinsic(MF, MBB, MIi, MIOpcode);
-
-  return true;
-}
-
-inline void AArch64PartsCpiPass::handlePartsIntrinsic(MachineFunction &MF,
-                                                      MachineBasicBlock &MBB,
-                                                      MachineBasicBlock::instr_iterator &MIi,
-                                                      unsigned MIOpcode) {
   auto &MI = *MIi--;
 
-  if (MIOpcode == AArch64::PARTS_PACIA)
-    lowerPARTSPACIA(MF, MBB, MI);
-  else
-    handlePartsAuthIntrinsic(MF, MBB, MI, MIOpcode);
-}
-
-inline void AArch64PartsCpiPass::handlePartsAuthIntrinsic(MachineFunction &MF,
-                                                          MachineBasicBlock &MBB,
-                                                          MachineInstr &MI,
-                                                          unsigned MIOpcode) {
-  if (MIOpcode == AArch64::PARTS_AUTIA)
-    lowerPARTSAUTIA(MF, MBB, MI);
-  else
-    lowerPARTSAUTCALL(MF, MBB, MI);
+  switch (MIOpcode) {
+    default:
+      llvm_unreachable("Unhandled PARTS intrinsic!!");
+    case AArch64::PARTS_PACIA:
+      lowerPARTSPACIA(MF, MBB, MI);
+      break;
+    case AArch64::PARTS_AUTIA:
+      lowerPARTSAUTIA(MF, MBB, MI);
+      break;
+    case AArch64::PARTS_AUTCALL:
+      lowerPARTSAUTCALL(MF, MBB, MI);
+      break;
+  }
 
   MI.removeFromParent(); // Remove the PARTS intrinsic!
+
+  return true;
 }
 
 inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
@@ -204,7 +194,6 @@ inline void AArch64PartsCpiPass::lowerPARTSPACIA(MachineFunction &MF,
       .addUse(dst)
       .addUse(mod);
 
-  MI.removeFromParent();
   ++StatPacia;
 }
 
