@@ -70,7 +70,6 @@ namespace {
    Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
 
-   inline void initPartsOnMachineFunction(MachineFunction &MF);
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline void handlePartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi, unsigned MIOpcode);
    inline void handlePartsAuthIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, unsigned MIOpcode);
@@ -106,19 +105,6 @@ bool AArch64PartsCpiPass::doInitialization(Module &M) {
 bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
 
-  initPartsOnMachineFunction(MF);
-
-  for (auto &MBB : MF) {
-    DEBUG_PA(log->debug(MF.getName()) << "  block " << MBB.getName() << "\n");
-    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
-      found = handleInstruction(MF, MBB, MIi) || found;
-  }
-
-  return found;
-}
-
-inline void AArch64PartsCpiPass::initPartsOnMachineFunction(MachineFunction &MF)
-{
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
   DEBUG_PA(log->debug() << "function " << MF.getName() << "\n");
 
@@ -127,6 +113,14 @@ inline void AArch64PartsCpiPass::initPartsOnMachineFunction(MachineFunction &MF)
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
   partsUtils = PartsUtils::get(TRI, TII);
+
+  for (auto &MBB : MF) {
+    DEBUG_PA(log->debug(MF.getName()) << "  block " << MBB.getName() << "\n");
+    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
+      found = handleInstruction(MF, MBB, MIi) || found;
+  }
+
+  return found;
 }
 
 /**
