@@ -187,18 +187,18 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
 }
 
 Value *PartsOptCpiPass::CreatePartsIntrinsic(Function &F,
-                                                 Instruction &I,
-                                                 Value *calledValue,
-                                                 Intrinsic::ID intrinsicID) {
+                                             Instruction &I,
+                                             Value *calledValue,
+                                             Intrinsic::ID intrinsicID) {
     const auto calledValueType = calledValue->getType();
 
-    // Generate Builder for inserting pa_autcall
+    // Generate Builder for inserting PARTS intrinsic
     IRBuilder<> Builder(&I);
-    // Get pa_autia declaration for correct input type
+    // Get PARTS intrinsic declaration for correct input type
     auto autcall = Intrinsic::getDeclaration(F.getParent(), intrinsicID, { calledValueType });
     // Get type_id as Constant
     auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), calledValueType);
-    // Insert intrinsics to authenticated the signed function pointer
+    // Insert PARTS intrinsics
     auto paced = Builder.CreateCall(autcall, { calledValue, typeIdConstant }, "");
 
     return paced;
