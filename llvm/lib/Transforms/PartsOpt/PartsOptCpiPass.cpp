@@ -51,12 +51,12 @@ private:
    * @param V
    * @return
    */
-  Value *generatePACedValue(Module *M, Instruction &I, Value *V);
+  Value *generatePACedValue(Function &F, Instruction &I, Value *V);
   bool handleInstruction(Function &F, Instruction &I);
   bool handleCallInstruction(Function &F, Instruction &I);
   bool handleStoreInstruction(Function &F, Instruction &I);
   bool handleSelectInstruction(Function &F, Instruction &I);
-  Value *CreatePartsAuthIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
+  Value *CreatePartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
 };
 
 } // anonymous namespace
@@ -95,7 +95,7 @@ bool PartsOptCpiPass::handleStoreInstruction(Function &F, Instruction &I)
   auto SI = dyn_cast<StoreInst>(&I);
   assert(SI != nullptr && "this should always be a store instruction, maybe remove this assert?");
 
-  auto paced = generatePACedValue(F.getParent(), I, SI->getValueOperand());
+  auto paced = generatePACedValue(F, I, SI->getValueOperand());
   if (paced == nullptr)
     return false;
 
@@ -110,7 +110,7 @@ bool PartsOptCpiPass::handleSelectInstruction(Function &F, Instruction &I) {
   bool modified = false;
 
   for (unsigned i = 0, end = I.getNumOperands(); i < end; ++i) {
-    auto paced = generatePACedValue(F.getParent(), I, I.getOperand(i));
+    auto paced = generatePACedValue(F, I, I.getOperand(i));
     if (paced != nullptr) {
       modified = true;
       I.setOperand(i, paced);
@@ -146,14 +146,14 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
       if (argType->isPointerTy() &&
           argType->getPointerElementType()->isFunctionTy() &&
           !isa<Constant>(arg)) {
-       auto paced = CreatePartsAuthIntrinsic(F, I, arg, Intrinsic::pa_autia);
+       auto paced = CreatePartsIntrinsic(F, I, arg, Intrinsic::pa_autia);
        CI->setArgOperand(i, paced);
       }
     }
   } else {
     // Make sure args are signed for non-externally linked functions
     for (auto i = 0U, end = CI->getNumArgOperands(); i < end; ++i) {
-      auto paced = generatePACedValue(F.getParent(), I, CI->getArgOperand(i));
+      auto paced = generatePACedValue(F, I, CI->getArgOperand(i));
       if (paced != nullptr) {
         ++StatSignFunctionArg;
         CI->setArgOperand(i, paced);
@@ -177,7 +177,7 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
   // 2: Handle indirect function calls
   if (CallSite(CI).isIndirectCall()) {
     auto calledValue = CI->getCalledValue();
-    auto paced = CreatePartsAuthIntrinsic(F, I, calledValue, Intrinsic::pa_autcall);
+    auto paced = CreatePartsIntrinsic(F, I, calledValue, Intrinsic::pa_autcall);
     // Replace signed pointer with the authenticated one
     CI->setCalledFunction(paced);
     ++StatAuthenticateIndirectCall;
@@ -186,7 +186,7 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
   return true;
 }
 
-Value *PartsOptCpiPass::CreatePartsAuthIntrinsic(Function &F,
+Value *PartsOptCpiPass::CreatePartsIntrinsic(Function &F,
                                                  Instruction &I,
                                                  Value *calledValue,
                                                  Intrinsic::ID intrinsicID) {
@@ -204,7 +204,7 @@ Value *PartsOptCpiPass::CreatePartsAuthIntrinsic(Function &F,
     return paced;
 }
 
-Value *PartsOptCpiPass::generatePACedValue(Module *M, Instruction &I, Value *V) {
+Value *PartsOptCpiPass::generatePACedValue(Function &F, Instruction &I, Value *V) {
   /*
    * We need to handle two types of function pointer arguments:
    *  1) a direct function
@@ -228,14 +228,7 @@ Value *PartsOptCpiPass::generatePACedValue(Module *M, Instruction &I, Value *V) 
     // Get the type of the V, i.e,. the value we are going to sign
     const auto VType = V->getType();
     assert((isa<BitCastOperator>(V) || VType == VTypeInput) && "Vtype and VTypeInput should match unless bitcast");
-    // Generate Builder for inserting pa_pacia
-    IRBuilder<> Builder(&I);
-    // Get pa_pacia declaration for correct type
-    auto pacia = Intrinsic::getDeclaration(M, Intrinsic::pa_pacia, { VType });
-    // Get type_id as Constant
-    auto typeIdConstant = PartsTypeMetadata::idConstantFromType(M->getContext(), VType);
-    // Insert intrinsics to generate PACed Value and return it
-    return Builder.CreateCall(pacia, { V, typeIdConstant }, "");
+    return CreatePartsIntrinsic(F, I, V, Intrinsic::pa_pacia);
   }
 
   return nullptr;
