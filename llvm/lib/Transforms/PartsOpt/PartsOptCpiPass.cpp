@@ -216,20 +216,16 @@ Value *PartsOptCpiPass::generatePACedValue(Function &F, Instruction &I, Value *V
   auto VTypeInput = isa<BitCastOperator>(V)
       ? dyn_cast<BitCastOperator>(V)->getSrcTy()
       : V->getType();
-
-  // We can directly skip if we don't need to do anything
-  if (! VTypeInput->isPointerTy())
-    return nullptr;
-
   // We need to inspect the source of the bitcast, otherwise the plain V
   auto VInput = isa<BitCastOperator>(V) ? dyn_cast<BitCastOperator>(V)->getOperand(0) : V;
 
-  if (isa<Function>(VInput) && !dyn_cast<Function>(VInput)->isIntrinsic()) {
-    // Get the type of the V, i.e,. the value we are going to sign
-    const auto VType = V->getType();
-    assert((isa<BitCastOperator>(V) || VType == VTypeInput) && "Vtype and VTypeInput should match unless bitcast");
-    return CreatePartsIntrinsic(F, I, V, Intrinsic::pa_pacia);
-  }
+  // We can directly skip if we don't need to do anything
+  if (!VTypeInput->isPointerTy() ||
+      !isa<Function>(VInput) ||
+      dyn_cast<Function>(VInput)->isIntrinsic())
+    return nullptr;
 
-  return nullptr;
+  assert((isa<BitCastOperator>(V) || V->getType() == VTypeInput) && "Vtype and VTypeInput should match unless bitcast");
+
+  return CreatePartsIntrinsic(F, I, V, Intrinsic::pa_pacia);
 }
