@@ -36,7 +36,7 @@
 #define DEBUG_TYPE "AArch64PartsCpiPass"
 
 STATISTIC(StatAutia, DEBUG_TYPE ": code pointers authenticated and unPACed");
-STATISTIC(StatPacia, DEBUG_TYPE ": code pointers authenticated and unPACed");
+STATISTIC(StatPacia, DEBUG_TYPE ": code pointers signed");
 
 using namespace llvm;
 using namespace llvm::PARTS;
