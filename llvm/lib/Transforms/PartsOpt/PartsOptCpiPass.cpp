@@ -56,6 +56,7 @@ private:
   bool handleCallInstruction(Function &F, Instruction &I);
   bool handleStoreInstruction(Function &F, Instruction &I);
   bool handleSelectInstruction(Function &F, Instruction &I);
+  Value *CreatePartsAuthIntrinsic(Function &F, Instruction &I, Value *calledValue);
 };
 
 } // anonymous namespace
@@ -181,9 +182,18 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
   // 2: Handle indirect function calls
   if (CallSite(CI).isIndirectCall()) {
     auto calledValue = CI->getCalledValue();
+    auto paced = CreatePartsAuthIntrinsic(F, I, calledValue);
+    // Replace signed pointer with the authenticated one
+    CI->setCalledFunction(paced);
+    ++StatAuthenticateIndirectCall;
+  }
+
+  return true;
+}
+
+Value *PartsOptCpiPass::CreatePartsAuthIntrinsic(Function &F, Instruction &I, Value *calledValue) {
     const auto calledValueType = calledValue->getType();
 
-    ++StatAuthenticateIndirectCall;
     // Generate Builder for inserting pa_autcall
     IRBuilder<> Builder(&I);
     // Get pa_autia declaration for correct input type
@@ -193,11 +203,7 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
     // Insert intrinsics to authenticated the signed function pointer
     auto paced = Builder.CreateCall(autcall, { calledValue, typeIdConstant }, "");
 
-    // Replace signed pointer with the authenticated one
-    CI->setCalledFunction(paced);
-  }
-
-  return true;
+    return paced;
 }
 
 Value *PartsOptCpiPass::generatePACedValue(Module *M, Instruction &I, Value *V) {
