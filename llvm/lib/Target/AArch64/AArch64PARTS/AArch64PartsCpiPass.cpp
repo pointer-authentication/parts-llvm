@@ -36,6 +36,7 @@
 #define DEBUG_TYPE "AArch64PartsCpiPass"
 
 STATISTIC(StatAutia, DEBUG_TYPE ": code pointers authenticated and unPACed");
+STATISTIC(StatPacia, DEBUG_TYPE ": code pointers authenticated and unPACed");
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -182,11 +183,29 @@ inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
 inline void AArch64PartsCpiPass::lowerPARTSPACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
+  partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
 
-    log->inc(DEBUG_TYPE ".pacia", true) << "converting PARTS_PACIA\n";
+  const unsigned dst = MI.getOperand(0).getReg();
+  const unsigned src = MI.getOperand(1).getReg();
+  const auto modifierOp = MI.getOperand(2);
+  unsigned mod = modifierOp.getReg();
 
-    partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
-    partsUtils->convertPartIntrinsic(MBB, MI, AArch64::PACIA);
+  // Save the mod register if it is marked as killable!
+  if (modifierOp.isKill()) {
+    const unsigned oldMod = mod;
+    mod = PARTS::getModifierReg();
+    insertMovInstr(MBB, &MI, mod, oldMod);
+  }
+
+  // Move code pointer from src register to dst register
+  insertMovInstr(MBB, &MI, dst, src);
+
+  BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(AArch64::PACIA))
+      .addUse(dst)
+      .addUse(mod);
+
+  MI.removeFromParent();
+  ++StatPacia;
 }
 
 inline void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
