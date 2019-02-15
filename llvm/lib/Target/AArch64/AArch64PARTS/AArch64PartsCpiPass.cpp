@@ -63,14 +63,9 @@ namespace {
    const AArch64RegisterInfo *TRI = nullptr;
    PartsUtils_ptr  partsUtils = nullptr;
 
-#if 0
-   Function *funcCountCodePtrBranch = nullptr;
-   Function *funcCountCodePtrCreate = nullptr;
-#endif
-
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
    inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
@@ -132,10 +127,6 @@ void AArch64PartsCpiWithEventCallPass::lowerPARTSAUTCALL(MachineFunction &MF,
 }
 
 bool AArch64PartsCpiPass::doInitialization(Module &M) {
-#if 0
-  funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
-  funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
-#endif
   return true;
 }
 
@@ -205,8 +196,6 @@ inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
 void AArch64PartsCpiPass::lowerPARTSPACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
-  //partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
-
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned src = MI.getOperand(1).getReg();
   const unsigned mod = MI.getOperand(2).getReg();
@@ -228,9 +217,6 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
   MachineInstr *MI_indcall = findIndirectCallMachineInstr(MI_autia.getNextNode());
   if (MI_indcall == nullptr)
     triggerCompilationErrorOrphanAUTCALL(MBB);
-
-//  const auto DL = MI_indcall->getDebugLoc();
-//  partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), DL, funcCountCodePtrBranch);
 
   const unsigned mod_orig = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
