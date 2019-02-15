@@ -63,14 +63,14 @@ namespace {
    const AArch64RegisterInfo *TRI = nullptr;
    PartsUtils_ptr  partsUtils = nullptr;
 
-   Function *funcCountCodePtrBranch = nullptr;
 #if 0
+   Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
 #endif
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-   virtual void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
    inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
@@ -92,12 +92,11 @@ namespace {
     bool doInitialization(Module &M) override;
 
   private:
-//   Function *funcCountCodePtrBranch = nullptr;
+   Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
 
-//   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-//   virtual void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-    void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
+   void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
+   void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
  };
 
 } // end anonymous namespace
@@ -112,7 +111,7 @@ FunctionPass *llvm::createAArch64PartsPassCpi() {
 char AArch64PartsCpiPass::ID = 0;
 
 bool AArch64PartsCpiWithEventCallPass::doInitialization(Module &M) {
-  //funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
+  funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
   funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
   return true;
 }
@@ -124,10 +123,17 @@ void AArch64PartsCpiWithEventCallPass::lowerPARTSPACIA(MachineFunction &MF,
   AArch64PartsCpiPass::lowerPARTSPACIA(MF, MBB, MI);
 }
 
+void AArch64PartsCpiWithEventCallPass::lowerPARTSAUTCALL(MachineFunction &MF,
+                                                   MachineBasicBlock &MBB,
+                                                   MachineInstr &MI_autia) {
+
+  partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), MI_autia.getDebugLoc(), funcCountCodePtrBranch);
+  AArch64PartsCpiPass::lowerPARTSAUTCALL(MF, MBB, MI_autia);
+}
 
 bool AArch64PartsCpiPass::doInitialization(Module &M) {
-  funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
 #if 0
+  funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
   funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
 #endif
   return true;
@@ -223,8 +229,8 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
   if (MI_indcall == nullptr)
     triggerCompilationErrorOrphanAUTCALL(MBB);
 
-  const auto DL = MI_indcall->getDebugLoc();
-  partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), DL, funcCountCodePtrBranch);
+//  const auto DL = MI_indcall->getDebugLoc();
+//  partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI_autia)), DL, funcCountCodePtrBranch);
 
   const unsigned mod_orig = MI_autia.getOperand(2).getReg();
   const unsigned src = MI_autia.getOperand(1).getReg();
@@ -236,7 +242,7 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
     insertMovInstr(MBB, &MI_autia, dst, src);
 
   if (PARTS::useDummy())  // True if we want to emulate auth instructions timings.
-    partsUtils->addNops(MBB, MI_indcall, src, mod, DL); // FIXME: This might break if the pointer is reused elsewhere!!!
+    partsUtils->addNops(MBB, MI_indcall, src, mod, MI_indcall->getDebugLoc()); // FIXME: This might break if the pointer is reused elsewhere!!!
   else
     replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
 
@@ -284,7 +290,7 @@ inline const MCInstrDesc &AArch64PartsCpiPass::getIndirectCallMachineInstruction
  return TII->get(AArch64::BRAA);
 }
 
-void AArch64PartsCpiPass::lowerPARTSAUTIA(MachineFunction &MF,
+inline void AArch64PartsCpiPass::lowerPARTSAUTIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI_autia) {
   const unsigned mod = MI_autia.getOperand(2).getReg();
