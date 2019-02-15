@@ -51,10 +51,10 @@ namespace {
 
    StringRef getPassName() const override { return DEBUG_TYPE; }
 
-   bool doInitialization(Module &M) override;
+   virtual bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
 
- private:
+ protected:
    PartsLog_ptr log;
 
    const TargetMachine *TM = nullptr;
@@ -64,12 +64,14 @@ namespace {
    PartsUtils_ptr  partsUtils = nullptr;
 
    Function *funcCountCodePtrBranch = nullptr;
+#if 0
    Function *funcCountCodePtrCreate = nullptr;
+#endif
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   inline void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-   inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-   inline void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   virtual void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
    inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
    inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
@@ -82,17 +84,52 @@ namespace {
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
 
  };
+
+ class AArch64PartsCpiWithEventCallPass : public AArch64PartsCpiPass {
+  public:
+    AArch64PartsCpiWithEventCallPass() : AArch64PartsCpiPass() {}
+
+    bool doInitialization(Module &M) override;
+
+  private:
+//   Function *funcCountCodePtrBranch = nullptr;
+   Function *funcCountCodePtrCreate = nullptr;
+
+//   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+//   virtual void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+    void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
+ };
+
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PartsPassCpi() {
-  return new AArch64PartsCpiPass();
+  if (PARTS::useRuntimeStats())
+   return new AArch64PartsCpiWithEventCallPass();
+  else
+   return new AArch64PartsCpiPass();
 }
 
 char AArch64PartsCpiPass::ID = 0;
 
+bool AArch64PartsCpiWithEventCallPass::doInitialization(Module &M) {
+  //funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
+  funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
+  return true;
+}
+
+void AArch64PartsCpiWithEventCallPass::lowerPARTSPACIA(MachineFunction &MF,
+                                                 MachineBasicBlock &MBB,
+                                                 MachineInstr &MI) {
+  partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
+  AArch64PartsCpiPass::lowerPARTSPACIA(MF, MBB, MI);
+}
+
+
 bool AArch64PartsCpiPass::doInitialization(Module &M) {
   funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
+#if 0
   funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
+#endif
   return true;
 }
 
@@ -159,10 +196,10 @@ inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
 
   return false;
 }
-inline void AArch64PartsCpiPass::lowerPARTSPACIA(MachineFunction &MF,
+void AArch64PartsCpiPass::lowerPARTSPACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
-  partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
+  //partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
 
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned src = MI.getOperand(1).getReg();
@@ -178,7 +215,7 @@ inline void AArch64PartsCpiPass::lowerPARTSPACIA(MachineFunction &MF,
   ++StatPacia;
 }
 
-inline void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
+void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
                                                    MachineBasicBlock &MBB,
                                                    MachineInstr &MI_autia) {
 
@@ -247,7 +284,7 @@ inline const MCInstrDesc &AArch64PartsCpiPass::getIndirectCallMachineInstruction
  return TII->get(AArch64::BRAA);
 }
 
-inline void AArch64PartsCpiPass::lowerPARTSAUTIA(MachineFunction &MF,
+void AArch64PartsCpiPass::lowerPARTSAUTIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI_autia) {
   const unsigned mod = MI_autia.getOperand(2).getReg();
