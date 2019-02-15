@@ -166,7 +166,7 @@ inline void AArch64PartsCpiPass::lowerPARTSPACIA(MachineFunction &MF,
 
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned src = MI.getOperand(1).getReg();
-  unsigned mod = MI.getOperand(2).getReg();
+  const unsigned mod = MI.getOperand(2).getReg();
 
   if (src != dst)
     insertMovInstr(MBB, &MI, dst, src);
@@ -251,7 +251,11 @@ inline void AArch64PartsCpiPass::lowerPARTSAUTIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI_autia) {
   const unsigned mod = MI_autia.getOperand(2).getReg();
+  const unsigned src = MI_autia.getOperand(1).getReg();
   const unsigned dst = MI_autia.getOperand(0).getReg();
+
+  if (src != dst)
+    insertMovInstr(MBB, &MI_autia, dst, src);
 
   BuildMI(MBB, MI_autia, MI_autia.getDebugLoc(), TII->get(AArch64::AUTIA))
     .addUse(dst)
