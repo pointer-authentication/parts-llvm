@@ -88,7 +88,7 @@ namespace {
   protected:
    PartsUtils_ptr  partsUtils = nullptr;
 
-   void doMachineFunctionInit(MachineFunction &MF) override { PartsCpiPass->doMachineFunctionInit(MF); AArch64PartsCpiPass::doMachineFunctionInit(MF); partsUtils = PartsUtils::get(STI->getRegisterInfo(), TII); };
+   void doMachineFunctionInit(MachineFunction &MF) override;
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSAUTCALL(MF, MBB, MI); };
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSPACIA(MF, MBB, MI); };
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override { PartsCpiPass->replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod); };
@@ -135,6 +135,12 @@ FunctionPass *llvm::createAArch64PartsPassCpi() {
 }
 
 char AArch64PartsCpiPass::ID = 0;
+
+void AArch64PartsCpiPassDecoratorBase::doMachineFunctionInit(MachineFunction &MF) {
+  PartsCpiPass->doMachineFunctionInit(MF);
+  AArch64PartsCpiPass::doMachineFunctionInit(MF);
+  partsUtils = PartsUtils::get(STI->getRegisterInfo(), TII);
+}
 
 bool AArch64PartsCpiWithRuntimeStatistics::doInitialization(Module &M) {
   funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
