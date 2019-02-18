@@ -116,7 +116,7 @@ namespace {
     AArch64PartsCpiWithEmulatedTimings(AArch64PartsCpiPass *PartsCpiPass) : AArch64PartsCpiPassDecoratorBase(PartsCpiPass) {}
 
   private:
-   virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
+   void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
  };
 
 
