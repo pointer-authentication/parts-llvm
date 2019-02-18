@@ -55,18 +55,21 @@ namespace {
    bool runOnMachineFunction(MachineFunction &) override;
 
  protected:
+   PartsUtils_ptr  partsUtils = nullptr;
+
+   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+
+ private:
    PartsLog_ptr log;
 
    const TargetMachine *TM = nullptr;
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
    const AArch64RegisterInfo *TRI = nullptr;
-   PartsUtils_ptr  partsUtils = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-   virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    void lowerPARTSIntrinsicCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
    inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
@@ -76,14 +79,27 @@ namespace {
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void insertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
    inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
-   inline void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
+   virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
 
+   friend class AArch64PartsCpiPassDecoratorBase;
  };
 
- class AArch64PartsCpiWithRuntimeStatistics : public AArch64PartsCpiPass {
+ class AArch64PartsCpiPassDecoratorBase : public AArch64PartsCpiPass {
   public:
-    AArch64PartsCpiWithRuntimeStatistics() : AArch64PartsCpiPass() {}
+    AArch64PartsCpiPassDecoratorBase(AArch64PartsCpiPass *CpiPass): AArch64PartsCpiPass() { PartsCpiPass = CpiPass; }
+
+  protected:
+   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSAUTCALL(MF, MBB, MI); };
+   virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSPACIA(MF, MBB, MI); };
+
+  private:
+   AArch64PartsCpiPass *PartsCpiPass;
+  };
+
+ class AArch64PartsCpiWithRuntimeStatistics : public AArch64PartsCpiPassDecoratorBase {
+  public:
+    AArch64PartsCpiWithRuntimeStatistics(AArch64PartsCpiPass *PartsCpiPass) : AArch64PartsCpiPassDecoratorBase(PartsCpiPass) {}
 
     bool doInitialization(Module &M) override;
 
@@ -98,10 +114,12 @@ namespace {
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PartsPassCpi() {
+  AArch64PartsCpiPass *CpiPass = new AArch64PartsCpiPass();
+
   if (PARTS::useRuntimeStats())
-   return new AArch64PartsCpiWithRuntimeStatistics();
+   return new AArch64PartsCpiWithRuntimeStatistics(CpiPass);
   else
-   return new AArch64PartsCpiPass();
+   return CpiPass;
 }
 
 char AArch64PartsCpiPass::ID = 0;
@@ -116,7 +134,7 @@ void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSPACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
   partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
-  AArch64PartsCpiPass::lowerPARTSPACIA(MF, MBB, MI);
+  AArch64PartsCpiPassDecoratorBase::lowerPARTSPACIA(MF, MBB, MI);
 }
 
 void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineFunction &MF,
@@ -124,7 +142,7 @@ void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineFunction &MF
                                                    MachineInstr &MI) {
 
   partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI)), MI.getDebugLoc(), funcCountCodePtrBranch);
-  AArch64PartsCpiPass::lowerPARTSAUTCALL(MF, MBB, MI);
+  AArch64PartsCpiPassDecoratorBase::lowerPARTSAUTCALL(MF, MBB, MI);
 }
 
 bool AArch64PartsCpiPass::doInitialization(Module &M) {
@@ -230,7 +248,7 @@ inline void AArch64PartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBas
   llvm_unreachable("failed to find BLR for AUTCALL");
 }
 
-inline void AArch64PartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
+void AArch64PartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
                                                                     MachineInstr *MI_indcall,
                                                                     unsigned dst,
                                                                     unsigned mod) {
