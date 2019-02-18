@@ -81,9 +81,9 @@ namespace {
 
  };
 
- class AArch64PartsCpiWithEventCallPass : public AArch64PartsCpiPass {
+ class AArch64PartsCpiWithRuntimeStatistics : public AArch64PartsCpiPass {
   public:
-    AArch64PartsCpiWithEventCallPass() : AArch64PartsCpiPass() {}
+    AArch64PartsCpiWithRuntimeStatistics() : AArch64PartsCpiPass() {}
 
     bool doInitialization(Module &M) override;
 
@@ -99,27 +99,27 @@ namespace {
 
 FunctionPass *llvm::createAArch64PartsPassCpi() {
   if (PARTS::useRuntimeStats())
-   return new AArch64PartsCpiWithEventCallPass();
+   return new AArch64PartsCpiWithRuntimeStatistics();
   else
    return new AArch64PartsCpiPass();
 }
 
 char AArch64PartsCpiPass::ID = 0;
 
-bool AArch64PartsCpiWithEventCallPass::doInitialization(Module &M) {
+bool AArch64PartsCpiWithRuntimeStatistics::doInitialization(Module &M) {
   funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
   funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
   return true;
 }
 
-void AArch64PartsCpiWithEventCallPass::lowerPARTSPACIA(MachineFunction &MF,
+void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSPACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
   partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
   AArch64PartsCpiPass::lowerPARTSPACIA(MF, MBB, MI);
 }
 
-void AArch64PartsCpiWithEventCallPass::lowerPARTSAUTCALL(MachineFunction &MF,
+void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineFunction &MF,
                                                    MachineBasicBlock &MBB,
                                                    MachineInstr &MI) {
 
