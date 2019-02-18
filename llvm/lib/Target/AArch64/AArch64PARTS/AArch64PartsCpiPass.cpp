@@ -66,7 +66,6 @@ namespace {
    const TargetMachine *TM = nullptr;
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
-   const AArch64RegisterInfo *TRI = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
@@ -91,7 +90,7 @@ namespace {
   protected:
    PartsUtils_ptr  partsUtils = nullptr;
 
-   void doMachineFunctionInit(MachineFunction &MF) override { PartsCpiPass->doMachineFunctionInit(MF); partsUtils = PartsUtils::get(TRI, TII); };
+   void doMachineFunctionInit(MachineFunction &MF) override { PartsCpiPass->doMachineFunctionInit(MF); partsUtils = PartsUtils::get(STI->getRegisterInfo(), TII); };
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSAUTCALL(MF, MBB, MI); };
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSPACIA(MF, MBB, MI); };
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override { PartsCpiPass->replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod); };
@@ -176,7 +175,6 @@ void AArch64PartsCpiPass::doMachineFunctionInit(MachineFunction &MF) {
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
-  TRI = STI->getRegisterInfo();
 }
 
 bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
