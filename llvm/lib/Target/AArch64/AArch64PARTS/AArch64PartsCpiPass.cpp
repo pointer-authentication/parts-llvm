@@ -140,10 +140,9 @@ bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
   TRI = STI->getRegisterInfo();
   partsUtils = PartsUtils::get(TRI, TII);
 
-  for (auto &MBB : MF) {
+  for (auto &MBB : MF)
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
       found = handleInstruction(MF, MBB, MIi) || found;
-  }
 
   return found;
 }
@@ -227,17 +226,17 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
 }
 
 inline void AArch64PartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
-      DEBUG(MBB.dump());
-      llvm_unreachable("failed to find BLR for AUTCALL");
+  DEBUG(MBB.dump());
+  llvm_unreachable("failed to find BLR for AUTCALL");
 }
 
 inline void AArch64PartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
                                                                     MachineInstr *MI_indcall,
                                                                     unsigned dst,
                                                                     unsigned mod) {
-    auto &MCI = getIndirectCallMachineInstruction(MI_indcall);
-    insertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, MCI);
-    MI_indcall->removeFromParent(); // Remove the replaced BR instruction
+  auto &MCI = getIndirectCallMachineInstruction(MI_indcall);
+  insertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, MCI);
+  MI_indcall->removeFromParent(); // Remove the replaced BR instruction
 }
 
 inline unsigned AArch64PartsCpiPass::getFreeRegister(MachineBasicBlock &MBB,
