@@ -59,6 +59,7 @@ namespace {
 
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
 
  private:
    PartsLog_ptr log;
@@ -79,7 +80,6 @@ namespace {
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void insertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
    inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
-   virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
 
    friend class AArch64PartsCpiPassDecoratorBase;
@@ -92,6 +92,7 @@ namespace {
   protected:
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSAUTCALL(MF, MBB, MI); };
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSPACIA(MF, MBB, MI); };
+   virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override { PartsCpiPass->replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod); };
 
   private:
    AArch64PartsCpiPass *PartsCpiPass;
@@ -111,15 +112,27 @@ namespace {
    void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
  };
 
+ class AArch64PartsCpiWithEmulatedTimings : public AArch64PartsCpiPassDecoratorBase {
+  public:
+    AArch64PartsCpiWithEmulatedTimings(AArch64PartsCpiPass *PartsCpiPass) : AArch64PartsCpiPassDecoratorBase(PartsCpiPass) {}
+
+  private:
+   virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
+ };
+
+
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PartsPassCpi() {
   AArch64PartsCpiPass *CpiPass = new AArch64PartsCpiPass();
 
   if (PARTS::useRuntimeStats())
-   return new AArch64PartsCpiWithRuntimeStatistics(CpiPass);
-  else
-   return CpiPass;
+    CpiPass = new AArch64PartsCpiWithRuntimeStatistics(CpiPass);
+
+  if (PARTS::useDummy()) // True if we want to emulate auth instructions timings.
+    CpiPass = new AArch64PartsCpiWithEmulatedTimings(CpiPass);
+
+  return CpiPass;
 }
 
 char AArch64PartsCpiPass::ID = 0;
@@ -143,6 +156,14 @@ void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineFunction &MF
 
   partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI)), MI.getDebugLoc(), funcCountCodePtrBranch);
   AArch64PartsCpiPassDecoratorBase::lowerPARTSAUTCALL(MF, MBB, MI);
+}
+
+void AArch64PartsCpiWithEmulatedTimings::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
+                                                                                MachineInstr *MI_indcall,
+                                                                                unsigned dst,
+                                                                                unsigned mod) {
+ // FIXME: This might break if the pointer is reused elsewhere!!!
+ partsUtils->addNops(MBB, MI_indcall, dst, mod, MI_indcall->getDebugLoc());
 }
 
 bool AArch64PartsCpiPass::doInitialization(Module &M) {
@@ -235,10 +256,7 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
   if (src != dst)
     insertMovInstr(MBB, &MI, dst, src);
 
-  if (PARTS::useDummy())  // True if we want to emulate auth instructions timings.
-    partsUtils->addNops(MBB, MI_indcall, src, mod, MI_indcall->getDebugLoc()); // FIXME: This might break if the pointer is reused elsewhere!!!
-  else
-    replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
+  replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
 
   ++StatAutcall;
 }
