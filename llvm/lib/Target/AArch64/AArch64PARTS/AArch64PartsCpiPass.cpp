@@ -70,6 +70,7 @@ namespace {
    const AArch64RegisterInfo *TRI = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   void doMachineFunctionInit(MachineFunction &MF);
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    void lowerPARTSIntrinsicCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
@@ -170,14 +171,18 @@ bool AArch64PartsCpiPass::doInitialization(Module &M) {
   return true;
 }
 
-bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
-  bool found = false;
-
+void AArch64PartsCpiPass::doMachineFunctionInit(MachineFunction &MF) {
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
   partsUtils = PartsUtils::get(TRI, TII);
+}
+
+bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
+  bool found = false;
+
+  doMachineFunctionInit(MF);
 
   for (auto &MBB : MF)
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
