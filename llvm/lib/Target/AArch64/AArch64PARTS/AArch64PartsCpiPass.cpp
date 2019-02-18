@@ -125,11 +125,11 @@ namespace {
 FunctionPass *llvm::createAArch64PartsPassCpi() {
   AArch64PartsCpiPass *CpiPass = new AArch64PartsCpiPass();
 
-  if (PARTS::useRuntimeStats())
-    CpiPass = new AArch64PartsCpiWithRuntimeStatistics(CpiPass);
-
   if (PARTS::useDummy()) // True if we want to emulate auth instructions timings.
     CpiPass = new AArch64PartsCpiWithEmulatedTimings(CpiPass);
+
+  if (PARTS::useRuntimeStats())
+    CpiPass = new AArch64PartsCpiWithRuntimeStatistics(CpiPass);
 
   return CpiPass;
 }
