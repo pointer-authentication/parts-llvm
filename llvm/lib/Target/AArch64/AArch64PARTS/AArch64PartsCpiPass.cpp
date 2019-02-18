@@ -61,9 +61,6 @@ namespace {
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
 
  private:
-   PartsLog_ptr log;
-
-   const TargetMachine *TM = nullptr;
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
 
@@ -173,7 +170,6 @@ bool AArch64PartsCpiPass::doInitialization(Module &M) {
 }
 
 void AArch64PartsCpiPass::doMachineFunctionInit(MachineFunction &MF) {
-  TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
 }
