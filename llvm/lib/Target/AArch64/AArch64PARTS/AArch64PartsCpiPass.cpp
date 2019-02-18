@@ -67,6 +67,7 @@ namespace {
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+   void lowerPARTSIntrinsicCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
    inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
    inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
@@ -196,17 +197,7 @@ inline bool AArch64PartsCpiPass::isPartsIntrinsic(unsigned Opcode) {
 void AArch64PartsCpiPass::lowerPARTSPACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
-  const unsigned dst = MI.getOperand(0).getReg();
-  const unsigned src = MI.getOperand(1).getReg();
-  const unsigned mod = MI.getOperand(2).getReg();
-
-  if (src != dst)
-    insertMovInstr(MBB, &MI, dst, src);
-
-  BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(AArch64::PACIA))
-      .addUse(dst)
-      .addUse(mod);
-
+  lowerPARTSIntrinsicCommon(MF, MBB, MI, TII->get(AArch64::PACIA));
   ++StatPacia;
 }
 
@@ -278,19 +269,25 @@ inline const MCInstrDesc &AArch64PartsCpiPass::getIndirectCallMachineInstruction
 
 inline void AArch64PartsCpiPass::lowerPARTSAUTIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
-                                                 MachineInstr &MI_autia) {
-  const unsigned mod = MI_autia.getOperand(2).getReg();
-  const unsigned src = MI_autia.getOperand(1).getReg();
-  const unsigned dst = MI_autia.getOperand(0).getReg();
+                                                 MachineInstr &MI) {
+  lowerPARTSIntrinsicCommon(MF, MBB, MI, TII->get(AArch64::AUTIA));
+  ++StatAutia;
+}
+
+void AArch64PartsCpiPass::lowerPARTSIntrinsicCommon(MachineFunction &MF,
+                                                    MachineBasicBlock &MBB,
+                                                    MachineInstr &MI,
+                                                    const MCInstrDesc &InstrDesc) {
+  const unsigned mod = MI.getOperand(2).getReg();
+  const unsigned src = MI.getOperand(1).getReg();
+  const unsigned dst = MI.getOperand(0).getReg();
 
   if (src != dst)
-    insertMovInstr(MBB, &MI_autia, dst, src);
+    insertMovInstr(MBB, &MI, dst, src);
 
-  BuildMI(MBB, MI_autia, MI_autia.getDebugLoc(), TII->get(AArch64::AUTIA))
+  BuildMI(MBB, MI, MI.getDebugLoc(), InstrDesc)
     .addUse(dst)
     .addUse(mod);
-
-  ++StatAutia;
 }
 
 inline MachineInstr *AArch64PartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
