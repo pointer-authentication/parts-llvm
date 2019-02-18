@@ -55,8 +55,7 @@ namespace {
    bool runOnMachineFunction(MachineFunction &) override;
 
  protected:
-   PartsUtils_ptr  partsUtils = nullptr;
-
+   virtual void doMachineFunctionInit(MachineFunction &MF);
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
@@ -70,7 +69,6 @@ namespace {
    const AArch64RegisterInfo *TRI = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-   void doMachineFunctionInit(MachineFunction &MF);
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    void lowerPARTSIntrinsicCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
@@ -91,6 +89,9 @@ namespace {
     AArch64PartsCpiPassDecoratorBase(AArch64PartsCpiPass *CpiPass): AArch64PartsCpiPass() { PartsCpiPass = CpiPass; }
 
   protected:
+   PartsUtils_ptr  partsUtils = nullptr;
+
+   void doMachineFunctionInit(MachineFunction &MF) override { PartsCpiPass->doMachineFunctionInit(MF); partsUtils = PartsUtils::get(TRI, TII); };
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSAUTCALL(MF, MBB, MI); };
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSPACIA(MF, MBB, MI); };
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override { PartsCpiPass->replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod); };
@@ -176,7 +177,6 @@ void AArch64PartsCpiPass::doMachineFunctionInit(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
-  partsUtils = PartsUtils::get(TRI, TII);
 }
 
 bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
