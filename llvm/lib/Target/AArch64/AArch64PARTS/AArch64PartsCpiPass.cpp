@@ -59,6 +59,7 @@ namespace {
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
+   inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
 
  private:
    const AArch64Subtarget *STI = nullptr;
@@ -74,7 +75,6 @@ namespace {
    inline bool isPartsIntrinsic(unsigned Opcode);
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline void insertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
-   inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
 
    friend class AArch64PartsCpiPassDecoratorBase;
@@ -116,6 +116,7 @@ namespace {
     AArch64PartsCpiWithEmulatedTimings(AArch64PartsCpiPass *PartsCpiPass) : AArch64PartsCpiPassDecoratorBase(PartsCpiPass) {}
 
   private:
+   void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
    void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
  };
 
@@ -161,6 +162,19 @@ void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineFunction &MF
 
   partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI)), MI.getDebugLoc(), funcCountCodePtrBranch);
   AArch64PartsCpiPassDecoratorBase::lowerPARTSAUTCALL(MF, MBB, MI);
+}
+
+void AArch64PartsCpiWithEmulatedTimings::lowerPARTSPACIA(MachineFunction &MF,
+                                                 MachineBasicBlock &MBB,
+                                                 MachineInstr &MI) {
+  const unsigned mod = MI.getOperand(2).getReg();
+  const unsigned src = MI.getOperand(1).getReg();
+  const unsigned dst = MI.getOperand(0).getReg();
+
+  if (src != dst)
+    insertMovInstr(MBB, &MI, dst, src);
+
+  partsUtils->addNops(MBB, &MI, dst, mod, MI.getDebugLoc());
 }
 
 void AArch64PartsCpiWithEmulatedTimings::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
