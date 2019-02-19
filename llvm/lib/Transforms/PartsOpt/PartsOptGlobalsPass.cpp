@@ -37,18 +37,12 @@ struct PartsOptGlobalsPass: public ModulePass {
   bool runOnModule(Module &M) override;
 
 private:
-  std::list<PARTS::type_id_t> data_type_ids = std::list<PARTS::type_id_t>(0);
-  std::list<PARTS::type_id_t> code_type_ids = std::list<PARTS::type_id_t>(0);
-
   IRBuilder<> *builder;
 
   bool handle(Module &M, Value *V, Type *Ty);
   bool handle(Module &M, Value *V, StructType *Ty);
   bool handle(Module &M, Value *V, ArrayType *Ty);
   bool handle(Module &M, Value *V, PointerType *Ty);
-
-  void writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName);
-
 };
 
 } // anonymous namespace
@@ -84,14 +78,6 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
   builder = nullptr;
 
   appendToGlobalCtors(M, funcFixGlobals, 0);
-
-  if (PARTS::useFeCfi()) {
-    writeTypeIds(M, code_type_ids, ".code_type_id");
-  }
-
-  if (PARTS::useDpi()) {
-    writeTypeIds(M, data_type_ids, ".data_type_id");
-  }
 
   return true;
 }
@@ -172,15 +158,4 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
   builder->CreateStore(paced, V);
 
   return true;
-}
-
-void PartsOptGlobalsPass::writeTypeIds(Module &M, std::list<PARTS::type_id_t> &type_ids, const char *sectionName)
-{
-  for (auto type_id : type_ids) {
-    ConstantInt* type_id_Constant = ConstantInt::get(Type::getInt64Ty(M.getContext()), type_id);
-
-    GlobalVariable *g = new GlobalVariable(M, Type::getInt64Ty(M.getContext()), true, GlobalValue::PrivateLinkage, type_id_Constant);
-    g->setExternallyInitialized(false);
-    g->setSection(sectionName);
-  }
 }
