@@ -18,7 +18,6 @@
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsIntr.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
 
@@ -133,11 +132,15 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, StructType *Ty) {
 }
 
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
-  auto PTMD = PartsTypeMetadata::get(Ty);
 
-  if (PTMD->isCodePointer() && PARTS::useFeCfi())
+  if (!Ty->isPointerTy())
+    return false;
+
+  const bool isCodePointer = Ty->getPointerElementType()->isFunctionTy();
+
+  if (isCodePointer && PARTS::useFeCfi())
     ++PartsCodePointersPACed;
-  else if (PTMD->isDataPointer() && PARTS::useDpi())
+  else if (!isCodePointer && PARTS::useDpi())
     ++PartsDataPointersPACed;
   else
     return false;
