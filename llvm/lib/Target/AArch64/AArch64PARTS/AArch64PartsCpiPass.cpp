@@ -59,7 +59,7 @@ namespace {
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
-   inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
+   virtual void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
 
  private:
    const AArch64Subtarget *STI = nullptr;
@@ -75,7 +75,7 @@ namespace {
    inline bool isPartsIntrinsic(unsigned Opcode);
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
-   inline void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
+   inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
 
    friend class AArch64PartsCpiPassDecoratorBase;
  };
@@ -92,6 +92,7 @@ namespace {
    virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSAUTCALL(MF, MBB, MI); };
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSPACIA(MF, MBB, MI); };
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override { PartsCpiPass->replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod); };
+   virtual void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc) override { PartsCpiPass->insertPACInstr(MBB, MI, dstReg, modReg, InstrDesc); };
 
   private:
    AArch64PartsCpiPass *PartsCpiPass;
@@ -116,7 +117,8 @@ namespace {
     AArch64PartsCpiWithEmulatedTimings(AArch64PartsCpiPass *PartsCpiPass) : AArch64PartsCpiPassDecoratorBase(PartsCpiPass) {}
 
   private:
-   void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
+   void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { AArch64PartsCpiPass::lowerPARTSPACIA(MF, MBB, MI); }
+   void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc) override;
    void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
  };
 
@@ -164,17 +166,13 @@ void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineFunction &MF
   AArch64PartsCpiPassDecoratorBase::lowerPARTSAUTCALL(MF, MBB, MI);
 }
 
-void AArch64PartsCpiWithEmulatedTimings::lowerPARTSPACIA(MachineFunction &MF,
-                                                 MachineBasicBlock &MBB,
-                                                 MachineInstr &MI) {
-  const unsigned mod = MI.getOperand(2).getReg();
-  const unsigned src = MI.getOperand(1).getReg();
-  const unsigned dst = MI.getOperand(0).getReg();
-
-  if (src != dst)
-    insertMovInstr(MBB, &MI, dst, src);
-
-  partsUtils->addNops(MBB, &MI, dst, mod, MI.getDebugLoc());
+void AArch64PartsCpiWithEmulatedTimings::insertPACInstr(MachineBasicBlock &MBB,
+                                                        MachineInstr *MI,
+                                                        unsigned dstReg,
+                                                        unsigned modReg,
+                                                        const MCInstrDesc &InstrDesc) {
+  // FIXME: This might break if the pointer is reused elsewhere!!!
+  partsUtils->addNops(MBB, MI, dstReg, modReg, MI->getDebugLoc());
 }
 
 void AArch64PartsCpiWithEmulatedTimings::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
@@ -359,11 +357,11 @@ inline bool AArch64PartsCpiPass::isIndirectCall(const MachineInstr &MI) const {
   return false;
 }
 
-inline void AArch64PartsCpiPass::insertPACInstr(MachineBasicBlock &MBB,
-                                                MachineInstr *MI,
-                                                unsigned dstReg,
-                                                unsigned modReg,
-                                                const MCInstrDesc &InstrDesc) {
+void AArch64PartsCpiPass::insertPACInstr(MachineBasicBlock &MBB,
+                                         MachineInstr *MI,
+                                         unsigned dstReg,
+                                         unsigned modReg,
+                                         const MCInstrDesc &InstrDesc) {
   auto BMI = BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc);
   BMI.addUse(dstReg);
   BMI.addUse(modReg);
