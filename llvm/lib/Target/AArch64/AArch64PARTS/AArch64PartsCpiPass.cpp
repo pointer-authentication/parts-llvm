@@ -78,6 +78,7 @@ namespace {
    inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
 
    friend class AArch64PartsCpiPassDecoratorBase;
+   friend class AArch64PartsCpiWithRuntimeStatistics;
  };
 
  class AArch64PartsCpiPassDecoratorBase : public AArch64PartsCpiPass {
@@ -89,12 +90,8 @@ namespace {
    PartsUtils_ptr  partsUtils = nullptr;
 
    void doMachineFunctionInit(MachineFunction &MF) override;
-   virtual void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSAUTCALL(MF, MBB, MI); };
-   virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { PartsCpiPass->lowerPARTSPACIA(MF, MBB, MI); };
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override { PartsCpiPass->replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod); };
    virtual void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc) override { PartsCpiPass->insertPACInstr(MBB, MI, dstReg, modReg, InstrDesc); };
-
-  private:
    AArch64PartsCpiPass *PartsCpiPass;
   };
 
@@ -117,7 +114,6 @@ namespace {
     AArch64PartsCpiWithEmulatedTimings(AArch64PartsCpiPass *PartsCpiPass) : AArch64PartsCpiPassDecoratorBase(PartsCpiPass) {}
 
   private:
-   void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override { AArch64PartsCpiPass::lowerPARTSPACIA(MF, MBB, MI); }
    void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc) override;
    void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
  };
@@ -155,7 +151,7 @@ void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSPACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
   partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
-  AArch64PartsCpiPassDecoratorBase::lowerPARTSPACIA(MF, MBB, MI);
+  PartsCpiPass->lowerPARTSPACIA(MF, MBB, MI);
 }
 
 void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineFunction &MF,
@@ -163,7 +159,7 @@ void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineFunction &MF
                                                    MachineInstr &MI) {
 
   partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI)), MI.getDebugLoc(), funcCountCodePtrBranch);
-  AArch64PartsCpiPassDecoratorBase::lowerPARTSAUTCALL(MF, MBB, MI);
+  PartsCpiPass->lowerPARTSAUTCALL(MF, MBB, MI);
 }
 
 void AArch64PartsCpiWithEmulatedTimings::insertPACInstr(MachineBasicBlock &MBB,
