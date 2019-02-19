@@ -74,8 +74,8 @@ namespace {
    inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
    inline bool isPartsIntrinsic(unsigned Opcode);
    inline bool isIndirectCall(const MachineInstr &MI) const;
-   inline void insertAuthenticateBranchInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
+   inline void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
 
    friend class AArch64PartsCpiPassDecoratorBase;
  };
@@ -291,7 +291,7 @@ void AArch64PartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &
                                                                     unsigned dst,
                                                                     unsigned mod) {
   auto &MCI = getIndirectCallMachineInstruction(MI_indcall);
-  insertAuthenticateBranchInstr(MBB, MI_indcall, dst, mod, MCI);
+  insertPACInstr(MBB, MI_indcall, dst, mod, MCI);
   MI_indcall->removeFromParent(); // Remove the replaced BR instruction
 }
 
@@ -340,9 +340,7 @@ void AArch64PartsCpiPass::lowerPARTSIntrinsicCommon(MachineFunction &MF,
   if (src != dst)
     insertMovInstr(MBB, &MI, dst, src);
 
-  BuildMI(MBB, MI, MI.getDebugLoc(), InstrDesc)
-    .addUse(dst)
-    .addUse(mod);
+  insertPACInstr(MBB, &MI, dst, mod, InstrDesc);
 }
 
 inline MachineInstr *AArch64PartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
@@ -361,12 +359,12 @@ inline bool AArch64PartsCpiPass::isIndirectCall(const MachineInstr &MI) const {
   return false;
 }
 
-inline void AArch64PartsCpiPass::insertAuthenticateBranchInstr(MachineBasicBlock &MBB,
-                                                               MachineInstr *MI_indcall,
-                                                               unsigned dstReg,
-                                                               unsigned modReg,
-                                                               const MCInstrDesc &InstrDesc) {
-  auto BMI = BuildMI(MBB, MI_indcall, MI_indcall->getDebugLoc(), InstrDesc);
+inline void AArch64PartsCpiPass::insertPACInstr(MachineBasicBlock &MBB,
+                                                MachineInstr *MI,
+                                                unsigned dstReg,
+                                                unsigned modReg,
+                                                const MCInstrDesc &InstrDesc) {
+  auto BMI = BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc);
   BMI.addUse(dstReg);
   BMI.addUse(modReg);
 }
