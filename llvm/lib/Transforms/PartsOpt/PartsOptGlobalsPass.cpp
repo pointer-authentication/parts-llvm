@@ -31,6 +31,9 @@ using namespace llvm;
 
 namespace {
 
+STATISTIC(PartsDataPointersPACed, "global data pointers to PAC");
+STATISTIC(PartsCodePointersPACed, "global code pointers to PAC");
+
 struct PartsOptGlobalsPass: public ModulePass {
   static char ID; // Pass identification, replacement for typeid
 
@@ -48,10 +51,6 @@ private:
 
   std::list<PARTS::type_id_t> data_type_ids = std::list<PARTS::type_id_t>(0);
   std::list<PARTS::type_id_t> code_type_ids = std::list<PARTS::type_id_t>(0);
-  unsigned marked_data_pointers = 0;
-  unsigned marked_code_pointers = 0;
-  unsigned fixed_dp = 0;
-  unsigned fixed_cp = 0;
 
   IRBuilder<> *builder;
 
@@ -102,19 +101,14 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
   appendToGlobalCtors(M, funcFixGlobals, 0);
 
   if (PARTS::useFeCfi()) {
-    log->inc(DEBUG_TYPE ".CodePointersFixed", fixed_cp) << "\"fixed\" " << fixed_cp << " code pointers for PACing\n";
-    log->inc(DEBUG_TYPE ".CodePointersMarked", marked_code_pointers) << "annotating " << marked_code_pointers << " code pointers for PACing\n";
     writeTypeIds(M, code_type_ids, ".code_type_id");
   }
 
   if (PARTS::useDpi()) {
-    log->inc(DEBUG_TYPE ".DataPointersFixed", fixed_dp) << "\"fixed\" " << fixed_dp << " data pointers for PACing\n";
-    log->inc(DEBUG_TYPE ".DataPointersMarked", marked_data_pointers) << "annotating " << marked_data_pointers << " data pointers for PACing\n";
     writeTypeIds(M, data_type_ids, ".data_type_id");
   }
 
-  bool need_fix_globals_call = (marked_code_pointers+marked_data_pointers+fixed_cp+fixed_dp) > 0;
-  return need_fix_globals_call;
+  return true;
 }
 
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, Type *Ty) {
@@ -175,16 +169,16 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
 
   if (PTMD->isCodePointer()) {
     if (PARTS::useFeCfi()) {
-      marked_code_pointers++;
       log->debug() << "mark as code pointer type_id=" << type_id << "\n";
+      ++PartsCodePointersPACed;
     } else {
       PTMD->setIgnored(true);
     }
   } else {
     assert(PTMD->isDataPointer());
     if (PARTS::useDpi()) {
-      marked_data_pointers++;
       log->green() << "mark as data pointer type_id=" << type_id << "\n";
+      ++PartsDataPointersPACed;
     } else {
       PTMD->setIgnored(true);
     }
