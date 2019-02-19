@@ -69,7 +69,11 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
 
     if (GI->getNumOperands() > 0) {
       const auto O = GI->getOperand(0);
-      handle(M, &*GI, O->getType());
+      if (handle(M, &*GI, O->getType())) {
+        // We are going to modify the global, make sure it is writeable!
+        if (GI->isConstant())
+          GI->setConstant(false);
+      }
     }
 
   }
