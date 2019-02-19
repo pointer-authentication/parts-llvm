@@ -77,34 +77,22 @@ namespace {
    inline bool isNormalIndirectCall(const MachineInstr *MI) const;
    inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
 
-   friend class AArch64PartsCpiPassDecoratorBase;
    friend class AArch64PartsCpiWithRuntimeStatistics;
  };
 
- class AArch64PartsCpiPassDecoratorBase : public AArch64PartsCpiPass {
+ class AArch64PartsCpiWithRuntimeStatistics : public AArch64PartsCpiPass {
   public:
-    AArch64PartsCpiPassDecoratorBase(AArch64PartsCpiPass *CpiPass): AArch64PartsCpiPass() { PartsCpiPass = CpiPass; }
-    virtual bool doInitialization(Module &M) override { return PartsCpiPass->doInitialization(M); };
+   AArch64PartsCpiWithRuntimeStatistics(AArch64PartsCpiPass *CpiPass) : AArch64PartsCpiPass() { PartsCpiPass = CpiPass; }
 
-  protected:
-   PartsUtils_ptr  partsUtils = nullptr;
-
-   void doMachineFunctionInit(MachineFunction &MF) override;
-   virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override { PartsCpiPass->replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod); };
-   virtual void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc) override { PartsCpiPass->insertPACInstr(MBB, MI, dstReg, modReg, InstrDesc); };
-   AArch64PartsCpiPass *PartsCpiPass;
-  };
-
- class AArch64PartsCpiWithRuntimeStatistics : public AArch64PartsCpiPassDecoratorBase {
-  public:
-    AArch64PartsCpiWithRuntimeStatistics(AArch64PartsCpiPass *PartsCpiPass) : AArch64PartsCpiPassDecoratorBase(PartsCpiPass) {}
-
-    bool doInitialization(Module &M) override;
+   bool doInitialization(Module &M) override;
 
   private:
+   PartsUtils_ptr  partsUtils = nullptr;
    Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
+   AArch64PartsCpiPass *PartsCpiPass;
 
+   void doMachineFunctionInit(MachineFunction &MF) override;
    void lowerPARTSAUTCALL(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
    void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
  };
@@ -135,7 +123,7 @@ FunctionPass *llvm::createAArch64PartsPassCpi() {
 
 char AArch64PartsCpiPass::ID = 0;
 
-void AArch64PartsCpiPassDecoratorBase::doMachineFunctionInit(MachineFunction &MF) {
+void AArch64PartsCpiWithRuntimeStatistics::doMachineFunctionInit(MachineFunction &MF) {
   PartsCpiPass->doMachineFunctionInit(MF);
   AArch64PartsCpiPass::doMachineFunctionInit(MF);
   partsUtils = PartsUtils::get(STI->getRegisterInfo(), TII);
@@ -144,7 +132,7 @@ void AArch64PartsCpiPassDecoratorBase::doMachineFunctionInit(MachineFunction &MF
 bool AArch64PartsCpiWithRuntimeStatistics::doInitialization(Module &M) {
   funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
   funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
-  return AArch64PartsCpiPassDecoratorBase::doInitialization(M);
+  return PartsCpiPass->doInitialization(M);
 }
 
 void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSPACIA(MachineFunction &MF,
