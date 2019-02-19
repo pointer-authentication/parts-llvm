@@ -259,7 +259,7 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
   const unsigned mod_orig = MI.getOperand(2).getReg();
   const unsigned src = MI.getOperand(1).getReg();
   const unsigned dst = MI.getOperand(0).getReg();
-  const unsigned mod = getFreeRegister(MBB, MI_indcall, MI);
+  const unsigned mod = getFreeRegister(MBB, MI_indcall->getPrevNode(), MI);
 
   insertMovInstr(MBB, &MI, mod, mod_orig);
   if (src != dst)
@@ -291,7 +291,7 @@ inline unsigned AArch64PartsCpiPass::getFreeRegister(MachineBasicBlock &MBB,
   auto &RC = AArch64::GPR64commonRegClass;
 
   RS.enterBasicBlockEnd(MBB);
-  RS.backward(--MachineBasicBlock::iterator(MI_from));
+  RS.backward(MachineBasicBlock::iterator(MI_from));
   const unsigned reg = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_to), false, 0);
   RS.setRegUsed(reg); // Tell the Register Scavenger that the register is alive. Needed !?
 
