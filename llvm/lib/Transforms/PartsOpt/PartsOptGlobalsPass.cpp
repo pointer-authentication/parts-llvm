@@ -135,22 +135,11 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, StructType *Ty) {
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
   auto PTMD = PartsTypeMetadata::get(Ty);
 
-  if (PTMD->isCodePointer()) {
-    if (PARTS::useFeCfi()) {
-      ++PartsCodePointersPACed;
-    } else {
-      PTMD->setIgnored(true);
-    }
-  } else {
-    assert(PTMD->isDataPointer());
-    if (PARTS::useDpi()) {
-      ++PartsDataPointersPACed;
-    } else {
-      PTMD->setIgnored(true);
-    }
-  }
-
-  if (PTMD->isIgnored())
+  if (PTMD->isCodePointer() && PARTS::useFeCfi())
+    ++PartsCodePointersPACed;
+  else if (PTMD->isDataPointer() && PARTS::useDpi())
+    ++PartsDataPointersPACed;
+  else
     return false;
 
   auto loaded = builder->CreateLoad(V);
