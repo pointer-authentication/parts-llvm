@@ -60,10 +60,10 @@ namespace {
    virtual void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
    virtual void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
+   const AArch64InstrInfo *TII = nullptr;
 
  private:
    const AArch64Subtarget *STI = nullptr;
-   const AArch64InstrInfo *TII = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
@@ -109,23 +109,23 @@ namespace {
    void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI) override;
  };
 
- class AArch64PartsCpiWithEmulatedTimings : public AArch64PartsCpiPassDecoratorBase {
-  public:
-    AArch64PartsCpiWithEmulatedTimings(AArch64PartsCpiPass *PartsCpiPass) : AArch64PartsCpiPassDecoratorBase(PartsCpiPass) {}
-
+ class AArch64PartsCpiWithEmulatedTimings : public AArch64PartsCpiPass {
   private:
    void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc) override;
    void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
+   void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
  };
 
 
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PartsPassCpi() {
-  AArch64PartsCpiPass *CpiPass = new AArch64PartsCpiPass();
+  AArch64PartsCpiPass *CpiPass;
 
   if (PARTS::useDummy()) // True if we want to emulate auth instructions timings.
-    CpiPass = new AArch64PartsCpiWithEmulatedTimings(CpiPass);
+    CpiPass = new AArch64PartsCpiWithEmulatedTimings();
+  else
+    CpiPass = new AArch64PartsCpiPass();
 
   if (PARTS::useRuntimeStats())
     CpiPass = new AArch64PartsCpiWithRuntimeStatistics(CpiPass);
@@ -168,7 +168,7 @@ void AArch64PartsCpiWithEmulatedTimings::insertPACInstr(MachineBasicBlock &MBB,
                                                         unsigned modReg,
                                                         const MCInstrDesc &InstrDesc) {
   // FIXME: This might break if the pointer is reused elsewhere!!!
-  partsUtils->addNops(MBB, MI, dstReg, modReg, MI->getDebugLoc());
+ addNops(MBB, MI, dstReg, modReg, MI->getDebugLoc());
 }
 
 void AArch64PartsCpiWithEmulatedTimings::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
@@ -176,7 +176,14 @@ void AArch64PartsCpiWithEmulatedTimings::replaceBranchByAuthenticatedBranch(Mach
                                                                                 unsigned dst,
                                                                                 unsigned mod) {
  // FIXME: This might break if the pointer is reused elsewhere!!!
- partsUtils->addNops(MBB, MI_indcall, dst, mod, MI_indcall->getDebugLoc());
+ addNops(MBB, MI_indcall, dst, mod, MI_indcall->getDebugLoc());
+}
+
+void AArch64PartsCpiWithEmulatedTimings::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
 }
 
 bool AArch64PartsCpiPass::doInitialization(Module &M) {
