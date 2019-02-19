@@ -17,17 +17,12 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include <llvm/Transforms/Utils/ModuleUtils.h>
 
 using namespace llvm;
 
 #define DEBUG_TYPE "PartsOptGlobalsPass"
-#define TAG KYEL DEBUG_TYPE ": "
-
-//#undef DEBUG_PA
-//#define DEBUG_PA(x) x
 
 namespace {
 
@@ -35,20 +30,13 @@ STATISTIC(PartsDataPointersPACed, "global data pointers to PAC");
 STATISTIC(PartsCodePointersPACed, "global code pointers to PAC");
 
 struct PartsOptGlobalsPass: public ModulePass {
-  static char ID; // Pass identification, replacement for typeid
+  static char ID;
 
-  PartsOptGlobalsPass() :
-      ModulePass(ID),
-      log(PartsLog::getLogger(DEBUG_TYPE))
-  {
-    DEBUG_PA(log->enable());
-  }
+  PartsOptGlobalsPass() : ModulePass(ID) {}
 
   bool runOnModule(Module &M) override;
 
 private:
-  PartsLog_ptr log;
-
   std::list<PARTS::type_id_t> data_type_ids = std::list<PARTS::type_id_t>(0);
   std::list<PARTS::type_id_t> code_type_ids = std::list<PARTS::type_id_t>(0);
 
@@ -86,10 +74,7 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
 
   for (auto GI = M.global_begin(), GE = M.global_end(); GI != GE; ++GI) {
 
-    if (GI->getNumOperands() == 0) {
-      DEBUG_PA(log->info() << "skipping empty\n");
-    } else {
-      DEBUG_PA(log->info() << "inspecting " << GI << "\n");
+    if (GI->getNumOperands() > 0) {
       const auto O = GI->getOperand(0);
       handle(M, &*GI, O->getType());
     }
@@ -137,7 +122,6 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, ArrayType *Ty) {
 
   // Handle pointer elements
   for (auto i = 0U; i < elCount; i++) {
-    DEBUG_PA(log->debug() << "Getting GEP to " << base << ", " << i << "\n");
     auto elPtr = builder->CreateGEP(V, {
         ConstantInt::get(Type::getInt64Ty(C), 0),
         ConstantInt::get(Type::getInt64Ty(C), base + i),
@@ -165,11 +149,8 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, StructType *Ty) {
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
   auto PTMD = PartsTypeMetadata::get(Ty);
 
-  auto type_id = PTMD->getTypeId();
-
   if (PTMD->isCodePointer()) {
     if (PARTS::useFeCfi()) {
-      log->debug() << "mark as code pointer type_id=" << type_id << "\n";
       ++PartsCodePointersPACed;
     } else {
       PTMD->setIgnored(true);
@@ -177,19 +158,14 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
   } else {
     assert(PTMD->isDataPointer());
     if (PARTS::useDpi()) {
-      log->green() << "mark as data pointer type_id=" << type_id << "\n";
       ++PartsDataPointersPACed;
     } else {
       PTMD->setIgnored(true);
     }
   }
 
-  if (PTMD->isIgnored()) {
-    DEBUG_PA(log->info() << "skipping ignored\n");
+  if (PTMD->isIgnored())
     return false;
-  }
-
-  DEBUG_PA(log->debug() << "inserting new PAC call to global fixer function\n");
 
   auto loaded = builder->CreateLoad(V);
   auto paced = PartsIntr::pac_pointer(builder, M, loaded);
