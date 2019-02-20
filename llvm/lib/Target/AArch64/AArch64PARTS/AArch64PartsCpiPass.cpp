@@ -69,7 +69,6 @@ namespace {
    inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
    void lowerPARTSIntrinsicCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
-   inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
    inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
    inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
    inline bool isPartsIntrinsic(unsigned Opcode);
@@ -254,7 +253,7 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
 
   MachineInstr *MI_indcall = findIndirectCallMachineInstr(MI.getNextNode());
   if (MI_indcall == nullptr)
-    triggerCompilationErrorOrphanAUTCALL(MBB);
+    llvm_unreachable("failed to find BLR for AUTCALL");
 
   const unsigned mod_orig = MI.getOperand(2).getReg();
   const unsigned src = MI.getOperand(1).getReg();
@@ -268,11 +267,6 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
   replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
 
   ++StatAutcall;
-}
-
-inline void AArch64PartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
-  DEBUG(MBB.dump());
-  llvm_unreachable("failed to find BLR for AUTCALL");
 }
 
 void AArch64PartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
