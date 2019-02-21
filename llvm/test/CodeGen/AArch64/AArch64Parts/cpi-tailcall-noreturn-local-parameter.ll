@@ -17,16 +17,12 @@ attributes #2 = { noreturn nounwind }
 ; CHECK-LABEL: tail_call_no_return
 ; CHECK: 	stp	x29, x30, [sp, #-16]!
 ; CHECK: 	mov	[[MODSRC:x[0-9]+]], #{{[0-9]+}}
+; CHECK: 	mov	x8, x0
 ; CHECK: 	movk	[[MODSRC]], #{{[0-9]+}}, lsl #16
 ; CHECK: 	movk	[[MODSRC]], #{{[0-9]+}}, lsl #32
 ; CHECK: 	movk	[[MODSRC]], #{{[0-9]+}}, lsl #48
 ; CHECK-NOT: 	mov	[[MODSRC]], x0
 ; CHECK: 	mov	  [[MODDST:x[0-9]+]], [[MODSRC]]
-; CHECK: 	mov	x8, x0
-; CHECK: 	mov	x0, #{{[0-9]+}}
-; CHECK: 	movk	x0, #{{[0-9]+}}, lsl #16
-; CHECK: 	movk	x0, #{{[0-9]+}}, lsl #32
-; CHECK: 	movk	x0, #{{[0-9]+}}, lsl #48
 ; CHECK: 	mov	x29, sp
 ; CHECK-NOT: 	blraa	x0, [[MODSRC]]
 ; CHECK-NOT: 	blraa	[[MODSRC]], [[MODSRC]]
