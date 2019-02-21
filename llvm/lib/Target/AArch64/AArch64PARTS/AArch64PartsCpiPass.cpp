@@ -266,13 +266,10 @@ void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineFunction &MF,
     llvm_unreachable("failed to find BLR for AUTCALL");
 
   const unsigned mod_orig = MI.getOperand(2).getReg();
-  const unsigned src = MI.getOperand(1).getReg();
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned mod = getFreeRegister(MBB, MI_indcall, MI);
 
   insertMovInstr(MBB, &MI, mod, mod_orig);
-  if (src != dst)
-    insertMovInstr(MBB, &MI, dst, src);
 
   replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
 
@@ -327,11 +324,7 @@ void AArch64PartsCpiPass::lowerPARTSIntrinsicCommon(MachineFunction &MF,
                                                     MachineInstr &MI,
                                                     const MCInstrDesc &InstrDesc) {
   const unsigned mod = MI.getOperand(2).getReg();
-  const unsigned src = MI.getOperand(1).getReg();
   const unsigned dst = MI.getOperand(0).getReg();
-
-  if (src != dst)
-    insertMovInstr(MBB, &MI, dst, src);
 
   insertPACInstr(MBB, &MI, dst, mod, InstrDesc);
 }
