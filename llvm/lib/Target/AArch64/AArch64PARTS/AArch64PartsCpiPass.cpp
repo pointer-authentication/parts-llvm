@@ -326,25 +326,9 @@ void AArch64PartsCpiPass::lowerPARTSIntrinsicCommon(MachineFunction &MF,
                                                     MachineBasicBlock &MBB,
                                                     MachineInstr &MI,
                                                     const MCInstrDesc &InstrDesc) {
-  const auto modOp = MI.getOperand(2);
-  unsigned mod = modOp.getReg();
+  const unsigned mod = MI.getOperand(2).getReg();
   const unsigned src = MI.getOperand(1).getReg();
   const unsigned dst = MI.getOperand(0).getReg();
-
-  // In rare cases the modifier register is killed and used as the output
-  // of the intrinsic, e.g.:
-  //    x2 = pacia(x1, x2);  =>    MOV    X2, X1
-  //                         =>    PACIA  X2, X2
-  // in these cases we need to first save the modifier register, e.g.:
-  //                         =>    MOV    x23, x2
-  //                         =>    MOV    x2, x1
-  //                         =>    PACIA  x2, X23
-  if (modOp.isKill() && dst == mod) {
-    const unsigned oldMod = mod;
-    // FIXME: Use register scavenger instead of reserve register!
-    mod = PARTS::getModifierReg();
-    insertMovInstr(MBB, &MI, mod, oldMod);
-  }
 
   if (src != dst)
     insertMovInstr(MBB, &MI, dst, src);
