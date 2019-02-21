@@ -18,8 +18,7 @@
 ; CHECK: pacia [[R2]], [[Rmod]]
 ; CHECK: pacia [[R3]], [[Rmod]]
 ; CHECK-NOT: pacia [[Rmod]], [[Rmod]]
-; // We would ideally get the following, but it doesn' twork right now:
-; xCHECK: pacia [[R4]], [[Rmod]]
+; CHECK: pacia [[R4]], [[Rmod]]
 ; CHECK: ret
 define private void @__pauth_pac_globals() #0 {
 entry:
