@@ -54,7 +54,10 @@ namespace {
    const AArch64InstrInfo *TII = nullptr;
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-  };
+   inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
+   inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
+   inline bool isIndirectCall(const MachineInstr &MI) const;
+   };
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64EarlyPartsPassCpi() {
@@ -93,9 +96,37 @@ inline bool AArch64EarlyPartsCpiPass::handleInstruction(MachineFunction &MF,
                                                    MachineBasicBlock::instr_iterator &MIi) {
   const auto MIOpcode = MIi->getOpcode();
 
-
   if (MIOpcode != AArch64::PARTS_AUTCALL)
     return false;
 
+  MachineInstr *MI_indcall = findIndirectCallMachineInstr(MIi->getNextNode());
+  if (MI_indcall == nullptr)
+    triggerCompilationErrorOrphanAUTCALL(MBB);
+
+#if 1
+  return !isIndirectCall(*MI_indcall);
+#else
   return true;
+#endif
+}
+
+inline MachineInstr *AArch64EarlyPartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
+  while (MI != nullptr && !isIndirectCall(*MI))
+    MI = MI->getNextNode();
+
+  return MI;
+}
+
+inline bool AArch64EarlyPartsCpiPass::isIndirectCall(const MachineInstr &MI) const {
+  switch (MI.getOpcode()) {
+    case AArch64::BLR:        // Normal indirect call
+    case AArch64::TCRETURNri: // Indirect tail call
+      return true;
+  }
+  return false;
+}
+
+inline void AArch64EarlyPartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
+  DEBUG(MBB.dump());
+  llvm_unreachable("failed to find BLR for AUTCALL");
 }
