@@ -103,6 +103,9 @@ inline bool AArch64EarlyPartsCpiPass::handleInstruction(MachineFunction &MF,
   if (MI_indcall == nullptr)
     triggerCompilationErrorOrphanAUTCALL(MBB);
 
+  if (MI_indcall->getOpcode()  == AArch64::TCRETURNri) // TODO: Handle tailcall, we need dedicate pseudo instr (TCRETURNA[AB]ri)
+    return false;
+
 #if 1
   return !isIndirectCall(*MI_indcall);
 #else
