@@ -684,13 +684,17 @@ let Predicates = [HasPA] in {
   // Combined Instructions
   def BRAA    : AuthBranchTwoOperands<0, 0, "braa">;
   def BRAB    : AuthBranchTwoOperands<0, 1, "brab">;
-  def BLRAA   : AuthBranchTwoOperands<1, 0, "blraa">;
-  def BLRAB   : AuthBranchTwoOperands<1, 1, "blrab">;
+  let isCall = 1, Defs = [LR], Uses = [SP] in {
+    def BLRAA   : AuthBranchTwoOperands<1, 0, "blraa">;
+    def BLRAB   : AuthBranchTwoOperands<1, 1, "blrab">;
+  }
 
   def BRAAZ   : AuthOneOperand<0b000, 0, "braaz">;
   def BRABZ   : AuthOneOperand<0b000, 1, "brabz">;
-  def BLRAAZ  : AuthOneOperand<0b001, 0, "blraaz">;
-  def BLRABZ  : AuthOneOperand<0b001, 1, "blrabz">;
+  let isCall = 1, Defs = [LR], Uses = [SP] in {
+    def BLRAAZ  : AuthOneOperand<0b001, 0, "blraaz">;
+    def BLRABZ  : AuthOneOperand<0b001, 1, "blrabz">;
+  }
 
   let isReturn = 1, isTerminator = 1, isBarrier = 1 in {
     def RETAA   : AuthReturn<0b010, 0, "retaa">;
