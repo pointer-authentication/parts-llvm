@@ -505,6 +505,8 @@ bool AArch64PassConfig::addGlobalInstructionSelect() {
 }
 
 bool AArch64PassConfig::addILPOpts() {
+  if (PARTS::useFeCfi())
+    addPass(createAArch64EarlyPartsPassCpi());
   if (EnableCondOpt)
     addPass(createAArch64ConditionOptimizerPass());
   if (EnableCCMP)
