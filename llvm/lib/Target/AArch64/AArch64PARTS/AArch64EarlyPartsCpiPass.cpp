@@ -112,15 +112,11 @@ inline bool AArch64EarlyPartsCpiPass::handleInstruction(MachineFunction &MF,
   BMI.add(dstOperand);
   BMI.add(modOperand);
   BMI.copyImplicitOps(*MI_indcall);
-//  MI_indcall->setDesc(TII->get(AArch64::BLRAA));
-//  MI_indcall->addOperand(MF, modOperand);
-  DEBUG(dbgs() << "PARTS BLRAA: " << BMI );
-  MBB.dump();
 
   MI_indcall->removeFromParent();
   MI.removeFromParent();
-  return false;
-//  return true;
+
+  return true;
 }
 
 inline MachineInstr *AArch64EarlyPartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
