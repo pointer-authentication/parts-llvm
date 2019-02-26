@@ -29,7 +29,7 @@
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsEventCount.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
-#include "AArch64PartsPass.h"
+#include "AArch64PartsPassCommon.h"
 #include "PartsUtils.h"
 
 #define DEBUG_TYPE "AArch64PartsDpiPass"
@@ -42,7 +42,7 @@ using namespace llvm::PARTS;
 
 namespace {
 
-class AArch64PartsDpiPass : public MachineFunctionPass, private AArch64PartsPass {
+class AArch64PartsDpiPass : public MachineFunctionPass, private AArch64PartsPassCommon {
 public:
   static char ID;
 
@@ -67,7 +67,7 @@ bool AArch64PartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
 
   bool modified = false;
 
-  AArch64PartsPass::runOnMachineFunction(MF);
+  AArch64PartsPassCommon::runOnMachineFunction(MF);
 
   for (auto &MBB : MF) {
     for (auto &MI : MBB) {

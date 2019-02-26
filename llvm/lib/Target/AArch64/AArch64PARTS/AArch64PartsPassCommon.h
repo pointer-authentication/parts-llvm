@@ -19,7 +19,7 @@ using namespace llvm::PARTS;
 namespace llvm {
 namespace PARTS {
 
-class AArch64PartsPass {
+class AArch64PartsPassCommon {
 protected:
   inline void runOnMachineFunction(MachineFunction &MF);
 
@@ -38,18 +38,18 @@ protected:
 };
 };
 
-inline void AArch64PartsPass::runOnMachineFunction(MachineFunction &MF) {
+inline void AArch64PartsPassCommon::runOnMachineFunction(MachineFunction &MF) {
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
 }
 
-inline bool AArch64PartsPass::hasNoPartsAttribute(MachineFunction &MF) {
+inline bool AArch64PartsPassCommon::hasNoPartsAttribute(MachineFunction &MF) {
   return MF.getFunction().getFnAttribute("no-parts").getValueAsString() == "true";
 }
 
-inline void AArch64PartsPass::lowerPartsIntrinsic(MachineFunction &MF,
+inline void AArch64PartsPassCommon::lowerPartsIntrinsic(MachineFunction &MF,
                                            MachineBasicBlock &MBB,
                                            MachineInstr &MI,
                                            const MCInstrDesc &InstrDesc) {
@@ -59,7 +59,7 @@ inline void AArch64PartsPass::lowerPartsIntrinsic(MachineFunction &MF,
   insertPACInstr(MBB, &MI, dst, mod, InstrDesc);
 }
 
-inline void AArch64PartsPass::insertPACInstr(MachineBasicBlock &MBB,
+inline void AArch64PartsPassCommon::insertPACInstr(MachineBasicBlock &MBB,
                                                 MachineInstr *MI,
                                                 unsigned dstReg,
                                                 unsigned modReg,
@@ -69,7 +69,7 @@ inline void AArch64PartsPass::insertPACInstr(MachineBasicBlock &MBB,
       .addUse(modReg);
 }
 
-inline void AArch64PartsPass::insertMovInstr(MachineBasicBlock &MBB,
+inline void AArch64PartsPassCommon::insertMovInstr(MachineBasicBlock &MBB,
                                                 MachineInstr *MI,
                                                 unsigned dstReg,
                                                 unsigned srcReg) {
