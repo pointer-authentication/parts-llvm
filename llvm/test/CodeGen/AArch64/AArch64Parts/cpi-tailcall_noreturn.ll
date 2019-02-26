@@ -19,8 +19,8 @@ attributes #2 = { noreturn nounwind }
 ; CHECK: 	movk	[[MODSRC]], #2582, lsl #32
 ; CHECK: 	mov	x8, x0
 ; CHECK: 	movk	[[MODSRC]], #10143, lsl #48
-; CHECK: 	mov	  [[MODDST:x[0-9]+]], [[MODSRC]]
+; CHECK-NOT: 	mov	  [[MODDST:x[0-9]+]], [[MODSRC]]
 ; CHECK: 	mov	w0, w1
 ; CHECK: 	mov	x29, sp
-; CHECK: 	blraa	x8, [[MODDST]]
+; CHECK: 	blraa	x8, [[MODSRC]]
 ; CHECK: .Lfunc_end0:
