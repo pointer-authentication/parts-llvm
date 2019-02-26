@@ -57,16 +57,15 @@ namespace {
  private:
   const AArch64Subtarget *STI = nullptr;
   const AArch64InstrInfo *TII = nullptr;
+  PartsUtils_ptr  partsUtils = nullptr;
   inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
   void doMachineFunctionInit(MachineFunction &MF);
   inline bool isPartsIntrinsic(unsigned Opcode);
-#if 0
-   PartsUtils_ptr  partsUtils = nullptr;
-   void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc) override;
-   void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, MachineOperand &dstReg, MachineOperand &modReg, const MCInstrDesc &InstrDesc) override;
-   void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
-   void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
-#endif
+  void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, MachineOperand &dstReg, MachineOperand &modReg, const MCInstrDesc &InstrDesc);
+//   void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
+  void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
+  void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+  void lowerPARTSIntrinsicCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
  };
 
 } // end anonymous namespace
@@ -77,15 +76,6 @@ FunctionPass *llvm::createAArch64PartsEmulatedTimingPass() {
 
 char AArch64PartsEmulatedTimingPass::ID = 0;
 
-#if 0
-void AArch64PartsEmulatedTimingPass::insertPACInstr(MachineBasicBlock &MBB,
-                                                        MachineInstr *MI,
-                                                        unsigned dstReg,
-                                                        unsigned modReg,
-                                                        const MCInstrDesc &InstrDesc) {
-  // FIXME: This might break if the pointer is reused elsewhere!!!
- addNops(MBB, MI, dstReg, modReg, MI->getDebugLoc());
-}
 void AArch64PartsEmulatedTimingPass::insertPACInstr(MachineBasicBlock &MBB,
                                          MachineInstr *MI,
                                          MachineOperand &dstReg,
@@ -94,6 +84,7 @@ void AArch64PartsEmulatedTimingPass::insertPACInstr(MachineBasicBlock &MBB,
  addNops(MBB, MI, dstReg.getReg(), modReg.getReg(), MI->getDebugLoc());
 }
 
+#if 0
 void AArch64PartsEmulatedTimingPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
                                                                                 MachineInstr *MI_indcall,
                                                                                 unsigned dst,
@@ -102,13 +93,13 @@ void AArch64PartsEmulatedTimingPass::replaceBranchByAuthenticatedBranch(MachineB
  addNops(MBB, MI_indcall, dst, mod, MI_indcall->getDebugLoc());
 }
 
+#endif
 void AArch64PartsEmulatedTimingPass::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
 }
-#endif
 
 bool AArch64PartsEmulatedTimingPass::doInitialization(Module &M) {
   return true;
@@ -145,46 +136,50 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &M
 
   if (!isPartsIntrinsic(MIOpcode))
     return false;
-#if 0
   auto &MI = *MIi--;
 
   switch (MIOpcode) {
     default:
       llvm_unreachable("Unhandled PARTS intrinsic!!");
-    case AArch64::PARTS_PACIA:
+    case AArch64::PACIA:
       lowerPARTSPACIA(MF, MBB, MI);
       break;
+#if 0
     case AArch64::PARTS_AUTIA:
       lowerPARTSAUTIA(MF, MBB, MI);
       break;
     case AArch64::PARTS_AUTCALL:
       lowerPARTSAUTCALL(MF, MBB, MI);
       break;
+#endif
   }
 
-  MI.removeFromParent(); // Remove the PARTS intrinsic!
-#endif
+  MI.removeFromParent(); // Remove pac instruction !
+  MBB.dump();
   return true;
 }
 
 inline bool AArch64PartsEmulatedTimingPass::isPartsIntrinsic(unsigned Opcode) {
   switch (Opcode) {
-    case AArch64::PARTS_PACIA:
+    case AArch64::PACIA:
+#if 0
     case AArch64::PARTS_AUTIA:
     case AArch64::PARTS_AUTCALL:
+#endif
       return true;
   }
 
   return false;
 }
 
-#if 0
 void AArch64PartsEmulatedTimingPass::lowerPARTSPACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
   lowerPARTSIntrinsicCommon(MF, MBB, MI, TII->get(AArch64::PACIA));
   ++StatPacia;
 }
+
+#if 0
 
 void AArch64PartsEmulatedTimingPass::lowerPARTSAUTCALL(MachineFunction &MF,
                                                    MachineBasicBlock &MBB,
@@ -253,16 +248,18 @@ inline void AArch64PartsEmulatedTimingPass::lowerPARTSAUTIA(MachineFunction &MF,
   ++StatAutia;
 }
 
+#endif
 void AArch64PartsEmulatedTimingPass::lowerPARTSIntrinsicCommon(MachineFunction &MF,
                                                     MachineBasicBlock &MBB,
                                                     MachineInstr &MI,
                                                     const MCInstrDesc &InstrDesc) {
-  auto &mod = MI.getOperand(2);
+  auto &mod = MI.getOperand(1);
   auto &dst = MI.getOperand(0);
 
   insertPACInstr(MBB, &MI, dst, mod, InstrDesc);
 }
 
+#if 0
 inline MachineInstr *AArch64PartsEmulatedTimingPass::findIndirectCallMachineInstr(MachineInstr *MI) {
   while (MI != nullptr && !isIndirectCall(*MI))
     MI = MI->getNextNode();
