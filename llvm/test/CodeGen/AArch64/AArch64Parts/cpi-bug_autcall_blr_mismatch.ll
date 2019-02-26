@@ -5,7 +5,6 @@
 ;
 ; ------------------------------------------------------------------------
 ; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi -parts-fecfi < %s | FileCheck %s
-; XFAIL: *
 ;
 ; This triggers a bug with autcall - blr coupling, that causes a compile-time llvm_unreachable
 ; crash in AArchPartsCpiPass.
@@ -402,3 +401,38 @@ if.end119:                                        ; preds = %for.end117, %if.the
 !39 = !{!28, !6, i64 56}
 !40 = !{!28, !6, i64 64}
 !1139 = !{i32 (%struct.storable_picture*)* @is_long_ref, i32 (%struct.storable_picture*)* @is_short_ref}
+
+; CHECK: 	mov	x9, #44893
+; CHECK: 	movk	x9, #38826, lsl #16
+; CHECK: 	adrp	x8, is_short_ref
+; CHECK: 	movk	x9, #14459, lsl #32
+; CHECK: 	adrp	x10, is_long_ref
+; CHECK: 	add	x8, x8, :lo12:is_short_ref
+; CHECK: 	movk	x9, #3738, lsl #48
+; CHECK: 	add	x10, x10, :lo12:is_long_ref
+; CHECK: 	mov	w23, w0
+; CHECK: 	cmp	w5, #0
+; CHECK: 	pacia	x8, x9
+; CHECK: 	pacia	x10, x9
+; CHECK: 	mov	x19, x4
+; CHECK: 	mov	x20, x3
+; CHECK: 	mov	w21, w2
+; CHECK: 	csel	x24, x8, x10, eq
+; CHECK: 	cmp	w23, #1
+; CHECK: 	mov	x22, x1
+; CHECK: 	b.ne	.LBB0_35
+
+; CHECK: 	cmp	w21, #1
+; CHECK: 	b.lt	.LBB0_36
+
+; CHECK: 	mov	x28, #44893
+; CHECK: 	movk	x28, #38826, lsl #16
+; CHECK: 	movk	x28, #14459, lsl #32
+; CHECK: 	mov	w26, wzr
+; CHECK: 	mov	w25, wzr
+; CHECK: 	sxtw	x27, w21
+; CHECK: 	movk	x28, #3738, lsl #48
+
+; CHECK: 	blraa	x24, x28
+
+; CHECK: 	blraa	x24, x28
