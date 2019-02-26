@@ -112,41 +112,8 @@ bool AArch64PartsIntrPass::runOnMachineFunction(MachineFunction &MF) {
         }
         case AArch64::PARTS_PACDA:
         case AArch64::PARTS_AUTDA:
-          const auto &DL = MIi->getDebugLoc();
-          const unsigned dst = MIi->getOperand(0).getReg();
-          const unsigned src = MIi->getOperand(1).getReg();
-          unsigned mod = MIi->getOperand(2).getReg();
-
-          // Save the mod register if it is marked as killable!
-          if (MIi->getOperand(2).isKill()) {
-            unsigned oldMod = mod;
-            mod = PARTS::getModifierReg();
-            BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-          }
-          // Move the pointer to destination register
-          BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
-
-          // Insert appropriate PA instruction
-          if (MIOpcode == AArch64::PARTS_PACDA) {
-            log->inc(DEBUG_TYPE ".pacda", true) << "converting PARTS_PACDA\n";
-            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
-            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
-          } else if (MIOpcode == AArch64::PARTS_AUTDA) {
-            assert(false && "this isn't currently used, and should be updated if its gonna be");
-            log->inc(DEBUG_TYPE ".autda", true) << "converting PARTS_AUTDA\n";
-            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTDA), DL);
-          }
-
-          // And finally, remove the intrinsic
-          auto tmp = MIi;
-          MIi--;
-          tmp->removeFromParent();
-
-          found = true; // make sure we return true when we modify stuff
-
           break;
       }
-
     }
   }
 
