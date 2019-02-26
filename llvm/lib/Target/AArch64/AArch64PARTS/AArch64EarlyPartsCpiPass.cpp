@@ -103,14 +103,24 @@ inline bool AArch64EarlyPartsCpiPass::handleInstruction(MachineFunction &MF,
   if (MI_indcall == nullptr)
     triggerCompilationErrorOrphanAUTCALL(MBB);
 
-  if (MI_indcall->getOpcode()  == AArch64::TCRETURNri) // TODO: Handle tailcall, we need dedicate pseudo instr (TCRETURNA[AB]ri)
+  if (MI_indcall->getOpcode() == AArch64::TCRETURNri) // TODO: Handle tailcall, we need dedicate pseudo instr (TCRETURNA[AB]ri)
     return false;
+  auto &MI = *MIi--;
+  auto modOperand = MI.getOperand(2);
+  auto dstOperand = MI.getOperand(1);
+  auto BMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), TII->get(AArch64::BLRAA));
+  BMI.add(dstOperand);
+  BMI.add(modOperand);
+  BMI.copyImplicitOps(*MI_indcall);
+//  MI_indcall->setDesc(TII->get(AArch64::BLRAA));
+//  MI_indcall->addOperand(MF, modOperand);
+  DEBUG(dbgs() << "PARTS BLRAA: " << BMI );
+  MBB.dump();
 
-#if 1
-  return !isIndirectCall(*MI_indcall);
-#else
-  return true;
-#endif
+  MI_indcall->removeFromParent();
+  MI.removeFromParent();
+  return false;
+//  return true;
 }
 
 inline MachineInstr *AArch64EarlyPartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
