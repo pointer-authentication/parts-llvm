@@ -21,14 +21,62 @@ namespace PARTS {
 
 class AArch64PartsPass {
 protected:
+  inline void runOnMachineFunction(MachineFunction &MF);
+
   inline bool hasNoPartsAttribute(MachineFunction &MF);
+
+  inline void lowerPartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
+  inline void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
+  inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
+
+  const TargetMachine *TM = nullptr;
+  const AArch64Subtarget *STI = nullptr;
+  const AArch64InstrInfo *TII = nullptr;
+  const AArch64RegisterInfo *TRI = nullptr;
 };
 
 };
 };
+
+inline void AArch64PartsPass::runOnMachineFunction(MachineFunction &MF) {
+  TM = &MF.getTarget();;
+  STI = &MF.getSubtarget<AArch64Subtarget>();
+  TII = STI->getInstrInfo();
+  TRI = STI->getRegisterInfo();
+}
 
 inline bool AArch64PartsPass::hasNoPartsAttribute(MachineFunction &MF) {
   return MF.getFunction().getFnAttribute("no-parts").getValueAsString() == "true";
+}
+
+inline void AArch64PartsPass::lowerPartsIntrinsic(MachineFunction &MF,
+                                           MachineBasicBlock &MBB,
+                                           MachineInstr &MI,
+                                           const MCInstrDesc &InstrDesc) {
+  const unsigned mod = MI.getOperand(2).getReg();
+  const unsigned dst = MI.getOperand(0).getReg();
+
+  insertPACInstr(MBB, &MI, dst, mod, InstrDesc);
+}
+
+inline void AArch64PartsPass::insertPACInstr(MachineBasicBlock &MBB,
+                                                MachineInstr *MI,
+                                                unsigned dstReg,
+                                                unsigned modReg,
+                                                const MCInstrDesc &InstrDesc) {
+  BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc)
+      .addUse(dstReg)
+      .addUse(modReg);
+}
+
+inline void AArch64PartsPass::insertMovInstr(MachineBasicBlock &MBB,
+                                                MachineInstr *MI,
+                                                unsigned dstReg,
+                                                unsigned srcReg) {
+  BuildMI(MBB, MI, MI->getDebugLoc(), TII->get(AArch64::ORRXrs), dstReg)
+      .addUse(AArch64::XZR)
+      .addUse(srcReg)
+      .addImm(0);
 }
 
 #endif // __AARCH64PARTSOPTPASS_H__
