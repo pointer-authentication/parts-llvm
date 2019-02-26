@@ -62,6 +62,7 @@ FunctionPass *createPartsPassIntrinsics();
 FunctionPass *createPartsPassDpi();
 FunctionPass *createAArch64EarlyPartsPassCpi();
 FunctionPass *createAArch64PartsPassCpi();
+FunctionPass *createAArch64PartsEmulatedTimingPass();
 
 void initializeAArch64A53Fix835769Pass(PassRegistry&);
 void initializeAArch64A57FPLoadBalancingPass(PassRegistry&);
