@@ -52,11 +52,11 @@ namespace {
  private:
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
-
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
    void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
    inline bool isIndirectCall(const MachineInstr &MI) const;
+   inline void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, MachineInstr &MI);
    };
 } // end anonymous namespace
 
@@ -105,16 +105,9 @@ inline bool AArch64EarlyPartsCpiPass::handleInstruction(MachineFunction &MF,
 
   if (MI_indcall->getOpcode() == AArch64::TCRETURNri) // TODO: Handle tailcall, we need dedicate pseudo instr (TCRETURNA[AB]ri)
     return false;
-  auto &MI = *MIi--;
-  auto modOperand = MI.getOperand(2);
-  auto dstOperand = MI.getOperand(1);
-  auto BMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), TII->get(AArch64::BLRAA));
-  BMI.add(dstOperand);
-  BMI.add(modOperand);
-  BMI.copyImplicitOps(*MI_indcall);
 
-  MI_indcall->removeFromParent();
-  MI.removeFromParent();
+  auto &MI = *MIi--;
+  replaceBranchByAuthenticatedBranch(MBB, MI_indcall, MI);
 
   return true;
 }
@@ -138,4 +131,19 @@ inline bool AArch64EarlyPartsCpiPass::isIndirectCall(const MachineInstr &MI) con
 void AArch64EarlyPartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
   DEBUG(MBB.dump());
   llvm_unreachable("failed to find BLR for AUTCALL");
+}
+
+inline void AArch64EarlyPartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
+                                                                    MachineInstr *MI_indcall,
+                                                                    MachineInstr &MI)
+{
+  auto modOperand = MI.getOperand(2);
+  auto dstOperand = MI.getOperand(1);
+  auto BMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), TII->get(AArch64::BLRAA));
+  BMI.add(dstOperand);
+  BMI.add(modOperand);
+  BMI.copyImplicitOps(*MI_indcall);
+
+  MI_indcall->removeFromParent();
+  MI.removeFromParent();
 }
