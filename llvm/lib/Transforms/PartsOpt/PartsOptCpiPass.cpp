@@ -19,6 +19,7 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
+#include "llvm/PARTS/PartsOptPass.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
@@ -32,7 +33,7 @@ STATISTIC(StatAuthenticateIndirectCall, DEBUG_TYPE ": Number of code pointers au
 
 namespace {
 
-class PartsOptCpiPass : public FunctionPass {
+class PartsOptCpiPass : public FunctionPass, private PartsOptPass {
 public:
   static char ID;
 
@@ -56,7 +57,6 @@ private:
   bool handleCallInstruction(Function &F, Instruction &I);
   bool handleStoreInstruction(Function &F, Instruction &I);
   bool handleSelectInstruction(Function &F, Instruction &I);
-  Value *CreatePartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
 };
 
 } // anonymous namespace
@@ -146,7 +146,7 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
       if (argType->isPointerTy() &&
           argType->getPointerElementType()->isFunctionTy() &&
           !isa<Constant>(arg)) {
-       auto paced = CreatePartsIntrinsic(F, I, arg, Intrinsic::pa_autia);
+       auto paced = createPartsIntrinsic(F, I, arg, Intrinsic::pa_autia);
        CI->setArgOperand(i, paced);
       }
     }
@@ -177,31 +177,13 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
   // 2: Handle indirect function calls
   if (CallSite(CI).isIndirectCall()) {
     auto calledValue = CI->getCalledValue();
-    auto paced = CreatePartsIntrinsic(F, I, calledValue, Intrinsic::pa_autcall);
+    auto paced = createPartsIntrinsic(F, I, calledValue, Intrinsic::pa_autcall);
     // Replace signed pointer with the authenticated one
     CI->setCalledFunction(paced);
     ++StatAuthenticateIndirectCall;
   }
 
   return true;
-}
-
-Value *PartsOptCpiPass::CreatePartsIntrinsic(Function &F,
-                                             Instruction &I,
-                                             Value *calledValue,
-                                             Intrinsic::ID intrinsicID) {
-    const auto calledValueType = calledValue->getType();
-
-    // Generate Builder for inserting PARTS intrinsic
-    IRBuilder<> Builder(&I);
-    // Get PARTS intrinsic declaration for correct input type
-    auto autcall = Intrinsic::getDeclaration(F.getParent(), intrinsicID, { calledValueType });
-    // Get type_id as Constant
-    auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), calledValueType);
-    // Insert PARTS intrinsics
-    auto paced = Builder.CreateCall(autcall, { calledValue, typeIdConstant }, "");
-
-    return paced;
 }
 
 Value *PartsOptCpiPass::generatePACedValue(Function &F, Instruction &I, Value *V) {
@@ -227,5 +209,5 @@ Value *PartsOptCpiPass::generatePACedValue(Function &F, Instruction &I, Value *V
 
   assert((isa<BitCastOperator>(V) || V->getType() == VTypeInput) && "Vtype and VTypeInput should match unless bitcast");
 
-  return CreatePartsIntrinsic(F, I, V, Intrinsic::pa_pacia);
+  return createPartsIntrinsic(F, I, V, Intrinsic::pa_pacia);
 }
