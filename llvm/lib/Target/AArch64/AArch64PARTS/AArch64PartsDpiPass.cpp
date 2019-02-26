@@ -29,6 +29,7 @@
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsEventCount.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
+#include "AArch64PartsPass.h"
 #include "PartsUtils.h"
 
 #define DEBUG_TYPE "AArch64PartsDpiPass"
@@ -53,7 +54,7 @@ using namespace llvm::PARTS;
 } while (false)
 
 namespace {
- class AArch64PartsDpiPass : public MachineFunctionPass {
+ class AArch64PartsDpiPass : public MachineFunctionPass, private AArch64PartsPass {
 
  public:
    static char ID;
@@ -94,14 +95,15 @@ bool AArch64PartsDpiPass::doInitialization(Module &M) {
 }
 
 bool AArch64PartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
-  DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
+  if (hasNoPartsAttribute(MF))
+    return false;
+
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
-  partsUtils = PartsUtils::get(TRI, TII);
 
-  if (MF.getFunction().getFnAttribute("no-parts").getValueAsString() == "true") return false;
+  partsUtils = PartsUtils::get(TRI, TII);
 
   for (auto &MBB : MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
