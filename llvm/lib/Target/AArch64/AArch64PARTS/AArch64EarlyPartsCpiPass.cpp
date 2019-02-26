@@ -55,7 +55,7 @@ namespace {
 
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
-   inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
+   void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
    inline bool isIndirectCall(const MachineInstr &MI) const;
    };
 } // end anonymous namespace
@@ -135,7 +135,7 @@ inline bool AArch64EarlyPartsCpiPass::isIndirectCall(const MachineInstr &MI) con
   return false;
 }
 
-inline void AArch64EarlyPartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
+void AArch64EarlyPartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
   DEBUG(MBB.dump());
   llvm_unreachable("failed to find BLR for AUTCALL");
 }
