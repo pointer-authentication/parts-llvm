@@ -9,48 +9,39 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/PARTS/PartsIntr.h>
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/Pass.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
+#include <llvm/PARTS/PartsIntr.h>
+#include <llvm/PARTS/PartsOptPass.h>
+#include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;
 
 #define DEBUG_TYPE "PartsOptDpiPass"
-#define TAG KBLU DEBUG_TYPE ": "
+
+STATISTIC(StatSignStoreData, "data pointer stores instrumented");
+STATISTIC(StatAuthLoadData, "data pointer loads instrumented");
 
 namespace {
 
-class PartsOptDpiPass : public FunctionPass {
-  public:
-    static char ID; // Pass identification, replacement for typeid
+class PartsOptDpiPass : public FunctionPass, private PartsOptPass {
+public:
+  static char ID; // Pass identification, replacement for typeid
 
-    PartsLog_ptr log;
+  PartsOptDpiPass() : FunctionPass(ID) {}
+  bool runOnFunction(Function &F) override;
 
-    PartsOptDpiPass() :
-        FunctionPass(ID),
-        log(PartsLog::getLogger(DEBUG_TYPE))
-    {
-      DEBUG_PA(log->enable());
-    }
-
-    bool runOnFunction(Function &F) override;
-
-  private:
-    inline bool handleInstruction(Function &F, Instruction &I);
-    PartsTypeMetadata_ptr createLoadMetadata(Instruction &I);
-    PartsTypeMetadata_ptr createStoreMetadata(Instruction &I);
-    inline bool isLoadOrStore(const unsigned IOpcode);
-    PartsTypeMetadata_ptr createMetadata(Value *V);
+private:
+  inline bool handleInstruction(Function &F, Instruction &I);
+  bool handleStoreInstruction(Function &F, Instruction &I);
+  bool handleLoadInstruction(Function &F, Instruction &I);
 };
 
 } // anonymous namespace
@@ -59,7 +50,6 @@ char PartsOptDpiPass::ID = 0;
 static RegisterPass<PartsOptDpiPass> X("parts-opt-dpi", "PARTS DPI pass");
 
 bool PartsOptDpiPass::runOnFunction(Function &F) {
-
   if (!PARTS::useDpi())
     return false;
 
@@ -67,67 +57,62 @@ bool PartsOptDpiPass::runOnFunction(Function &F) {
 
   for (auto &BB:F)
     for (auto &I: BB) {
-      DEBUG_PA(log->debug() << F.getName() << "->" << BB.getName() << "->" << I << "\n");
       function_modified = handleInstruction(F, I) || function_modified;
     }
 
   return function_modified;
 }
 
-inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I)
-{
-  const auto IOpcode = I.getOpcode();
-
-  if (!isLoadOrStore(IOpcode))
-    return false;
-
-  PartsTypeMetadata_ptr MD;
-
-  if (IOpcode == Instruction::Store)
-      MD = createStoreMetadata(I);
-  else
-      MD = createLoadMetadata(I);
-
-  MD->attach(F.getContext(), I);
-  log->inc(DEBUG_TYPE ".MetadataAdded", !MD->isIgnored()) << "adding metadata: " << MD->toString() << "\n";
+inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I) {
+  switch(I.getOpcode()) {
+    default:
+      return false;
+    case Instruction::Store:
+      handleStoreInstruction(F, I);
+      break;
+    case Instruction::Load:
+      handleLoadInstruction(F, I);
+      break;
+  }
 
   return true;
 }
 
-inline bool PartsOptDpiPass::isLoadOrStore(const unsigned IOpcode)
-{
-  return IOpcode == Instruction::Load || IOpcode ==Instruction::Store;
+bool PartsOptDpiPass::handleStoreInstruction(Function &F, Instruction &I) {
+  auto SI = dyn_cast<StoreInst>(&I);
+
+  const auto V = SI->getValueOperand();
+  const auto VInput = isa<BitCastOperator>(V) ? dyn_cast<BitCastOperator>(V)->getOperand(0) : V;
+  const auto VTypeInput = isa<BitCastOperator>(V) ?
+                          dyn_cast<BitCastOperator>(V)->getSrcTy() :
+                          V->getType();
+
+  if (! isDataPointer(VTypeInput))
+    return false;
+
+  SI->setOperand(0, createPartsIntrinsic(F, I, VInput, Intrinsic::pa_pacda));
+
+  ++StatSignStoreData;
+  return true;
 }
 
-PartsTypeMetadata_ptr PartsOptDpiPass::createLoadMetadata(Instruction &I) {
-  assert(isa<LoadInst>(I));
-  auto V = I.getOperand(0);
-  assert(I.getType() == V->getType()->getPointerElementType());
+bool PartsOptDpiPass::handleLoadInstruction(Function &F, Instruction &I) {
+  auto LI = dyn_cast<LoadInst>(&I);
 
-  return createMetadata(V);
-}
+  const auto V = LI->getPointerOperand();
 
-PartsTypeMetadata_ptr PartsOptDpiPass::createStoreMetadata(Instruction &I) {
-  assert(isa<StoreInst>(I));
-  auto V = I.getOperand(1);
-  assert(I.getOperand(0)->getType() == V->getType()->getPointerElementType());
+  const auto VType = isa<BitCastInst>(V) ?
+                     dyn_cast<BitCastInst>(V)->getSrcTy() :
+                     V->getType()->getPointerElementType();
 
-  return createMetadata(V);
-}
+  if (! isDataPointer(VType))
+    return false;
 
-PartsTypeMetadata_ptr PartsOptDpiPass::createMetadata(Value *V) {
-  PartsTypeMetadata_ptr MD;
+  auto authenticated = dyn_cast<Instruction>(createPartsIntrinsic(F, *I.getNextNode(), &I, Intrinsic::pa_autda));
+  assert(authenticated != nullptr);
+  I.replaceAllUsesWith(authenticated);
+  authenticated->setOperand(0, &I);
 
-  if (isa<BitCastInst>(V)) {
-    auto BC = dyn_cast<BitCastInst>(V);
-    MD = PartsTypeMetadata::get(BC->getSrcTy());
-    // FIXME: Ugly hack, will make all union types the same!!!
-  } else {
-    MD = PartsTypeMetadata::get(V->getType()->getPointerElementType());
-  }
-
-  if (MD->isCodePointer())
-    MD->setIgnored(true);
-
-  return MD;
+  ++StatAuthLoadData;
+  return true;
 }
