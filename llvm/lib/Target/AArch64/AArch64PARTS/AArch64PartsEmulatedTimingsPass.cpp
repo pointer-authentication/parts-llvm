@@ -95,7 +95,6 @@ bool AArch64PartsEmulatedTimingPass::runOnMachineFunction(MachineFunction &MF) {
 
 /**
  *
- * @param MF
  * @param MBB
  * @param MIi
  * @return  return true when changing something, otherwise false
