@@ -58,7 +58,6 @@ namespace {
   inline bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
   inline void doMachineFunctionInit(MachineFunction &MF);
   inline bool isPAInstruction(unsigned Opcode);
-  inline void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
   inline void replacePACIA(MachineBasicBlock &MBB, MachineInstr &MI);
   inline void replaceAUTIA(MachineBasicBlock &MBB, MachineInstr &MI);
   inline void replaceBranchAuth(MachineBasicBlock &MBB, MachineInstr &MI);
@@ -163,17 +162,14 @@ void AArch64PartsEmulatedTimingPass::replaceBranchAuth(MachineBasicBlock &MBB,
 
 void AArch64PartsEmulatedTimingPass::replacePAInstructionCommon(MachineBasicBlock &MBB,
                                                                 MachineInstr &MI) {
-  auto &mod = MI.getOperand(1);
-  auto &dst = MI.getOperand(0);
+  auto mod = MI.getOperand(1).getReg();
+  auto dst = MI.getOperand(0).getReg();
+  const auto &DL = MI.getDebugLoc();
 
-  addNops(MBB, &MI, dst.getReg(), mod.getReg(), MI.getDebugLoc());
-}
-
-inline void AArch64PartsEmulatedTimingPass::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
-  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
-  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
-  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
-  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), dst).addReg(dst).addImm(17);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), dst).addReg(dst).addImm(37);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), dst).addReg(dst).addImm(97);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), dst).addReg(dst).addReg(mod).addImm(0);
 }
 
 inline const MCInstrDesc &AArch64PartsEmulatedTimingPass::getIndirectCallMachineInstruction(MachineInstr &MI) {
