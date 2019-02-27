@@ -107,8 +107,8 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineBasicBlock 
 
   if (!isPAInstruction(MIOpcode))
     return false;
-  auto &MI = *MIi--;
 
+  auto &MI = *MIi--;
   switch (MIOpcode) {
     default:
       llvm_unreachable("Unhandled PAC instruction!!");
@@ -123,9 +123,8 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineBasicBlock 
       replaceBranchAuth(MBB, MI);
       break;
   }
-
   MI.removeFromParent(); // Remove pac instruction !
-  MBB.dump();
+
   return true;
 }
 
