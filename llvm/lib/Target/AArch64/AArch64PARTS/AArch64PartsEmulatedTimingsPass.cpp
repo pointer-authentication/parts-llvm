@@ -75,23 +75,6 @@ FunctionPass *llvm::createAArch64PartsEmulatedTimingPass() {
 
 char AArch64PartsEmulatedTimingPass::ID = 0;
 
-#if 0
-void AArch64PartsEmulatedTimingPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
-                                                                                MachineInstr *MI_indcall,
-                                                                                unsigned dst,
-                                                                                unsigned mod) {
- // FIXME: This might break if the pointer is reused elsewhere!!!
- addNops(MBB, MI_indcall, dst, mod, MI_indcall->getDebugLoc());
-}
-
-#endif
-inline void AArch64PartsEmulatedTimingPass::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
-  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
-  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
-  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
-  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
-}
-
 bool AArch64PartsEmulatedTimingPass::doInitialization(Module &M) {
   return true;
 }
@@ -247,6 +230,24 @@ void AArch64PartsEmulatedTimingPass::replacePAInstructionCommon(MachineFunction 
   auto &dst = MI.getOperand(0);
 
   addNops(MBB, &MI, dst.getReg(), mod.getReg(), MI.getDebugLoc());
+}
+
+#if 0
+void AArch64PartsEmulatedTimingPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
+                                                                                MachineInstr *MI_indcall,
+                                                                                unsigned dst,
+                                                                                unsigned mod) {
+ // FIXME: This might break if the pointer is reused elsewhere!!!
+ addNops(MBB, MI_indcall, dst, mod, MI_indcall->getDebugLoc());
+}
+
+#endif
+
+inline void AArch64PartsEmulatedTimingPass::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
 }
 
 #if 0
