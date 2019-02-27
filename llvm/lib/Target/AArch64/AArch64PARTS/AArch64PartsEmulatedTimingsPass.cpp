@@ -60,12 +60,12 @@ namespace {
   PartsUtils_ptr  partsUtils = nullptr;
   inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
   void doMachineFunctionInit(MachineFunction &MF);
-  inline bool isPartsIntrinsic(unsigned Opcode);
+  inline bool isPAInstruction(unsigned Opcode);
 //   void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
   void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
-  void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-  inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-  void lowerPARTSIntrinsicCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+  void replacePACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+  inline void replaceAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+  void replacePAInstructionCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
  };
 
 } // end anonymous namespace
@@ -126,7 +126,7 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &M
                                                    MachineBasicBlock::instr_iterator &MIi) {
   const auto MIOpcode = MIi->getOpcode();
 
-  if (!isPartsIntrinsic(MIOpcode))
+  if (!isPAInstruction(MIOpcode))
     return false;
   auto &MI = *MIi--;
 
@@ -134,14 +134,14 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &M
     default:
       llvm_unreachable("Unhandled PARTS intrinsic!!");
     case AArch64::PACIA:
-      lowerPARTSPACIA(MF, MBB, MI);
+      replacePACIA(MF, MBB, MI);
       break;
     case AArch64::AUTIA:
-      lowerPARTSAUTIA(MF, MBB, MI);
+      replaceAUTIA(MF, MBB, MI);
       break;
 #if 0
     case AArch64::PARTS_AUTCALL:
-      lowerPARTSAUTCALL(MF, MBB, MI);
+      replaceAUTCALL(MF, MBB, MI);
       break;
 #endif
   }
@@ -151,7 +151,7 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &M
   return true;
 }
 
-inline bool AArch64PartsEmulatedTimingPass::isPartsIntrinsic(unsigned Opcode) {
+inline bool AArch64PartsEmulatedTimingPass::isPAInstruction(unsigned Opcode) {
   switch (Opcode) {
     case AArch64::PACIA:
     case AArch64::AUTIA:
@@ -164,16 +164,16 @@ inline bool AArch64PartsEmulatedTimingPass::isPartsIntrinsic(unsigned Opcode) {
   return false;
 }
 
-void AArch64PartsEmulatedTimingPass::lowerPARTSPACIA(MachineFunction &MF,
+void AArch64PartsEmulatedTimingPass::replacePACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
-  lowerPARTSIntrinsicCommon(MF, MBB, MI);
+  replacePAInstructionCommon(MF, MBB, MI);
   ++StatPacia;
 }
 
 #if 0
 
-void AArch64PartsEmulatedTimingPass::lowerPARTSAUTCALL(MachineFunction &MF,
+void AArch64PartsEmulatedTimingPass::replaceAUTCALL(MachineFunction &MF,
                                                    MachineBasicBlock &MBB,
                                                    MachineInstr &MI) {
 
@@ -234,14 +234,14 @@ inline const MCInstrDesc &AArch64PartsEmulatedTimingPass::getIndirectCallMachine
 }
 #endif
 
-inline void AArch64PartsEmulatedTimingPass::lowerPARTSAUTIA(MachineFunction &MF,
+inline void AArch64PartsEmulatedTimingPass::replaceAUTIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
-  lowerPARTSIntrinsicCommon(MF, MBB, MI);
+  replacePAInstructionCommon(MF, MBB, MI);
   ++StatAutia;
 }
 
-void AArch64PartsEmulatedTimingPass::lowerPARTSIntrinsicCommon(MachineFunction &MF,
+void AArch64PartsEmulatedTimingPass::replacePAInstructionCommon(MachineFunction &MF,
                                                     MachineBasicBlock &MBB,
                                                     MachineInstr &MI) {
   auto &mod = MI.getOperand(1);
