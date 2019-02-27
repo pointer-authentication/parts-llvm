@@ -55,15 +55,15 @@ namespace {
  private:
   const AArch64Subtarget *STI = nullptr;
   const AArch64InstrInfo *TII = nullptr;
-  inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+  inline bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
   inline void doMachineFunctionInit(MachineFunction &MF);
   inline bool isPAInstruction(unsigned Opcode);
   inline void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
-  inline void replacePACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-  inline void replaceAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
-  inline void replaceBranchAuth(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+  inline void replacePACIA(MachineBasicBlock &MBB, MachineInstr &MI);
+  inline void replaceAUTIA(MachineBasicBlock &MBB, MachineInstr &MI);
+  inline void replaceBranchAuth(MachineBasicBlock &MBB, MachineInstr &MI);
   inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr &MI);
-  void replacePAInstructionCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+  void replacePAInstructionCommon(MachineBasicBlock &MBB, MachineInstr &MI);
  };
 
 } // end anonymous namespace
@@ -90,7 +90,7 @@ bool AArch64PartsEmulatedTimingPass::runOnMachineFunction(MachineFunction &MF) {
 
   for (auto &MBB : MF)
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
-      found = handleInstruction(MF, MBB, MIi) || found;
+      found = handleInstruction(MBB, MIi) || found;
 
   return found;
 }
@@ -102,9 +102,8 @@ bool AArch64PartsEmulatedTimingPass::runOnMachineFunction(MachineFunction &MF) {
  * @param MIi
  * @return  return true when changing something, otherwise false
  */
-inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &MF,
-                                                   MachineBasicBlock &MBB,
-                                                   MachineBasicBlock::instr_iterator &MIi) {
+inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineBasicBlock &MBB,
+                                                              MachineBasicBlock::instr_iterator &MIi) {
   const auto MIOpcode = MIi->getOpcode();
 
   if (!isPAInstruction(MIOpcode))
@@ -115,14 +114,14 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &M
     default:
       llvm_unreachable("Unhandled PAC instruction!!");
     case AArch64::PACIA:
-      replacePACIA(MF, MBB, MI);
+      replacePACIA(MBB, MI);
       break;
     case AArch64::AUTIA:
-      replaceAUTIA(MF, MBB, MI);
+      replaceAUTIA(MBB, MI);
       break;
     case AArch64::BLRAA:
     case AArch64::BRAA:
-      replaceBranchAuth(MF, MBB, MI);
+      replaceBranchAuth(MBB, MI);
       break;
   }
 
@@ -142,32 +141,28 @@ inline bool AArch64PartsEmulatedTimingPass::isPAInstruction(unsigned Opcode) {
   return false;
 }
 
-inline void AArch64PartsEmulatedTimingPass::replacePACIA(MachineFunction &MF,
-                                                 MachineBasicBlock &MBB,
-                                                 MachineInstr &MI) {
-  replacePAInstructionCommon(MF, MBB, MI);
+inline void AArch64PartsEmulatedTimingPass::replacePACIA(MachineBasicBlock &MBB,
+                                                         MachineInstr &MI) {
+  replacePAInstructionCommon(MBB, MI);
   ++StatPacia;
 }
 
-inline void AArch64PartsEmulatedTimingPass::replaceAUTIA(MachineFunction &MF,
-                                                 MachineBasicBlock &MBB,
-                                                 MachineInstr &MI) {
-  replacePAInstructionCommon(MF, MBB, MI);
+inline void AArch64PartsEmulatedTimingPass::replaceAUTIA(MachineBasicBlock &MBB,
+                                                         MachineInstr &MI) {
+  replacePAInstructionCommon(MBB, MI);
   ++StatAutia;
 }
 
-void AArch64PartsEmulatedTimingPass::replaceBranchAuth(MachineFunction &MF,
-                                                   MachineBasicBlock &MBB,
-                                                   MachineInstr &MI) {
-  replacePAInstructionCommon(MF, MBB, MI);
+void AArch64PartsEmulatedTimingPass::replaceBranchAuth(MachineBasicBlock &MBB,
+                                                       MachineInstr &MI) {
+  replacePAInstructionCommon(MBB, MI);
   auto &MCI = getIndirectCallMachineInstruction(MI);
   BuildMI(MBB, MI, MI.getDebugLoc(), MCI).add(MI.getOperand(0));
   ++StatAuthBranch;
 }
 
-void AArch64PartsEmulatedTimingPass::replacePAInstructionCommon(MachineFunction &MF,
-                                                    MachineBasicBlock &MBB,
-                                                    MachineInstr &MI) {
+void AArch64PartsEmulatedTimingPass::replacePAInstructionCommon(MachineBasicBlock &MBB,
+                                                                MachineInstr &MI) {
   auto &mod = MI.getOperand(1);
   auto &dst = MI.getOperand(0);
 
