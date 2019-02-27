@@ -232,9 +232,9 @@ inline void AArch64PartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBas
 }
 
 void AArch64PartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
-                                                                    MachineInstr *MI_indcall,
-                                                                    unsigned dst,
-                                                                    unsigned mod) {
+                                                             MachineInstr *MI_indcall,
+                                                             unsigned dst,
+                                                             unsigned mod) {
   auto &MCI = getIndirectCallMachineInstruction(MI_indcall);
   insertPACInstr(MBB, MI_indcall, dst, mod, MCI);
   MI_indcall->removeFromParent(); // Remove the replaced BR instruction
