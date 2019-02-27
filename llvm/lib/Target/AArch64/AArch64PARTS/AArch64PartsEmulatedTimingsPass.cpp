@@ -59,11 +59,11 @@ namespace {
   const AArch64InstrInfo *TII = nullptr;
   PartsUtils_ptr  partsUtils = nullptr;
   inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-  void doMachineFunctionInit(MachineFunction &MF);
+  inline void doMachineFunctionInit(MachineFunction &MF);
   inline bool isPAInstruction(unsigned Opcode);
 //   void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
-  void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
-  void replacePACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+  inline void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
+  inline void replacePACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
   inline void replaceAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
   void replacePAInstructionCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
  };
@@ -86,7 +86,7 @@ void AArch64PartsEmulatedTimingPass::replaceBranchByAuthenticatedBranch(MachineB
 }
 
 #endif
-void AArch64PartsEmulatedTimingPass::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
+inline void AArch64PartsEmulatedTimingPass::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
@@ -97,7 +97,7 @@ bool AArch64PartsEmulatedTimingPass::doInitialization(Module &M) {
   return true;
 }
 
-void AArch64PartsEmulatedTimingPass::doMachineFunctionInit(MachineFunction &MF) {
+inline void AArch64PartsEmulatedTimingPass::doMachineFunctionInit(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
 }
@@ -164,7 +164,7 @@ inline bool AArch64PartsEmulatedTimingPass::isPAInstruction(unsigned Opcode) {
   return false;
 }
 
-void AArch64PartsEmulatedTimingPass::replacePACIA(MachineFunction &MF,
+inline void AArch64PartsEmulatedTimingPass::replacePACIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
   replacePAInstructionCommon(MF, MBB, MI);
