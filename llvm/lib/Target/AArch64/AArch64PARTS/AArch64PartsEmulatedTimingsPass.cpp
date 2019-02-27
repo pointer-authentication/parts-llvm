@@ -64,6 +64,7 @@ namespace {
 //   void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod) override;
   void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
   void lowerPARTSPACIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
+  inline void lowerPARTSAUTIA(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
   void lowerPARTSIntrinsicCommon(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
  };
 
@@ -135,10 +136,10 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &M
     case AArch64::PACIA:
       lowerPARTSPACIA(MF, MBB, MI);
       break;
-#if 0
-    case AArch64::PARTS_AUTIA:
+    case AArch64::AUTIA:
       lowerPARTSAUTIA(MF, MBB, MI);
       break;
+#if 0
     case AArch64::PARTS_AUTCALL:
       lowerPARTSAUTCALL(MF, MBB, MI);
       break;
@@ -153,8 +154,8 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &M
 inline bool AArch64PartsEmulatedTimingPass::isPartsIntrinsic(unsigned Opcode) {
   switch (Opcode) {
     case AArch64::PACIA:
+    case AArch64::AUTIA:
 #if 0
-    case AArch64::PARTS_AUTIA:
     case AArch64::PARTS_AUTCALL:
 #endif
       return true;
@@ -231,15 +232,15 @@ inline const MCInstrDesc &AArch64PartsEmulatedTimingPass::getIndirectCallMachine
 
  return TII->get(AArch64::BRAA);
 }
+#endif
 
 inline void AArch64PartsEmulatedTimingPass::lowerPARTSAUTIA(MachineFunction &MF,
                                                  MachineBasicBlock &MBB,
                                                  MachineInstr &MI) {
-  lowerPARTSIntrinsicCommon(MF, MBB, MI, TII->get(AArch64::AUTIA));
+  lowerPARTSIntrinsicCommon(MF, MBB, MI);
   ++StatAutia;
 }
 
-#endif
 void AArch64PartsEmulatedTimingPass::lowerPARTSIntrinsicCommon(MachineFunction &MF,
                                                     MachineBasicBlock &MBB,
                                                     MachineInstr &MI) {
