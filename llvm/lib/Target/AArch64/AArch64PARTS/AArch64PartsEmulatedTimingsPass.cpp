@@ -62,7 +62,7 @@ namespace {
   inline void replaceAUTIA(MachineBasicBlock &MBB, MachineInstr &MI);
   inline void replaceBranchAuth(MachineBasicBlock &MBB, MachineInstr &MI);
   inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr &MI);
-  void replacePAInstructionCommon(MachineBasicBlock &MBB, MachineInstr &MI);
+  void insertEmulationCode(MachineBasicBlock &MBB, MachineInstr &MI);
  };
 
 } // end anonymous namespace
@@ -141,25 +141,25 @@ inline bool AArch64PartsEmulatedTimingPass::isPAInstruction(unsigned Opcode) {
 
 inline void AArch64PartsEmulatedTimingPass::replacePACIA(MachineBasicBlock &MBB,
                                                          MachineInstr &MI) {
-  replacePAInstructionCommon(MBB, MI);
+  insertEmulationCode(MBB, MI);
   ++StatPacia;
 }
 
 inline void AArch64PartsEmulatedTimingPass::replaceAUTIA(MachineBasicBlock &MBB,
                                                          MachineInstr &MI) {
-  replacePAInstructionCommon(MBB, MI);
+  insertEmulationCode(MBB, MI);
   ++StatAutia;
 }
 
 void AArch64PartsEmulatedTimingPass::replaceBranchAuth(MachineBasicBlock &MBB,
                                                        MachineInstr &MI) {
-  replacePAInstructionCommon(MBB, MI);
+  insertEmulationCode(MBB, MI);
   auto &MCI = getIndirectCallMachineInstruction(MI);
   BuildMI(MBB, MI, MI.getDebugLoc(), MCI).add(MI.getOperand(0));
   ++StatAuthBranch;
 }
 
-void AArch64PartsEmulatedTimingPass::replacePAInstructionCommon(MachineBasicBlock &MBB,
+void AArch64PartsEmulatedTimingPass::insertEmulationCode(MachineBasicBlock &MBB,
                                                                 MachineInstr &MI) {
   auto mod = MI.getOperand(1).getReg();
   auto dst = MI.getOperand(0).getReg();
