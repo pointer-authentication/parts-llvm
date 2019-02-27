@@ -57,7 +57,6 @@ namespace {
  private:
   const AArch64Subtarget *STI = nullptr;
   const AArch64InstrInfo *TII = nullptr;
-  PartsUtils_ptr  partsUtils = nullptr;
   inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
   inline void doMachineFunctionInit(MachineFunction &MF);
   inline bool isPAInstruction(unsigned Opcode);
