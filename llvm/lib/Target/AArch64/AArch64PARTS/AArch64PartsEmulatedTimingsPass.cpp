@@ -62,6 +62,7 @@ namespace {
   inline void replaceAUTIA(MachineBasicBlock &MBB, MachineInstr &MI);
   inline void replaceBranchAuth(MachineBasicBlock &MBB, MachineInstr &MI);
   inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr &MI);
+  inline void insertBranchInstr(MachineBasicBlock &MBB, MachineInstr &MI);
   void insertEmulationCode(MachineBasicBlock &MBB, MachineInstr &MI);
  };
 
@@ -154,9 +155,14 @@ inline void AArch64PartsEmulatedTimingPass::replaceAUTIA(MachineBasicBlock &MBB,
 void AArch64PartsEmulatedTimingPass::replaceBranchAuth(MachineBasicBlock &MBB,
                                                        MachineInstr &MI) {
   insertEmulationCode(MBB, MI);
+  insertBranchInstr(MBB, MI);
+  ++StatAuthBranch;
+}
+
+inline void AArch64PartsEmulatedTimingPass::insertBranchInstr(MachineBasicBlock &MBB,
+                                                       MachineInstr &MI) {
   auto &MCI = getIndirectCallMachineInstruction(MI);
   BuildMI(MBB, MI, MI.getDebugLoc(), MCI).add(MI.getOperand(0));
-  ++StatAuthBranch;
 }
 
 void AArch64PartsEmulatedTimingPass::insertEmulationCode(MachineBasicBlock &MBB,
