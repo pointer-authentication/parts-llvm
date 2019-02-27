@@ -113,7 +113,7 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineFunction &M
 
   switch (MIOpcode) {
     default:
-      llvm_unreachable("Unhandled PARTS intrinsic!!");
+      llvm_unreachable("Unhandled PAC instruction!!");
     case AArch64::PACIA:
       replacePACIA(MF, MBB, MI);
       break;
