@@ -21,7 +21,7 @@ entry:
 ; CHECK:  movk  [[MODSRC]], #{{[0-9]+}}, lsl #16
 ; CHECK:  movk  [[MODSRC]], #{{[0-9]+}}, lsl #32
 ; CHECK:  movk  [[MODSRC]], #{{[0-9]+}}, lsl #48
-; CHECK-NOT: blra x0
+; CHECK-NOT: blra{{[ab]}} x0
 ; CHECK:  eor   x0, x0, #0x3ffff0003ffff
 ; CHECK:  eor   x0, x0, #0x3f003f003f003f
 ; CHECK:  eor   x0, x0, #0x8001800180018001

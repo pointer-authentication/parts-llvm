@@ -29,7 +29,7 @@ entry:
 ; CHECK:  movk  [[MODSRC]], #{{[0-9]+}}, lsl #32
 ; CHECK:  movk  [[MODSRC]], #{{[0-9]+}}, lsl #48
 ; CHECK:  mov   [[MOD:x[0-9]+]], [[MODSRC]]
-; CHECK-NOT: bra x0
+; CHECK-NOT: bra{{[ab]}} x0
 ; CHECK:  eor   x0, x0, #0x3ffff0003ffff
 ; CHECK:  eor   x0, x0, #0x3f003f003f003f
 ; CHECK:  eor   x0, x0, #0x8001800180018001
