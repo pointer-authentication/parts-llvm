@@ -56,6 +56,7 @@ namespace {
    inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
    void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
    inline bool isIndirectCall(const MachineInstr &MI) const;
+   inline const MCInstrDesc &getIndirectCallAuth(MachineInstr *MI_indcall);
    inline void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, MachineInstr &MI);
    };
 } // end anonymous namespace
@@ -103,13 +104,23 @@ inline bool AArch64EarlyPartsCpiPass::handleInstruction(MachineFunction &MF,
   if (MI_indcall == nullptr)
     triggerCompilationErrorOrphanAUTCALL(MBB);
 
-  if (MI_indcall->getOpcode() == AArch64::TCRETURNri) // TODO: Handle tailcall, we need dedicate pseudo instr (TCRETURNA[AB]ri)
-    return false;
-
   auto &MI = *MIi--;
   replaceBranchByAuthenticatedBranch(MBB, MI_indcall, MI);
 
   return true;
+}
+
+inline const MCInstrDesc &AArch64EarlyPartsCpiPass::getIndirectCallAuth(MachineInstr *MI_indcall) {
+
+  if (MI_indcall->getOpcode() == AArch64::BLR)
+   return TII->get(AArch64::BLRAA);
+
+  // This is a tail call return, and we need to use BRAA
+  // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
+  // the tail-called function can return immediately to the current callee, without
+  // going through the currently active function.)
+
+ return TII->get(AArch64::TCRETURNriAA);
 }
 
 inline MachineInstr *AArch64EarlyPartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
@@ -139,8 +150,10 @@ inline void AArch64EarlyPartsCpiPass::replaceBranchByAuthenticatedBranch(Machine
 {
   auto modOperand = MI.getOperand(2);
   auto dstOperand = MI.getOperand(1);
-  auto BMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), TII->get(AArch64::BLRAA));
+  auto BMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), getIndirectCallAuth(MI_indcall));
   BMI.add(dstOperand);
+  if (MI_indcall->getOpcode() == AArch64::TCRETURNri)
+    BMI.add(MI_indcall->getOperand(1)); // Copy FPDiff from original tail call pseudo instruction
   BMI.add(modOperand);
   BMI.copyImplicitOps(*MI_indcall);
 
