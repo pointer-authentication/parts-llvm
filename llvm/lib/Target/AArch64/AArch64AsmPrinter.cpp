@@ -780,6 +780,22 @@ void AArch64AsmPrinter::EmitInstruction(const MachineInstr *MI) {
     EmitToStreamer(*OutStreamer, TmpInst);
     return;
   }
+  case AArch64::TCRETURNriAA: {
+    MCInst TmpInst;
+    TmpInst.setOpcode(AArch64::BRAA);
+    TmpInst.addOperand(MCOperand::createReg(MI->getOperand(0).getReg()));
+    TmpInst.addOperand(MCOperand::createReg(MI->getOperand(2).getReg()));
+    EmitToStreamer(*OutStreamer, TmpInst);
+    return;
+  }
+   case AArch64::TCRETURNriAB: {
+    MCInst TmpInst;
+    TmpInst.setOpcode(AArch64::BRAB);
+    TmpInst.addOperand(MCOperand::createReg(MI->getOperand(0).getReg()));
+    TmpInst.addOperand(MCOperand::createReg(MI->getOperand(2).getReg()));
+    EmitToStreamer(*OutStreamer, TmpInst);
+    return;
+  }
   case AArch64::TCRETURNdi: {
     MCOperand Dest;
     MCInstLowering.lowerOperand(MI->getOperand(0), Dest);
