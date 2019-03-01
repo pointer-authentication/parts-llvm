@@ -601,7 +601,7 @@ void AArch64PassConfig::addPreEmitPass() {
     if (PARTS::useFeCfi())
       addPass(createAArch64PartsPassCpi());
 
-    if ((PARTS::useDpi() || PARTS::useFeCfi) && PARTS::useDummy())
+    if ((PARTS::useDpi() || PARTS::useFeCfi()) && PARTS::useDummy())
       addPass(createAArch64PartsEmulatedTimingPass());
   }
 }
