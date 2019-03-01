@@ -47,3 +47,10 @@ let isPseudo = 1 in {
                            "$dst = $ptr">,
                     Sched<[]>;
 }
+
+let isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [SP] in {
+  def TCRETURNriAA : Pseudo<(outs), (ins tcGPR64:$dst, i32imm:$FPDiff, GPR64sp:$mod), []>,
+                   Sched<[WriteBrReg]>;
+  def TCRETURNriAB : Pseudo<(outs), (ins tcGPR64:$dst, i32imm:$FPDiff, GPR64sp:$mod), []>,
+                   Sched<[WriteBrReg]>;
+}
