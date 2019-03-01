@@ -56,11 +56,13 @@ namespace {
   inline bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
   inline void doMachineFunctionInit(MachineFunction &MF);
   inline bool isPAInstruction(unsigned Opcode);
+  inline bool isPAPseudoInstruction(unsigned Opcode);
   inline void replacePACIA(MachineBasicBlock &MBB, MachineInstr &MI);
   inline void replaceAUTIA(MachineBasicBlock &MBB, MachineInstr &MI);
   inline void replaceBranchAuth(MachineBasicBlock &MBB, MachineInstr &MI);
   inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr &MI);
   inline void insertBranchInstr(MachineBasicBlock &MBB, MachineInstr &MI);
+  inline unsigned getModRegister(MachineInstr &MI);
   void insertEmulationCode(MachineBasicBlock &MBB, MachineInstr &MI);
  };
 
@@ -117,7 +119,7 @@ inline bool AArch64PartsEmulatedTimingPass::handleInstruction(MachineBasicBlock 
       replaceAUTIA(MBB, MI);
       break;
     case AArch64::BLRAA:
-    case AArch64::BRAA:
+    case AArch64::TCRETURNriAA:
       replaceBranchAuth(MBB, MI);
       break;
   }
@@ -131,7 +133,15 @@ inline bool AArch64PartsEmulatedTimingPass::isPAInstruction(unsigned Opcode) {
     case AArch64::PACIA:
     case AArch64::AUTIA:
     case AArch64::BLRAA:
-    case AArch64::BRAA:
+      return true;
+  }
+
+  return isPAPseudoInstruction(Opcode);
+}
+
+inline bool AArch64PartsEmulatedTimingPass::isPAPseudoInstruction(unsigned Opcode) {
+  switch (Opcode) {
+    case AArch64::TCRETURNriAA:
       return true;
   }
   return false;
@@ -164,7 +174,7 @@ inline void AArch64PartsEmulatedTimingPass::insertBranchInstr(MachineBasicBlock 
 
 void AArch64PartsEmulatedTimingPass::insertEmulationCode(MachineBasicBlock &MBB,
                                                                 MachineInstr &MI) {
-  auto mod = MI.getOperand(1).getReg();
+  auto mod = getModRegister(MI);
   auto dst = MI.getOperand(0).getReg();
   const auto &DL = MI.getDebugLoc();
 
@@ -172,6 +182,13 @@ void AArch64PartsEmulatedTimingPass::insertEmulationCode(MachineBasicBlock &MBB,
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), dst).addReg(dst).addImm(37);
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), dst).addReg(dst).addImm(97);
   BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), dst).addReg(dst).addReg(mod).addImm(0);
+}
+
+inline unsigned AArch64PartsEmulatedTimingPass::getModRegister(MachineInstr &MI) {
+  if (isPAPseudoInstruction(MI.getOpcode()))
+      return MI.getOperand(2).getReg();
+
+  return MI.getOperand(1).getReg();
 }
 
 inline const MCInstrDesc &AArch64PartsEmulatedTimingPass::getIndirectCallMachineInstruction(MachineInstr &MI) {
