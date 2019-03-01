@@ -33,6 +33,8 @@
 
 #define DEBUG_TYPE "AArch64EarlyPartsCpiPass"
 
+STATISTIC(StatAutcall, DEBUG_TYPE ": inserted authenticate and branch instructions");
+
 using namespace llvm;
 using namespace llvm::PARTS;
 
@@ -106,6 +108,7 @@ inline bool AArch64EarlyPartsCpiPass::handleInstruction(MachineFunction &MF,
 
   auto &MI = *MIi--;
   replaceBranchByAuthenticatedBranch(MBB, MI_indcall, MI);
+  ++StatAutcall;
 
   return true;
 }
