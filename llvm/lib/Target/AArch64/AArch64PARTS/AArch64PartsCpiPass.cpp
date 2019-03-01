@@ -61,21 +61,11 @@ namespace {
    virtual void doMachineFunctionInit(MachineFunction &MF);
    virtual void lowerPARTSAUTCALL(MachineBasicBlock &MBB, MachineInstr &MI);
    virtual void lowerPARTSPACIA(MachineBasicBlock &MBB, MachineInstr &MI);
-   virtual void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, unsigned dst, unsigned mod);
 
    inline bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline void lowerPARTSAUTIA(MachineBasicBlock &MBB, MachineInstr &MI);
    void lowerPARTSIntrinsicCommon(MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
-   inline MachineInstr *findIndirectCallMachineInstr(MachineInstr *MI);
-   inline void triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB);
-   inline unsigned getFreeRegister(MachineBasicBlock &MBB, MachineInstr *MI_from, MachineInstr &MI_to);
-   inline const MCInstrDesc &getIndirectCallMachineInstruction(MachineInstr *MI_incall);
    inline bool isPartsIntrinsic(unsigned Opcode);
-   inline bool isIndirectCall(const MachineInstr &MI) const;
-   inline bool isNormalIndirectCall(const MachineInstr *MI) const;
-   inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
-   void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
-   void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, MachineOperand &dstReg, MachineOperand &modReg, const MCInstrDesc &InstrDesc);
 
    friend class AArch64PartsCpiWithRuntimeStatistics;
  };
@@ -211,60 +201,8 @@ void AArch64PartsCpiPass::lowerPARTSPACIA(MachineBasicBlock &MBB,
 void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineBasicBlock &MBB,
                                             MachineInstr &MI) {
 
-  MachineInstr *MI_indcall = findIndirectCallMachineInstr(MI.getNextNode());
-  if (MI_indcall == nullptr)
-    triggerCompilationErrorOrphanAUTCALL(MBB);
-
-  const unsigned mod_orig = MI.getOperand(2).getReg();
-  const unsigned dst = MI.getOperand(0).getReg();
-  const unsigned mod = getFreeRegister(MBB, MI_indcall->getPrevNode(), MI);
-
-  insertMovInstr(MBB, &MI, mod, mod_orig);
-
-  replaceBranchByAuthenticatedBranch(MBB, MI_indcall, dst, mod);
-
-  ++StatAutcall;
-}
-
-inline void AArch64PartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
   DEBUG(MBB.dump());
-  llvm_unreachable("failed to find BLR for AUTCALL");
-}
-
-void AArch64PartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
-                                                             MachineInstr *MI_indcall,
-                                                             unsigned dst,
-                                                             unsigned mod) {
-  auto &MCI = getIndirectCallMachineInstruction(MI_indcall);
-  insertPACInstr(MBB, MI_indcall, dst, mod, MCI);
-  MI_indcall->removeFromParent(); // Remove the replaced BR instruction
-}
-
-inline unsigned AArch64PartsCpiPass::getFreeRegister(MachineBasicBlock &MBB,
-                                                     MachineInstr *MI_from,
-                                                     MachineInstr &MI_to) {
-  RegScavenger RS;
-  auto &RC = AArch64::GPR64commonRegClass;
-
-  RS.enterBasicBlockEnd(MBB);
-  RS.backward(MachineBasicBlock::iterator(MI_from));
-  const unsigned reg = RS.scavengeRegisterBackwards(RC, MachineBasicBlock::iterator(MI_to), false, 0);
-  RS.setRegUsed(reg); // Tell the Register Scavenger that the register is alive. Needed !?
-
-  return reg;
-}
-
-inline const MCInstrDesc &AArch64PartsCpiPass::getIndirectCallMachineInstruction(MachineInstr *MI_indcall) {
-
-  if (isNormalIndirectCall(MI_indcall))
-   return TII->get(AArch64::BLRAA);
-
-  // This is a tail call return, and we need to use BRAA
-  // (tail-call: ~optimizatoin where a tail-cal is converted to a direct call so that
-  // the tail-called function can return immediately to the current callee, without
-  // going through the currently active function.)
-
- return TII->get(AArch64::BRAA);
+  llvm_unreachable("Unexpected AUTCALL found !!!!");
 }
 
 inline void AArch64PartsCpiPass::lowerPARTSAUTIA(MachineBasicBlock &MBB,
@@ -278,57 +216,7 @@ void AArch64PartsCpiPass::lowerPARTSIntrinsicCommon(MachineBasicBlock &MBB,
                                                     const MCInstrDesc &InstrDesc) {
   auto &mod = MI.getOperand(2);
   auto &dst = MI.getOperand(0);
-
-  insertPACInstr(MBB, &MI, dst, mod, InstrDesc);
-}
-
-inline MachineInstr *AArch64PartsCpiPass::findIndirectCallMachineInstr(MachineInstr *MI) {
-  while (MI != nullptr && !isIndirectCall(*MI))
-    MI = MI->getNextNode();
-
-  return MI;
-}
-
-inline bool AArch64PartsCpiPass::isIndirectCall(const MachineInstr &MI) const {
-  switch (MI.getOpcode()) {
-    case AArch64::BLR:        // Normal indirect call
-    case AArch64::TCRETURNri: // Indirect tail call
-      return true;
-  }
-  return false;
-}
-
-void AArch64PartsCpiPass::insertPACInstr(MachineBasicBlock &MBB,
-                                         MachineInstr *MI,
-                                         unsigned dstReg,
-                                         unsigned modReg,
-                                         const MCInstrDesc &InstrDesc) {
-  auto BMI = BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc);
-  BMI.addUse(dstReg);
-  BMI.addUse(modReg);
-}
-
-void AArch64PartsCpiPass::insertPACInstr(MachineBasicBlock &MBB,
-                                         MachineInstr *MI,
-                                         MachineOperand &dstReg,
-                                         MachineOperand &modReg,
-                                         const MCInstrDesc &InstrDesc) {
-  auto BMI = BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc);
-  BMI.add(dstReg);
-  BMI.add(modReg);
-}
-
-
-inline void AArch64PartsCpiPass::insertMovInstr(MachineBasicBlock &MBB,
-                                                MachineInstr *MI,
-                                                unsigned dstReg,
-                                                unsigned srcReg) {
-  auto MOVMI = BuildMI(MBB, MI, MI->getDebugLoc(), TII->get(AArch64::ORRXrs), dstReg);
-  MOVMI.addUse(AArch64::XZR);
-  MOVMI.addUse(srcReg);
-  MOVMI.addImm(0);
-}
-
-inline bool AArch64PartsCpiPass::isNormalIndirectCall(const MachineInstr *MI) const {
-  return MI->getOpcode() == AArch64::BLR;
+  auto BMI = BuildMI(MBB, MI, MI.getDebugLoc(), InstrDesc);
+  BMI.add(dst);
+  BMI.add(mod);
 }
