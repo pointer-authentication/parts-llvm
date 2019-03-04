@@ -6,13 +6,18 @@
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
 ; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-dpi < %s | FileCheck %s
-; XFAIL: *
-;        Currently fails to compile
 ;
 
 @data = common global i32* null
 
 ; CHECK-LABEL: @simple_pointer
+; CHECK: mov   [[MOD:x[0-9+]]], #{{[0-9]+}}
+; CHECK: movk  [[MOD]], #{{[0-9]+}}, lsl #16
+; CHECK: movk  [[MOD]], #{{[0-9]+}}, lsl #32
+; CHECK: movk  [[MOD]], #{{[0-9]+}}, lsl #48
+; CHECK: autda [[PTR:x[0-9]+]], [[MOD]]
+; CHECK: pacda [[PTR]], [[MOD]]
+; CHECK: ret
 define void @simple_pointer(i32** %val) {
 entry:
   %0 = load i32*, i32** %val, align 8
