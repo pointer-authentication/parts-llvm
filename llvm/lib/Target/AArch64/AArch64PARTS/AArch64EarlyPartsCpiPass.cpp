@@ -152,9 +152,15 @@ inline void AArch64EarlyPartsCpiPass::replaceBranchByAuthenticatedBranch(Machine
                                                                     MachineInstr &MI)
 {
   auto modOperand = MI.getOperand(2);
-  auto dstOperand = MI.getOperand(1);
+  auto dstOperand = MI.getOperand(0);
+  auto srcOperand = MI.getOperand(1);
+
+  auto COPYMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), TII->get(AArch64::COPY));
+  COPYMI.add(dstOperand);
+  COPYMI.add(srcOperand);
+
   auto BMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), getIndirectCallAuth(MI_indcall));
-  BMI.add(dstOperand);
+  BMI.addUse(COPYMI->getOperand(0).getReg());
   if (MI_indcall->getOpcode() == AArch64::TCRETURNri)
     BMI.add(MI_indcall->getOperand(1)); // Copy FPDiff from original tail call pseudo instruction
   BMI.add(modOperand);
