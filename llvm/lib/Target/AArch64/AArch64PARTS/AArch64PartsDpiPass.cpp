@@ -69,7 +69,7 @@ bool AArch64PartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
 
   bool modified = false;
 
-  AArch64PartsPassCommon::runOnMachineFunction(MF);
+  initRunOn(MF);
 
   modified |= lowerDpiIntrinsics(MF);
 

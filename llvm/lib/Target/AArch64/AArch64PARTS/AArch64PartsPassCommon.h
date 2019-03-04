@@ -21,7 +21,7 @@ namespace PARTS {
 
 class AArch64PartsPassCommon {
 protected:
-  inline void runOnMachineFunction(MachineFunction &MF);
+  inline void initRunOn(MachineFunction &MF);
 
   inline bool hasNoPartsAttribute(MachineFunction &MF);
 
@@ -39,7 +39,7 @@ protected:
 };
 };
 
-inline void AArch64PartsPassCommon::runOnMachineFunction(MachineFunction &MF) {
+inline void AArch64PartsPassCommon::initRunOn(MachineFunction &MF) {
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
