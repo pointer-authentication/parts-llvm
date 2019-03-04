@@ -50,6 +50,8 @@ public:
   StringRef getPassName() const override { return DEBUG_TYPE; }
   bool runOnMachineFunction(MachineFunction &) override;
 
+  bool lowerDpiIntrinsics(MachineFunction &MF);
+
 private:
 };
 
@@ -68,6 +70,14 @@ bool AArch64PartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
   bool modified = false;
 
   AArch64PartsPassCommon::runOnMachineFunction(MF);
+
+  modified |= lowerDpiIntrinsics(MF);
+
+  return modified;
+}
+
+bool AArch64PartsDpiPass::lowerDpiIntrinsics(MachineFunction& MF) {
+  bool modified = false;
 
   for (auto &MBB : MF) {
     for (auto MBBI = MBB.begin(), end = MBB.end(); MBBI != end; ) {
@@ -92,3 +102,4 @@ bool AArch64PartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
 
   return modified;
 }
+
