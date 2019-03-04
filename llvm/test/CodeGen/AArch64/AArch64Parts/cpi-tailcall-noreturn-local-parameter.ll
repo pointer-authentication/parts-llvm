@@ -1,4 +1,4 @@
-; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-fecfi < %s | FileCheck %s
+; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-fecfi < %s | FileCheck %s
 
 define void @tail_call_no_return(i32 (i64, i32)* nocapture %func, i32 %data) local_unnamed_addr #0 {
 entry:

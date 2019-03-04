@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-fecfi < %s | FileCheck %s
+; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-fecfi < %s | FileCheck %s
 ;
 ; Test a case where the instrumentation produces a mov x0, xzr before the call,
 ; thus causing it to bra to NULL.

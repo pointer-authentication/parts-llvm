@@ -7,7 +7,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-fecfi --parts-dummy < %s | FileCheck %s
+; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-fecfi --parts-dummy < %s | FileCheck %s
 ;
 ; Make sure that a tailcall works, when the FP+LR is not spilled.
 ;
