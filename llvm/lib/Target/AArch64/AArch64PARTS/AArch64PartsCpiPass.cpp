@@ -36,7 +36,6 @@
 
 STATISTIC(StatAutia, DEBUG_TYPE ": code pointers authenticated and unPACed");
 STATISTIC(StatPacia, DEBUG_TYPE ": code pointers signed");
-STATISTIC(StatAutcall, DEBUG_TYPE ": inserted authenticate and branch instructions");
 
 using namespace llvm;
 using namespace llvm::PARTS;
