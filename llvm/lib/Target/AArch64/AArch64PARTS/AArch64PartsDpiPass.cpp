@@ -70,17 +70,19 @@ bool AArch64PartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
   AArch64PartsPassCommon::runOnMachineFunction(MF);
 
   for (auto &MBB : MF) {
-    for (auto &MI : MBB) {
+    for (auto MBBI = MBB.begin(), end = MBB.end(); MBBI != end; ) {
+      auto &MI = *MBBI++;
+
       switch(MI.getOpcode()) {
         default:
           break;
         case AArch64::PARTS_PACDA:
-          lowerPartsIntrinsic(MF, MBB, MI, TII->get(AArch64::PACDA));
+          replacePartsIntrinsic(MF, MBB, MI, TII->get(AArch64::PACDA));
           ++StatDataStore;
           modified = true;
           break;
         case AArch64::PARTS_AUTDA:
-          lowerPartsIntrinsic(MF, MBB, MI, TII->get(AArch64::AUTDA));
+          replacePartsIntrinsic(MF, MBB, MI, TII->get(AArch64::AUTDA));
           modified = true;
           ++StatDataLoad;
           break;
