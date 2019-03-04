@@ -51,9 +51,9 @@ inline bool AArch64PartsPassCommon::hasNoPartsAttribute(MachineFunction &MF) {
 }
 
 inline void AArch64PartsPassCommon::lowerPartsIntrinsic(MachineFunction &MF,
-                                           MachineBasicBlock &MBB,
-                                           MachineInstr &MI,
-                                           const MCInstrDesc &InstrDesc) {
+                                                        MachineBasicBlock &MBB,
+                                                        MachineInstr &MI,
+                                                        const MCInstrDesc &InstrDesc) {
   const unsigned mod = MI.getOperand(2).getReg();
   const unsigned dst = MI.getOperand(0).getReg();
 
@@ -69,19 +69,19 @@ inline void AArch64PartsPassCommon::replacePartsIntrinsic(MachineFunction &MF,
 }
 
 inline void AArch64PartsPassCommon::insertPACInstr(MachineBasicBlock &MBB,
-                                                MachineInstr *MI,
-                                                unsigned dstReg,
-                                                unsigned modReg,
-                                                const MCInstrDesc &InstrDesc) {
+                                                   MachineInstr *MI,
+                                                   unsigned dstReg,
+                                                   unsigned modReg,
+                                                   const MCInstrDesc &InstrDesc) {
   BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc)
       .addUse(dstReg)
       .addUse(modReg);
 }
 
 inline void AArch64PartsPassCommon::insertMovInstr(MachineBasicBlock &MBB,
-                                                MachineInstr *MI,
-                                                unsigned dstReg,
-                                                unsigned srcReg) {
+                                                   MachineInstr *MI,
+                                                   unsigned dstReg,
+                                                   unsigned srcReg) {
   BuildMI(MBB, MI, MI->getDebugLoc(), TII->get(AArch64::ORRXrs), dstReg)
       .addUse(AArch64::XZR)
       .addUse(srcReg)
