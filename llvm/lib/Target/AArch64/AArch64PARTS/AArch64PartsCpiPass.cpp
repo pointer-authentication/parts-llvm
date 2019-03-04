@@ -93,8 +93,10 @@ FunctionPass *llvm::createAArch64PartsPassCpi() {
 
   CpiPass = new AArch64PartsCpiPass();
 
+#if 0
   if (PARTS::useRuntimeStats())
     CpiPass = new AArch64PartsCpiWithRuntimeStatistics(CpiPass);
+#endif
 
   return CpiPass;
 }
