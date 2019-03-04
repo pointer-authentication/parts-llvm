@@ -6,6 +6,7 @@
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
 ; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -S < %s | FileCheck %s
+; XFAIL: *
 ;
 ; Based on:
 ;
