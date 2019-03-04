@@ -64,9 +64,6 @@ FunctionPass *llvm::createPartsPassDpi() {
 char AArch64PartsDpiPass::ID = 0;
 
 bool AArch64PartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
-  if (hasNoPartsAttribute(MF))
-    return false;
-
   bool modified = false;
 
   initRunOn(MF);
