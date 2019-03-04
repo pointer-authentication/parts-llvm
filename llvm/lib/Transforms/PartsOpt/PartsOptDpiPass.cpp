@@ -101,15 +101,14 @@ bool PartsOptDpiPass::handleLoadInstruction(Function &F, Instruction &I) {
 
   const auto V = LI->getPointerOperand();
 
-  const auto VType = isa<BitCastInst>(V) ?
-                     dyn_cast<BitCastInst>(V)->getSrcTy() :
-                     V->getType()->getPointerElementType();
+  const auto VType = V->getType()->getPointerElementType();
 
   if (! isDataPointer(VType))
     return false;
 
   auto authenticated = dyn_cast<Instruction>(createPartsIntrinsic(F, *I.getNextNode(), &I, Intrinsic::pa_autda));
   assert(authenticated != nullptr);
+
   I.replaceAllUsesWith(authenticated);
   authenticated->setOperand(0, &I);
 
