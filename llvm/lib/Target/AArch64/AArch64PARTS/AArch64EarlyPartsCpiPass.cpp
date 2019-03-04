@@ -60,6 +60,7 @@ namespace {
    inline bool isIndirectCall(const MachineInstr &MI) const;
    inline const MCInstrDesc &getIndirectCallAuth(MachineInstr *MI_indcall);
    inline void replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB, MachineInstr *MI_indcall, MachineInstr &MI);
+   inline void insertCOPYInstr(MachineBasicBlock &MBB, MachineInstr *MI_indcall, MachineInstr &MI);
    };
 } // end anonymous namespace
 
@@ -149,18 +150,13 @@ void AArch64EarlyPartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasic
 
 inline void AArch64EarlyPartsCpiPass::replaceBranchByAuthenticatedBranch(MachineBasicBlock &MBB,
                                                                     MachineInstr *MI_indcall,
-                                                                    MachineInstr &MI)
-{
+                                                                    MachineInstr &MI) {
   auto modOperand = MI.getOperand(2);
-  auto dstOperand = MI.getOperand(0);
-  auto srcOperand = MI.getOperand(1);
 
-  auto COPYMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), TII->get(AArch64::COPY));
-  COPYMI.add(dstOperand);
-  COPYMI.add(srcOperand);
+  insertCOPYInstr(MBB, MI_indcall, MI);
 
   auto BMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), getIndirectCallAuth(MI_indcall));
-  BMI.addUse(COPYMI->getOperand(0).getReg());
+  BMI.addUse(MI_indcall->getOperand(0).getReg());
   if (MI_indcall->getOpcode() == AArch64::TCRETURNri)
     BMI.add(MI_indcall->getOperand(1)); // Copy FPDiff from original tail call pseudo instruction
   BMI.add(modOperand);
@@ -168,4 +164,16 @@ inline void AArch64EarlyPartsCpiPass::replaceBranchByAuthenticatedBranch(Machine
 
   MI_indcall->removeFromParent();
   MI.removeFromParent();
+}
+
+inline void AArch64EarlyPartsCpiPass::insertCOPYInstr(MachineBasicBlock &MBB,
+                                                      MachineInstr *MI_indcall,
+                                                      MachineInstr &MI) {
+
+  auto dstOperand = MI.getOperand(0);
+  auto srcOperand = MI.getOperand(1);
+
+  auto COPYMI = BuildMI(MBB, *MI_indcall, MI_indcall->getDebugLoc(), TII->get(AArch64::COPY));
+  COPYMI.add(dstOperand);
+  COPYMI.add(srcOperand);
 }
