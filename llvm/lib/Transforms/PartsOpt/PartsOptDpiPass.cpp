@@ -40,8 +40,8 @@ public:
 
 private:
   inline bool handleInstruction(Function &F, Instruction &I);
-  bool handleStoreInstruction(Function &F, Instruction &I);
-  bool handleLoadInstruction(Function &F, Instruction &I);
+  bool handleStoreInstruction(Function &F, StoreInst *pSI);
+  bool handleLoadInstruction(Function &F, LoadInst *pLI);
 };
 
 } // anonymous namespace
@@ -68,46 +68,41 @@ inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I) {
     default:
       return false;
     case Instruction::Store:
-      handleStoreInstruction(F, I);
+      handleStoreInstruction(F, dyn_cast<StoreInst>(&I));
       break;
     case Instruction::Load:
-      handleLoadInstruction(F, I);
+      handleLoadInstruction(F, dyn_cast<LoadInst>(&I));
       break;
   }
 
   return true;
 }
 
-bool PartsOptDpiPass::handleStoreInstruction(Function &F, Instruction &I) {
-  auto SI = dyn_cast<StoreInst>(&I);
-
-  const auto V = SI->getValueOperand();
+bool PartsOptDpiPass::handleStoreInstruction(Function &F, StoreInst *pSI) {
+  const auto V = pSI->getValueOperand();
   const auto VType = V->getType();
 
   if (! isDataPointer(VType))
     return false;
 
-  SI->setOperand(0, createPartsIntrinsic(F, I, V, Intrinsic::pa_pacda));
+  pSI->setOperand(0, createPartsIntrinsic(F, *pSI, V, Intrinsic::pa_pacda));
 
   ++StatSignStoreData;
   return true;
 }
 
-bool PartsOptDpiPass::handleLoadInstruction(Function &F, Instruction &I) {
-  auto LI = dyn_cast<LoadInst>(&I);
-
-  const auto V = LI->getPointerOperand();
-
+bool PartsOptDpiPass::handleLoadInstruction(Function &F, LoadInst *pLI) {
+  const auto V = pLI->getPointerOperand();
   const auto VType = V->getType()->getPointerElementType();
 
   if (! isDataPointer(VType))
     return false;
 
-  auto authenticated = dyn_cast<Instruction>(createPartsIntrinsic(F, *I.getNextNode(), &I, Intrinsic::pa_autda));
+  auto authenticated = dyn_cast<Instruction>(createPartsIntrinsic(F, *pLI->getNextNode(), pLI, Intrinsic::pa_autda));
   assert(authenticated != nullptr);
 
-  I.replaceAllUsesWith(authenticated);
-  authenticated->setOperand(0, &I);
+  pLI->replaceAllUsesWith(authenticated);
+  authenticated->setOperand(0, pLI);
 
   ++StatAuthLoadData;
   return true;
