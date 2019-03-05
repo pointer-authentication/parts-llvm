@@ -9,6 +9,8 @@
 //===----------------------------------------------------------------------===//
 
 #include <llvm/IR/Constants.h>
+#include <llvm/CodeGen/MachineRegisterInfo.h>
+
 #include "PartsUtils.h"
 
 #include "llvm/PARTS/Parts.h"
@@ -367,16 +369,21 @@ void PartsUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrR
 void PartsUtils::addEventCallFunction(MachineBasicBlock &MBB, MachineInstr &MI,
                                       const DebugLoc &DL, Function *func) {
   if (PARTS::useRuntimeStats()) {
-    BuildMI(MBB, MI, DL, TII->get(AArch64::STRQpre))
+
+    // FIXME: Ugly hack. Better to avoid the spill if LR is killed
+    auto &MRI = MBB.getParent()->getRegInfo();
+    MRI.clearKillFlags(AArch64::LR);
+
+    BuildMI(MBB, MI, DL, TII->get(AArch64::STRXpre))
         .addReg(AArch64::SP, RegState::Define)
         .addReg(AArch64::LR)
         .addReg(AArch64::SP)
         .addImm(-16);
     BuildMI(MBB, MI, DL, TII->get(AArch64::BL))
         .addGlobalAddress(func);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::LDRQpost))
+    BuildMI(MBB, MI, DL, TII->get(AArch64::LDRXpost))
         .addReg(AArch64::SP, RegState::Define)
-        .addReg(AArch64::LR)
+        .addReg(AArch64::LR, RegState::Define)
         .addReg(AArch64::SP)
         .addImm(16);
   }
