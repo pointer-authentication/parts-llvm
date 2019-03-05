@@ -6,7 +6,6 @@
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
 ; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -S < %s | FileCheck %s
-; XFAIL: *
 ;
 ; Based on:
 ;
@@ -17,15 +16,15 @@
 
 ; CHECK-LABEL: @main
 ; CHECK: %arr = alloca i64*, align 8
-; CHECK: %call = call noalias i8* @malloc(i64 3200) #2
-; CHECK: pacia
+; CHECK: %call = call noalias i8* @malloc(i64 3200)
+; CHECK: pacda
 ; CHECK: store
-; CHECK: call void @free(i8* %call) #2
+; CHECK: call void @free(i8* %call)
 ; CHECK: ret void
 define hidden void @main() {
 entry:
   %arr = alloca i64*, align 8
-  %call = call noalias i8* @malloc(i64 3200) #2
+  %call = call noalias i8* @malloc(i64 3200)
   %0 = bitcast i8* %call to i64*
   store i64* %0, i64** %arr, align 8
   call void @free(i8* %call) #2
