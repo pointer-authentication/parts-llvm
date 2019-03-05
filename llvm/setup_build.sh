@@ -312,7 +312,7 @@ run_tests() {
         return 1
     fi
 
-    "$driver" -v test/Transforms/PartsOpt test/CodeGen/AArch64/AArch64Parts
+    "$driver" -vv test/Transforms/PartsOpt test/CodeGen/AArch64/AArch64Parts
 }
 
 if [[ $1 = args ]]; then
