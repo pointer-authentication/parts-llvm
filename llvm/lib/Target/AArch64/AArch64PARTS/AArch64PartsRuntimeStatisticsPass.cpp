@@ -55,7 +55,8 @@ namespace {
    PartsUtils_ptr  partsUtils = nullptr;
    Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
-   inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   inline bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   inline bool isPAInstr(unsigned Opcode);
   };
 } // end anonymous namespace
 
@@ -81,22 +82,49 @@ bool AArch64PartsRuntimeStatistics::runOnMachineFunction(MachineFunction &MF) {
 
   for (auto &MBB : MF)
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
-      found = handleInstruction(MF, MBB, MIi) || found;
+      found = handleInstruction(MBB, MIi) || found;
 
   return found;
 }
 
 /**
  *
- * @param MF
  * @param MBB
  * @param MIi
  * @return  return true when changing something, otherwise false
  */
-inline bool AArch64PartsRuntimeStatistics::handleInstruction(MachineFunction &MF,
-                                                   MachineBasicBlock &MBB,
-                                                   MachineBasicBlock::instr_iterator &MIi) {
-  //const auto MIOpcode = MIi->getOpcode();
+inline bool AArch64PartsRuntimeStatistics::handleInstruction(MachineBasicBlock &MBB,
+                                                             MachineBasicBlock::instr_iterator &MIi) {
+  const auto MIOpcode = MIi->getOpcode();
+
+  if (!isPAInstr(MIOpcode))
+    return false;
+
+  auto &MI = *MIi;
+
+  switch (MIOpcode) {
+    default:
+      llvm_unreachable("Unhandled PAC instruction!!");
+    case AArch64::PACIA:
+      partsUtils->addEventCallFunction(MBB, MI, MI.getDebugLoc(), funcCountCodePtrCreate);
+      break;
+    case AArch64::BLRAA:
+    case AArch64::TCRETURNriAA:
+      partsUtils->addEventCallFunction(MBB, MI, MI.getDebugLoc(), funcCountCodePtrBranch);
+      break;
+  }
+
+  return true;
+}
+
+inline bool AArch64PartsRuntimeStatistics::isPAInstr(unsigned Opcode) {
+  switch (Opcode) {
+//  case AArch64::AUTIA:
+    case AArch64::PACIA:
+    case AArch64::BLRAA:
+    case AArch64::TCRETURNriAA:
+      return true;
+  }
 
   return false;
 }
