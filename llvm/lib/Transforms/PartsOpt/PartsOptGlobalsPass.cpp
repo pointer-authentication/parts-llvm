@@ -142,12 +142,20 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
 
   const bool isCodePointer = Ty->getPointerElementType()->isFunctionTy();
 
-  if (isCodePointer && PARTS::useFeCfi())
+  if (isCodePointer && PARTS::useFeCfi()) {
+    // Make sure we're not PACing a NULL code pointer
+    if (auto CV = dyn_cast<Constant>(V)) {
+      if (auto CO = dyn_cast<Constant>(CV->getOperand(0))) {
+        if (CO->isNullValue())
+          return false;
+      }
+    }
     ++PartsCodePointersPACed;
-  else if (!isCodePointer && PARTS::useDpi())
+  } else if (!isCodePointer && PARTS::useDpi()) {
     ++PartsDataPointersPACed;
-  else
+  } else {
     return false;
+  }
 
   auto loaded = builder->CreateLoad(V);
   auto paced = PartsIntr::pac_pointer(builder, M, loaded);
