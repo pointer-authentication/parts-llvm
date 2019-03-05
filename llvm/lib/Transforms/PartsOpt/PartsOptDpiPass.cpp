@@ -82,15 +82,12 @@ bool PartsOptDpiPass::handleStoreInstruction(Function &F, Instruction &I) {
   auto SI = dyn_cast<StoreInst>(&I);
 
   const auto V = SI->getValueOperand();
-  const auto VInput = isa<BitCastOperator>(V) ? dyn_cast<BitCastOperator>(V)->getOperand(0) : V;
-  const auto VTypeInput = isa<BitCastOperator>(V) ?
-                          dyn_cast<BitCastOperator>(V)->getSrcTy() :
-                          V->getType();
+  const auto VType = V->getType();
 
-  if (! isDataPointer(VTypeInput))
+  if (! isDataPointer(VType))
     return false;
 
-  SI->setOperand(0, createPartsIntrinsic(F, I, VInput, Intrinsic::pa_pacda));
+  SI->setOperand(0, createPartsIntrinsic(F, I, V, Intrinsic::pa_pacda));
 
   ++StatSignStoreData;
   return true;
