@@ -80,8 +80,8 @@ bool AArch64PartsRuntimeStatistics::runOnMachineFunction(MachineFunction &MF) {
   partsUtils = PartsUtils::get(TRI, TII);
 
   for (auto &MBB : MF)
-    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
-      found = handleInstruction(MBB, *MIi) || found;
+    for (auto &MI : MBB.instrs())
+      found = handleInstruction(MBB, MI) || found;
 
   return found;
 }
