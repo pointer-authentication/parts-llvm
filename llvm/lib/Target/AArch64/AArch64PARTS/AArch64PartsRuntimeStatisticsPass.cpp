@@ -50,8 +50,6 @@ namespace {
    bool runOnMachineFunction(MachineFunction &) override;
 
  private:
-   const AArch64Subtarget *STI = nullptr;
-   const AArch64InstrInfo *TII = nullptr;
    PartsUtils_ptr  partsUtils = nullptr;
    Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
@@ -75,10 +73,10 @@ bool AArch64PartsRuntimeStatistics::doInitialization(Module &M) {
 
 bool AArch64PartsRuntimeStatistics::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
+  const auto TRI = MF.getSubtarget<AArch64Subtarget>().getRegisterInfo();
+  const auto TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
 
-  STI = &MF.getSubtarget<AArch64Subtarget>();
-  TII = STI->getInstrInfo();
-  partsUtils = PartsUtils::get(STI->getRegisterInfo(), TII);
+  partsUtils = PartsUtils::get(TRI, TII);
 
   for (auto &MBB : MF)
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
@@ -119,7 +117,7 @@ inline bool AArch64PartsRuntimeStatistics::handleInstruction(MachineBasicBlock &
 
 inline bool AArch64PartsRuntimeStatistics::isPAInstr(unsigned Opcode) {
   switch (Opcode) {
-//  case AArch64::AUTIA:
+//TODO:  case AArch64::AUTIA:
     case AArch64::PACIA:
     case AArch64::BLRAA:
     case AArch64::TCRETURNriAA:
