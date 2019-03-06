@@ -50,97 +50,37 @@ namespace {
 
    StringRef getPassName() const override { return DEBUG_TYPE; }
 
-   virtual bool doInitialization(Module &M) override;
+   bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
 
  private:
    const AArch64InstrInfo *TII = nullptr;
-   const AArch64Subtarget *STI = nullptr;
 
-   virtual void doMachineFunctionInit(MachineFunction &MF);
-   virtual void lowerPARTSAUTCALL(MachineBasicBlock &MBB, MachineInstr &MI);
-   virtual void lowerPARTSPACIA(MachineBasicBlock &MBB, MachineInstr &MI);
+   void lowerPARTSAUTCALL(MachineBasicBlock &MBB, MachineInstr &MI);
+   void lowerPARTSPACIA(MachineBasicBlock &MBB, MachineInstr &MI);
 
    inline bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
    inline void lowerPARTSAUTIA(MachineBasicBlock &MBB, MachineInstr &MI);
    void lowerPARTSIntrinsicCommon(MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
    inline bool isPartsIntrinsic(unsigned Opcode);
-
-   friend class AArch64PartsCpiWithRuntimeStatistics;
- };
-
- class AArch64PartsCpiWithRuntimeStatistics : public AArch64PartsCpiPass {
-  public:
-   AArch64PartsCpiWithRuntimeStatistics(AArch64PartsCpiPass *CpiPass) : AArch64PartsCpiPass() { PartsCpiPass = CpiPass; }
-
-   bool doInitialization(Module &M) override;
-
-  private:
-   PartsUtils_ptr  partsUtils = nullptr;
-   Function *funcCountCodePtrBranch = nullptr;
-   Function *funcCountCodePtrCreate = nullptr;
-   AArch64PartsCpiPass *PartsCpiPass;
-
-   void doMachineFunctionInit(MachineFunction &MF) override;
-   void lowerPARTSAUTCALL(MachineBasicBlock &MBB, MachineInstr &MI) override;
-   void lowerPARTSPACIA(MachineBasicBlock &MBB, MachineInstr &MI) override;
  };
 
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PartsPassCpi() {
-  AArch64PartsCpiPass *CpiPass;
-
-  CpiPass = new AArch64PartsCpiPass();
-
-#if 0
-  if (PARTS::useRuntimeStats())
-    CpiPass = new AArch64PartsCpiWithRuntimeStatistics(CpiPass);
-#endif
-
-  return CpiPass;
+  return new AArch64PartsCpiPass();
 }
 
 char AArch64PartsCpiPass::ID = 0;
-
-void AArch64PartsCpiWithRuntimeStatistics::doMachineFunctionInit(MachineFunction &MF) {
-  PartsCpiPass->doMachineFunctionInit(MF);
-  AArch64PartsCpiPass::doMachineFunctionInit(MF);
-  partsUtils = PartsUtils::get(STI->getRegisterInfo(), TII);
-}
-
-bool AArch64PartsCpiWithRuntimeStatistics::doInitialization(Module &M) {
-  funcCountCodePtrBranch = PartsEventCount::getFuncCodePointerBranch(M);
-  funcCountCodePtrCreate = PartsEventCount::getFuncCodePointerCreate(M);
-  return PartsCpiPass->doInitialization(M);
-}
-
-void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSPACIA(MachineBasicBlock &MBB,
-                                                 MachineInstr &MI) {
-  partsUtils->addEventCallFunction(MBB, MI, (--MachineBasicBlock::iterator(MI))->getDebugLoc(), funcCountCodePtrCreate);
-  PartsCpiPass->lowerPARTSPACIA(MBB, MI);
-}
-
-void AArch64PartsCpiWithRuntimeStatistics::lowerPARTSAUTCALL(MachineBasicBlock &MBB,
-                                                   MachineInstr &MI) {
-
-  partsUtils->addEventCallFunction(MBB, *(--MachineBasicBlock::iterator(MI)), MI.getDebugLoc(), funcCountCodePtrBranch);
-  PartsCpiPass->lowerPARTSAUTCALL(MBB, MI);
-}
 
 bool AArch64PartsCpiPass::doInitialization(Module &M) {
   return true;
 }
 
-void AArch64PartsCpiPass::doMachineFunctionInit(MachineFunction &MF) {
-  STI = &MF.getSubtarget<AArch64Subtarget>();
-  TII = STI->getInstrInfo();
-}
-
 bool AArch64PartsCpiPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
 
-  doMachineFunctionInit(MF);
+  TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
 
   for (auto &MBB : MF)
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
