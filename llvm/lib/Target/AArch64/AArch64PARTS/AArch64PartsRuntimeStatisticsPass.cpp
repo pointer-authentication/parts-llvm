@@ -53,7 +53,8 @@ namespace {
    PartsUtils_ptr  partsUtils = nullptr;
    Function *funcCountCodePtrBranch = nullptr;
    Function *funcCountCodePtrCreate = nullptr;
-   inline bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+   inline bool handleInstruction(MachineBasicBlock &MBB, MachineInstr &MI);
+   inline Function *getRuntimeFunction(unsigned Opcode);
    inline bool isPAInstr(unsigned Opcode);
   };
 } // end anonymous namespace
@@ -80,7 +81,7 @@ bool AArch64PartsRuntimeStatistics::runOnMachineFunction(MachineFunction &MF) {
 
   for (auto &MBB : MF)
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
-      found = handleInstruction(MBB, MIi) || found;
+      found = handleInstruction(MBB, *MIi) || found;
 
   return found;
 }
@@ -88,31 +89,39 @@ bool AArch64PartsRuntimeStatistics::runOnMachineFunction(MachineFunction &MF) {
 /**
  *
  * @param MBB
- * @param MIi
+ * @param MI
  * @return  return true when changing something, otherwise false
  */
 inline bool AArch64PartsRuntimeStatistics::handleInstruction(MachineBasicBlock &MBB,
-                                                             MachineBasicBlock::instr_iterator &MIi) {
-  const auto MIOpcode = MIi->getOpcode();
+                                                             MachineInstr &MI) {
+  const auto MIOpcode = MI.getOpcode();
 
   if (!isPAInstr(MIOpcode))
     return false;
 
-  auto &MI = *MIi;
+  partsUtils->addEventCallFunction(MBB, MI, MI.getDebugLoc(), getRuntimeFunction(MIOpcode));
 
-  switch (MIOpcode) {
+  return true;
+}
+
+inline Function *AArch64PartsRuntimeStatistics::getRuntimeFunction(unsigned Opcode) {
+
+  Function *func = NULL;
+
+  switch (Opcode) {
     default:
       llvm_unreachable("Unhandled PAC instruction!!");
+      break;
     case AArch64::PACIA:
-      partsUtils->addEventCallFunction(MBB, MI, MI.getDebugLoc(), funcCountCodePtrCreate);
+      func = funcCountCodePtrCreate;
       break;
     case AArch64::BLRAA:
     case AArch64::TCRETURNriAA:
-      partsUtils->addEventCallFunction(MBB, MI, MI.getDebugLoc(), funcCountCodePtrBranch);
+      func = funcCountCodePtrBranch;
       break;
   }
 
-  return true;
+  return func;
 }
 
 inline bool AArch64PartsRuntimeStatistics::isPAInstr(unsigned Opcode) {
