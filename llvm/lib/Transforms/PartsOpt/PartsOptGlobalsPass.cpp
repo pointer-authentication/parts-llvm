@@ -67,7 +67,7 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
 
   for (auto GI = M.global_begin(), GE = M.global_end(); GI != GE; ++GI) {
 
-    if (GI->getNumOperands() > 0) {
+    if (GI->hasInitializer()) {
       const auto O = GI->getOperand(0);
       if (handle(M, &*GI, O->getType())) {
         // We are going to modify the global, make sure it is writeable!
