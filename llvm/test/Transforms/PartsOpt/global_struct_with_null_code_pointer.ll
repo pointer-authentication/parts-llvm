@@ -28,8 +28,4 @@ entry:
 ; CHECK:   ret void
 ; CHECK: }
 
-; CHECK: ; Function Attrs: nounwind readnone
-; CHECK: declare void (i32)* @llvm.pa.pacia.p0f_isVoidi32f(void (i32)*, i64) #1
-
 ; CHECK: attributes #0 = { "no-parts"="true" "noinline"="true" }
-; CHECK: attributes #1 = { nounwind readnone }
