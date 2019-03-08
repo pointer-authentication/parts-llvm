@@ -1,6 +1,5 @@
 ; Check that we insert a constructor function to authenticate global struct with code pointers members
 ; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-globals -S < %s  | FileCheck %s
-; XFAIL: *
 
 %struct.callback = type { void (i32)*, i32 }
 
