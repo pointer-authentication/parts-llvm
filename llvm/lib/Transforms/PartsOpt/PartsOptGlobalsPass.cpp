@@ -38,10 +38,10 @@ struct PartsOptGlobalsPass: public ModulePass {
 private:
   IRBuilder<> *builder;
 
-  bool handle(Module &M, Value *V, Type *Ty);
-  bool handle(Module &M, Value *V, StructType *Ty);
-  bool handle(Module &M, Value *V, ArrayType *Ty);
-  bool handle(Module &M, Value *V, PointerType *Ty);
+  bool handle(Module &M, Value *V, Constant *CV, Type *Ty);
+  bool handle(Module &M, Value *V, Constant *CV, StructType *Ty);
+  bool handle(Module &M, Value *V, Constant *CV, ArrayType *Ty);
+  bool handle(Module &M, Value *V, Constant *CV, PointerType *Ty);
 };
 
 } // anonymous namespace
@@ -68,7 +68,7 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
   for (auto &GI: M.globals()) {
     if (GI.hasInitializer()) {
       const auto CV = GI.getInitializer();
-      if (handle(M, &GI, CV->getType())) {
+      if (handle(M, &GI, CV, CV->getType())) {
         // We are going to modify the global, make sure it is writeable!
         if (GI.isConstant())
           GI.setConstant(false);
@@ -84,20 +84,20 @@ bool PartsOptGlobalsPass::runOnModule(Module &M) {
   return true;
 }
 
-bool PartsOptGlobalsPass::handle(Module &M, Value *V, Type *Ty) {
+bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, Type *Ty) {
   if (Ty->isArrayTy())
-    return handle(M, V, dyn_cast<ArrayType>(Ty));
+    return handle(M, V, CV, dyn_cast<ArrayType>(Ty));
 
   if (Ty->isStructTy())
-    return handle(M, V, dyn_cast<StructType>(Ty));
+    return handle(M, V, CV, dyn_cast<StructType>(Ty));
 
   if (Ty->isPointerTy())
-    return handle(M, V, dyn_cast<PointerType>(Ty));
+    return handle(M, V, CV, dyn_cast<PointerType>(Ty));
 
   return false;
 }
 
-bool PartsOptGlobalsPass::handle(Module &M, Value *V, ArrayType *Ty) {
+bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, ArrayType *Ty) {
   bool changed = false;
   auto &C = M.getContext();
 
@@ -115,26 +115,26 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, ArrayType *Ty) {
         ConstantInt::get(Type::getInt64Ty(C), base + i),
     });
 
-    changed = handle(M, elPtr, elPtr->getType()->getPointerElementType()) || changed;
+    changed = handle(M, elPtr, CV, elPtr->getType()->getPointerElementType()) || changed;
   }
 
   return changed;
 }
 
-bool PartsOptGlobalsPass::handle(Module &M, Value *V, StructType *Ty) {
+bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, StructType *Ty) {
   bool changed = false;
 
   for (auto i = 0U; i < Ty->getNumElements(); i++) {
     auto elPtr = builder->CreateStructGEP(Ty, V, i);
     auto elType = Ty->getElementType(i);
 
-    changed = handle(M, elPtr, elType) || changed;
+    changed = handle(M, elPtr, CV, elType) || changed;
   }
 
   return changed;
 }
 
-bool PartsOptGlobalsPass::handle(Module &M, Value *V, PointerType *Ty) {
+bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, PointerType *Ty) {
 
   if (!Ty->isPointerTy())
     return false;
