@@ -127,8 +127,8 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, StructType *
   for (auto i = 0U; i < Ty->getNumElements(); i++) {
     auto elPtr = builder->CreateStructGEP(Ty, V, i);
     auto elType = Ty->getElementType(i);
-
-    changed = handle(M, elPtr, CV, elType) || changed;
+    auto elCV = CV->getAggregateElement(i);
+    changed = handle(M, elPtr, elCV, elType) || changed;
   }
 
   return changed;
