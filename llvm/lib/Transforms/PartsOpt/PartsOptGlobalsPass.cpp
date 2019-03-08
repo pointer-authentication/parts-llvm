@@ -114,8 +114,8 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, ArrayType *T
         ConstantInt::get(Type::getInt64Ty(C), 0),
         ConstantInt::get(Type::getInt64Ty(C), base + i),
     });
-
-    changed = handle(M, elPtr, CV, elPtr->getType()->getPointerElementType()) || changed;
+    auto elCV = CV->getAggregateElement(base + i);
+    changed = handle(M, elPtr, elCV, Ty->getElementType()) || changed;
   }
 
   return changed;
