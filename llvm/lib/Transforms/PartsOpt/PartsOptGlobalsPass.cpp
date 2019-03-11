@@ -153,15 +153,16 @@ bool PartsOptGlobalsPass::needsPACing(Constant *CV, PointerType *Ty) {
 
   const bool isCodePointer = Ty->getPointerElementType()->isFunctionTy();
 
-  if (isCodePointer && PARTS::useFeCfi()) {
-    if (CV->isNullValue())
-      return false;
-  } else if (!isCodePointer && PARTS::useDpi()) {
-  } else {
-    return false;
-  }
+  if (isCodePointer && PARTS::useFeCfi() && !CV->isNullValue())
+      return true;
+  else if (!isCodePointer && PARTS::useDpi())
+    return true;
+// else
+//    return false;
 
-  return true;
+//  return true;
+//
+  return false;
 }
 
 void PartsOptGlobalsPass::updateStatistics(PointerType *Ty) {
