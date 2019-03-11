@@ -42,6 +42,7 @@ private:
   bool handle(Module &M, Value *V, Constant *CV, StructType *Ty);
   bool handle(Module &M, Value *V, Constant *CV, ArrayType *Ty);
   bool handle(Module &M, Value *V, Constant *CV, PointerType *Ty);
+  bool needsPACing(Constant *CV, PointerType *Ty);
 };
 
 } // anonymous namespace
@@ -136,6 +137,18 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, StructType *
 
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, PointerType *Ty) {
 
+  if (!needsPACing(CV, Ty))
+    return false;
+
+  auto loaded = builder->CreateLoad(V);
+  auto paced = PartsIntr::pac_pointer(builder, M, loaded);
+  builder->CreateStore(paced, V);
+
+  return true;
+}
+
+bool PartsOptGlobalsPass::needsPACing(Constant *CV, PointerType *Ty) {
+
   const bool isCodePointer = Ty->getPointerElementType()->isFunctionTy();
 
   if (isCodePointer && PARTS::useFeCfi()) {
@@ -147,10 +160,6 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, PointerType 
   } else {
     return false;
   }
-
-  auto loaded = builder->CreateLoad(V);
-  auto paced = PartsIntr::pac_pointer(builder, M, loaded);
-  builder->CreateStore(paced, V);
 
   return true;
 }
