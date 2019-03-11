@@ -136,9 +136,6 @@ bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, StructType *
 
 bool PartsOptGlobalsPass::handle(Module &M, Value *V, Constant *CV, PointerType *Ty) {
 
-  if (!Ty->isPointerTy())
-    return false;
-
   const bool isCodePointer = Ty->getPointerElementType()->isFunctionTy();
 
   if (isCodePointer && PARTS::useFeCfi()) {
