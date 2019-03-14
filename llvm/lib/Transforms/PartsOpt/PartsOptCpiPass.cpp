@@ -52,7 +52,7 @@ private:
    * @param V
    * @return
    */
-  Value *generatePACedValue(Function &F, Instruction &I, Value *V);
+  CallInst *generatePACedValue(Function &F, Instruction &I, Value *V);
   bool handleInstruction(Function &F, Instruction &I);
   bool handleCallInstruction(Function &F, Instruction &I);
   bool handleStoreInstruction(Function &F, Instruction &I);
@@ -186,7 +186,7 @@ bool PartsOptCpiPass::handleCallInstruction(Function &F, Instruction &I)
   return true;
 }
 
-Value *PartsOptCpiPass::generatePACedValue(Function &F, Instruction &I, Value *V) {
+CallInst *PartsOptCpiPass::generatePACedValue(Function &F, Instruction &I, Value *V) {
   /*
    * We need to handle two types of function pointer arguments:
    *  1) a direct function

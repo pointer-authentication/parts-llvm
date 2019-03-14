@@ -21,7 +21,7 @@ namespace PARTS {
 
 class PartsOptPass {
 protected:
-  inline Value *createPartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
+  inline CallInst *createPartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
   inline bool isCodePointer(const Type *const type);
   inline bool isDataPointer(const Type *const type);
 };
@@ -37,7 +37,7 @@ inline bool PartsOptPass::isDataPointer(const Type *const type) {
   return type->isPointerTy() && !type->getPointerElementType()->isFunctionTy();
 }
 
-inline Value *PartsOptPass::createPartsIntrinsic(Function &F,
+inline CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
                                           Instruction &I,
                                           Value *calledValue,
                                           Intrinsic::ID intrinsicID) {
