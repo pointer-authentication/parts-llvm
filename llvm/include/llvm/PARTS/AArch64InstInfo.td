@@ -25,6 +25,14 @@ let isPseudo = 1 in {
 }
 
 let isPseudo = 1 in {
+  def PARTS_XPACD : Pseudo<(outs GPR64:$dst),
+                           (ins GPR64:$ptr),
+                           [(set i64:$dst, (int_pa_xpacd GPR64:$ptr))],
+                           "$dst = $ptr">,
+                    Sched<[]>;
+}
+
+let isPseudo = 1 in {
   def PARTS_AUTIA : Pseudo<(outs GPR64:$dst),
                            (ins GPR64:$ptr, GPR64sp:$mod),
                            [(set i64:$dst, (int_pa_autia GPR64:$ptr, GPR64sp:$mod))],
