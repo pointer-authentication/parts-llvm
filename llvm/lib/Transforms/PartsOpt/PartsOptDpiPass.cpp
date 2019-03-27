@@ -92,8 +92,7 @@ bool PartsOptDpiPass::handleStoreInstruction(Function &F, StoreInst *pSI) {
 }
 
 bool PartsOptDpiPass::handleLoadInstruction(Function &F, LoadInst *pLI) {
-  const auto V = pLI->getPointerOperand();
-  const auto VType = V->getType()->getPointerElementType();
+  const auto VType = pLI->getPointerOperandType()->getPointerElementType();
 
   if (! isDataPointer(VType))
     return false;
