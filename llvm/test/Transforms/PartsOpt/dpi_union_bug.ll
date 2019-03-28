@@ -31,7 +31,7 @@ entry:
 ; CHECK: %ptrs1 = getelementptr inbounds %struct.longptr, %struct.longptr* %abase, i32 0, i32 0
 ; CHECK: %ap = bitcast %union.anon* %ptrs1 to [20 x [20 x i64]]**
 ; CHECK: %1 = load [20 x [20 x i64]]*, [20 x [20 x i64]]** %ap, align 8
-; CHECK: autda{{.*}}i64 [[ID]])
+; CHECK: xpacd{{.*}})
 ; CHECK: %arraydecay = getelementptr inbounds [20 x [20 x i64]], [20 x [20 x i64]]* %2, i32 0, i32 0
 ; CHECK: call void @LoadAssign([20 x i64]* %arraydecay)
   %ptrs1 = getelementptr inbounds %struct.longptr, %struct.longptr* %abase, i32 0, i32 0

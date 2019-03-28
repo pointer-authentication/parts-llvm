@@ -97,7 +97,12 @@ bool PartsOptDpiPass::handleLoadInstruction(Function &F, LoadInst *pLI) {
   if (! isDataPointer(VType))
     return false;
 
-  auto authenticated = createPartsIntrinsic(F, *pLI->getNextNode(), pLI, Intrinsic::pa_autda);
+  CallInst *authenticated = nullptr;
+
+  if (isUnionMemberLoad(pLI))
+    authenticated = createPartsIntrinsicNoTypeID(F, *pLI->getNextNode(), pLI, Intrinsic::pa_xpacd);
+  else
+    authenticated = createPartsIntrinsic(F, *pLI->getNextNode(), pLI, Intrinsic::pa_autda);
   assert(authenticated != nullptr);
 
   pLI->replaceAllUsesWith(authenticated);

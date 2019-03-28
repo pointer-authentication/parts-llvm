@@ -22,6 +22,8 @@ namespace PARTS {
 class PartsOptPass {
 protected:
   inline CallInst *createPartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
+  inline CallInst *createPartsIntrinsicNoTypeID(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
+  inline bool isUnionMemberLoad(LoadInst *load);
   inline bool isCodePointer(const Type *const type);
   inline bool isDataPointer(const Type *const type);
 };
@@ -55,4 +57,39 @@ inline CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
   return paced;
 }
 
-#endif // __PARTSOPTPASS_H__
+inline CallInst *PartsOptPass::createPartsIntrinsicNoTypeID(Function &F,
+                                          Instruction &I,
+                                          Value *calledValue,
+                                          Intrinsic::ID intrinsicID) {
+  const auto calledValueType = calledValue->getType();
+
+  // Generate Builder for inserting PARTS intrinsic
+  IRBuilder<> Builder(&I);
+  // Get PARTS intrinsic declaration for correct input type
+  auto autcall = Intrinsic::getDeclaration(F.getParent(), intrinsicID, { calledValueType });
+  // Insert PARTS intrinsics
+  auto paced = Builder.CreateCall(autcall, { calledValue }, "");
+
+  return paced;
+}
+
+inline bool PartsOptPass::isUnionMemberLoad(LoadInst *load) {
+   auto defVal = load->getOperandUse(load->getPointerOperandIndex()).get();
+   if (!isa<BitCastInst>(defVal))
+      return false;
+
+  auto bcSrcType = dyn_cast<BitCastInst>(defVal)->getSrcTy();
+  if (!isa<PointerType>(bcSrcType))
+      return false;
+
+  auto bcSrcPointerType = dyn_cast<PointerType>(bcSrcType);
+  if (!bcSrcPointerType->getElementType()->isStructTy())
+      return false;
+
+  auto unionType = dyn_cast<StructType>(bcSrcPointerType->getElementType());
+  if (!unionType->getName().startswith("union."))
+      return false;
+
+  return true;
+}
+#endif // __PARTSOPTPASS_H_n_
