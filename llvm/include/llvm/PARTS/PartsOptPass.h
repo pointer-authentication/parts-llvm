@@ -75,10 +75,15 @@ inline CallInst *PartsOptPass::createPartsIntrinsicNoTypeID(Function &F,
 
 inline bool PartsOptPass::isUnionMemberLoad(LoadInst *load) {
    auto defVal = load->getOperandUse(load->getPointerOperandIndex()).get();
-   if (!isa<BitCastInst>(defVal))
+   if (!isa<BitCastInst>(defVal) && !isa<BitCastOperator>(defVal))
       return false;
 
-  auto bcSrcType = dyn_cast<BitCastInst>(defVal)->getSrcTy();
+  Type *bcSrcType;
+  if (isa<BitCastInst>(defVal))
+    bcSrcType = dyn_cast<BitCastInst>(defVal)->getSrcTy();
+  else
+    bcSrcType = dyn_cast<BitCastOperator>(defVal)->getSrcTy();
+
   if (!isa<PointerType>(bcSrcType))
       return false;
 
