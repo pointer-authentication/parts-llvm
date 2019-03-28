@@ -157,11 +157,7 @@ bool PartsOptGlobalsPass::needsPACing(Constant *CV, PointerType *Ty) {
       return true;
   else if (!isCodePointer && PARTS::useDpi())
     return true;
-// else
-//    return false;
 
-//  return true;
-//
   return false;
 }
 
