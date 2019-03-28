@@ -36,6 +36,7 @@
 
 STATISTIC(StatDataStore, DEBUG_TYPE ": instrumented data stores");
 STATISTIC(StatDataLoad, DEBUG_TYPE ": instrumented data loads");
+STATISTIC(StatInsecureDataLoad, DEBUG_TYPE ": Insecure data loads");
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -92,6 +93,11 @@ bool AArch64PartsDpiPass::lowerDpiIntrinsics(MachineFunction& MF) {
           replacePartsIntrinsic(MF, MBB, MI, TII->get(AArch64::AUTDA));
           modified = true;
           ++StatDataLoad;
+          break;
+        case AArch64::PARTS_XPACD:
+          replacePartsXPACDIntrinsic(MF, MBB, MI);
+          modified = true;
+          ++StatInsecureDataLoad;
           break;
       }
     }

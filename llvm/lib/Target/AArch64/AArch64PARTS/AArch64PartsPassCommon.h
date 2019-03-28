@@ -29,6 +29,7 @@ protected:
   inline void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
   inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
   inline void replacePartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
+  inline void replacePartsXPACDIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
 
   const TargetMachine *TM = nullptr;
   const AArch64Subtarget *STI = nullptr;
@@ -86,6 +87,14 @@ inline void AArch64PartsPassCommon::insertMovInstr(MachineBasicBlock &MBB,
       .addUse(AArch64::XZR)
       .addUse(srcReg)
       .addImm(0);
+}
+
+inline void AArch64PartsPassCommon::replacePartsXPACDIntrinsic(MachineFunction &MF,
+                                                          MachineBasicBlock &MBB,
+                                                          MachineInstr &MI) {
+  const unsigned dst = MI.getOperand(0).getReg();
+  BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(AArch64::XPACD)).addUse(dst);
+  MI.removeFromParent();
 }
 
 #endif // __AARCH64PARTSOPTPASS_H__
