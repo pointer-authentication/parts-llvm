@@ -23,6 +23,7 @@
 
 using namespace llvm;
 using namespace llvm::PARTS;
+using namespace llvm::PARTS::PartsOptPass;
 
 #define DEBUG_TYPE "PartsOptDpiPass"
 
@@ -31,7 +32,7 @@ STATISTIC(StatAuthLoadData, "data pointer loads instrumented");
 
 namespace {
 
-class PartsOptDpiPass : public FunctionPass, private PartsOptPass {
+class PartsOptDpiPass : public FunctionPass {
 public:
   static char ID; // Pass identification, replacement for typeid
 

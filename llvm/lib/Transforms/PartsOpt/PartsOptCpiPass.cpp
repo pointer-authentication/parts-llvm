@@ -24,6 +24,7 @@
 
 using namespace llvm;
 using namespace llvm::PARTS;
+using namespace llvm::PARTS::PartsOptPass;
 
 #define DEBUG_TYPE "PartsOptCpiPass"
 
@@ -33,7 +34,7 @@ STATISTIC(StatAuthenticateIndirectCall, DEBUG_TYPE ": Number of code pointers au
 
 namespace {
 
-class PartsOptCpiPass : public FunctionPass, private PartsOptPass {
+class PartsOptCpiPass : public FunctionPass {
 public:
   static char ID;
 

@@ -18,28 +18,25 @@ using namespace llvm::PARTS;
 
 namespace llvm {
 namespace PARTS {
+namespace PartsOptPass {
+  static inline CallInst *createPartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
+  static inline CallInst *createPartsIntrinsicNoTypeID(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
+  static inline bool isUnionMemberLoad(LoadInst *load);
+  static inline bool isCodePointer(const Type *const type);
+  static inline bool isDataPointer(const Type *const type);
+}; // PartOptPass
+}; // PARTS
+}; // llvm
 
-class PartsOptPass {
-protected:
-  inline CallInst *createPartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
-  inline CallInst *createPartsIntrinsicNoTypeID(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
-  inline bool isUnionMemberLoad(LoadInst *load);
-  inline bool isCodePointer(const Type *const type);
-  inline bool isDataPointer(const Type *const type);
-};
-
-};
-};
-
-inline bool PartsOptPass::isCodePointer(const Type *const type) {
+static inline bool PartsOptPass::isCodePointer(const Type *const type) {
   return type->isPointerTy() && type->getPointerElementType()->isFunctionTy();
 }
 
-inline bool PartsOptPass::isDataPointer(const Type *const type) {
+static inline bool PartsOptPass::isDataPointer(const Type *const type) {
   return type->isPointerTy() && !type->getPointerElementType()->isFunctionTy();
 }
 
-inline CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
+static inline CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
                                           Instruction &I,
                                           Value *calledValue,
                                           Intrinsic::ID intrinsicID) {
@@ -57,7 +54,7 @@ inline CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
   return paced;
 }
 
-inline CallInst *PartsOptPass::createPartsIntrinsicNoTypeID(Function &F,
+static inline CallInst *PartsOptPass::createPartsIntrinsicNoTypeID(Function &F,
                                           Instruction &I,
                                           Value *calledValue,
                                           Intrinsic::ID intrinsicID) {
@@ -73,7 +70,7 @@ inline CallInst *PartsOptPass::createPartsIntrinsicNoTypeID(Function &F,
   return paced;
 }
 
-inline bool PartsOptPass::isUnionMemberLoad(LoadInst *load) {
+static inline bool PartsOptPass::isUnionMemberLoad(LoadInst *load) {
    auto defVal = load->getOperandUse(load->getPointerOperandIndex()).get();
    if (!isa<BitCastInst>(defVal) && !isa<BitCastOperator>(defVal))
       return false;
