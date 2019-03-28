@@ -64,18 +64,19 @@ bool PartsOptDpiPass::runOnFunction(Function &F) {
 }
 
 inline bool PartsOptDpiPass::handleInstruction(Function &F, Instruction &I) {
+  bool modified = false;
   switch(I.getOpcode()) {
     default:
-      return false;
+      break;
     case Instruction::Store:
-      handleStoreInstruction(F, dyn_cast<StoreInst>(&I));
+      modified = handleStoreInstruction(F, dyn_cast<StoreInst>(&I));
       break;
     case Instruction::Load:
-      handleLoadInstruction(F, dyn_cast<LoadInst>(&I));
+      modified = handleLoadInstruction(F, dyn_cast<LoadInst>(&I));
       break;
   }
 
-  return true;
+  return modified;
 }
 
 bool PartsOptDpiPass::handleStoreInstruction(Function &F, StoreInst *pSI) {
