@@ -1,6 +1,5 @@
 ; COMMENT: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -parts-dpi-union-type-punning -S < %s | FileCheck %s
 ; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -S < %s | FileCheck %s
-; XFAIL: *
 
 %union.fb = type { %struct.foo* }
 %struct.foo = type opaque
