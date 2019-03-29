@@ -26,6 +26,11 @@ static cl::opt<bool> EnablePartsDpi("parts-dpi", cl::Hidden,
                                     cl::desc("PARTS backward-edge CFI"),
                                     cl::init(false));
 
+static cl::opt<bool> EnablePartsDpiUnionTypePunning("parts-dpi-union-type-punning", cl::Hidden,
+                                    cl::desc("Disable parts when loading union data members"),
+                                    cl::init(false));
+
+
 static cl::opt<bool> UseDummyInstructions("parts-dummy", cl::Hidden,
                                           cl::desc("Use dummy instructions and XOR instead of PA"),
                                           cl::init(false));
@@ -44,6 +49,10 @@ bool llvm::PARTS::useFeCfi() {
 
 bool llvm::PARTS::useDpi() {
   return EnablePartsDpi;
+}
+
+bool llvm::PARTS::isUnionTypePunningSupported(void) {
+  return EnablePartsDpiUnionTypePunning;
 }
 
 bool llvm::PARTS::useAny() {

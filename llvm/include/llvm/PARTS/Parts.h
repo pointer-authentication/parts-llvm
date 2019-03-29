@@ -20,6 +20,7 @@ namespace PARTS {
 bool useBeCfi();
 bool useFeCfi();
 bool useDpi();
+bool isUnionTypePunningSupported(void);
 bool useAny();
 bool useDummy();
 bool useRuntimeStats();
