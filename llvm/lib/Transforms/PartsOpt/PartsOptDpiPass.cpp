@@ -101,7 +101,7 @@ bool PartsOptDpiPass::handleLoadInstruction(Function &F, LoadInst *pLI) {
 
   CallInst *authenticated = nullptr;
 
-  if (isUnionMemberLoad(pLI))
+  if (isUnionTypePunningSupported() && isUnionMemberLoad(pLI))
     authenticated = createPartsIntrinsicNoTypeID(F, *pLI->getNextNode(), pLI, Intrinsic::pa_xpacd);
   else
     authenticated = createPartsIntrinsic(F, *pLI->getNextNode(), pLI, Intrinsic::pa_autda);
