@@ -19,6 +19,7 @@
 
 namespace llvm {
 
+	/*
 class PartsFastISel;
 typedef std::shared_ptr<PartsFastISel> PartsFastISel_ptr;
 
@@ -46,6 +47,7 @@ public:
   static PartsFastISel_ptr get(FunctionLoweringInfo &FuncInfo);
 
 };
+*/
 
 } // namespace llvm
 

@@ -20,6 +20,7 @@
 #include "llvm/PARTS/PartsIntr.h"
 
 using namespace llvm;
+using namespace llvm::PARTS;
 
 #define DEBUG_TYPE "PartsOptGlobalsPass"
 

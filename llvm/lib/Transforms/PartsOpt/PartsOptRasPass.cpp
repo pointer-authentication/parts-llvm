@@ -25,6 +25,7 @@
 #include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
+using namespace llvm::PARTS;
 
 #define DEBUG_TYPE "PartsOptRasPass"
 

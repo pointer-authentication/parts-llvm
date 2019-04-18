@@ -72,10 +72,6 @@
 #include <cstdint>
 #include <iterator>
 #include <utility>
-#include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
-#include "AArch64PARTS/PartsFastISel.h"
 
 using namespace llvm;
 
@@ -152,8 +148,6 @@ class AArch64FastISel final : public FastISel {
   /// make the right decision when generating code for different targets.
   const AArch64Subtarget *Subtarget;
   LLVMContext *Context;
-
-  std::shared_ptr<PartsFastISel> partsFastISel;
 
   bool fastLowerArguments() override;
   bool fastLowerCall(CallLoweringInfo &CLI) override;
@@ -232,11 +226,9 @@ private:
   bool emitICmp_ri(MVT RetVT, unsigned LHSReg, bool LHSIsKill, uint64_t Imm);
   bool emitFCmp(MVT RetVT, const Value *LHS, const Value *RHS);
   unsigned emitLoad(MVT VT, MVT ResultVT, Address Addr, bool WantZExt = true,
-                    MachineMemOperand *MMO = nullptr,
-                    MDNode *partsType = nullptr);
+                    MachineMemOperand *MMO = nullptr);
   bool emitStore(MVT VT, unsigned SrcReg, Address Addr,
-                 MachineMemOperand *MMO = nullptr,
-                 MDNode *partsType = nullptr);
+                 MachineMemOperand *MMO = nullptr);
   bool emitStoreRelease(MVT VT, unsigned SrcReg, unsigned AddrReg,
                         MachineMemOperand *MMO = nullptr);
   unsigned emitIntExt(MVT SrcVT, unsigned SrcReg, MVT DestVT, bool isZExt);
@@ -304,8 +296,6 @@ public:
     Subtarget =
         &static_cast<const AArch64Subtarget &>(FuncInfo.MF->getSubtarget());
     Context = &FuncInfo.Fn->getContext();
-
-    partsFastISel = PartsFastISel::get(FuncInfo);
   }
 
   bool fastSelectInstruction(const Instruction *I) override;
@@ -1760,8 +1750,7 @@ unsigned AArch64FastISel::emitAnd_ri(MVT RetVT, unsigned LHSReg, bool LHSIsKill,
 }
 
 unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
-                                   bool WantZExt, MachineMemOperand *MMO,
-                                   MDNode *partsType) {
+                                   bool WantZExt, MachineMemOperand *MMO) {
   if (!TLI.allowsMisalignedMemoryAccesses(VT))
     return 0;
 
@@ -1875,8 +1864,6 @@ unsigned AArch64FastISel::emitLoad(MVT VT, MVT RetVT, Address Addr,
   MachineInstrBuilder MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc,
                                     TII.get(Opc), ResultReg);
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOLoad, ScaleFactor, MMO);
-
-  partsFastISel->addMetadataToLoad(MIB, partsType);
 
   // Loading an i1 requires special handling.
   if (VT == MVT::i1) {
@@ -2002,8 +1989,8 @@ bool AArch64FastISel::selectLoad(const Instruction *I) {
     }
   }
 
-  const auto partsType = PartsTypeMetadata::retrieveAsMDNode(I);
-  unsigned ResultReg = emitLoad(VT, RetVT, Addr, WantZExt, createMachineMemOperandFor(I), partsType);
+  unsigned ResultReg =
+      emitLoad(VT, RetVT, Addr, WantZExt, createMachineMemOperandFor(I));
   if (!ResultReg)
     return false;
 
@@ -2069,7 +2056,6 @@ bool AArch64FastISel::selectLoad(const Instruction *I) {
 bool AArch64FastISel::emitStoreRelease(MVT VT, unsigned SrcReg,
                                        unsigned AddrReg,
                                        MachineMemOperand *MMO) {
-  partsFastISel->getLog()->debug(FuncInfo.Fn->getName()) << "entering " << __FUNCTION__ << "\n";
   unsigned Opc;
   switch (VT.SimpleTy) {
   default: return false;
@@ -2090,10 +2076,7 @@ bool AArch64FastISel::emitStoreRelease(MVT VT, unsigned SrcReg,
 }
 
 bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
-                                MachineMemOperand *MMO,
-                                MDNode *partsType) {
-  partsFastISel->getLog()->debug(FuncInfo.Fn->getName()) << "entering " << __FUNCTION__ << "\n";
-
+                                MachineMemOperand *MMO) {
   if (!TLI.allowsMisalignedMemoryAccesses(VT))
     return false;
 
@@ -2153,19 +2136,14 @@ bool AArch64FastISel::emitStore(MVT VT, unsigned SrcReg, Address Addr,
   // Create the base instruction, then add the operands.
   const MCInstrDesc &II = TII.get(Opc);
   SrcReg = constrainOperandRegClass(II, SrcReg, II.getNumDefs());
-
   MachineInstrBuilder MIB =
       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(SrcReg);
-
   addLoadStoreOperands(Addr, MIB, MachineMemOperand::MOStore, ScaleFactor, MMO);
-
-  partsFastISel->addMetadataToStore(MIB, partsType);
 
   return true;
 }
 
 bool AArch64FastISel::selectStore(const Instruction *I) {
-  partsFastISel->getLog()->debug(FuncInfo.Fn->getName()) << "entering " << __FUNCTION__ << "\n";
   MVT VT;
   const Value *Op0 = I->getOperand(0);
   // Verify we have a legal type before going any further.  Currently, we handle
@@ -2227,9 +2205,7 @@ bool AArch64FastISel::selectStore(const Instruction *I) {
   if (!computeAddress(PtrV, Addr, Op0->getType()))
     return false;
 
-  const auto partsType = PartsTypeMetadata::retrieveAsMDNode(I);
-
-  if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I), partsType))
+  if (!emitStore(VT, SrcReg, Addr, createMachineMemOperandFor(I)))
     return false;
   return true;
 }
@@ -2547,10 +2523,7 @@ bool AArch64FastISel::selectIndirectBr(const Instruction *I) {
   // Emit the indirect branch.
   const MCInstrDesc &II = TII.get(AArch64::BR);
   AddrReg = constrainOperandRegClass(II, AddrReg,  II.getNumDefs());
-
-  MachineInstrBuilder MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(AddrReg);
-
-  partsFastISel->addMetadataToCall(MIB, PartsTypeMetadata::retrieveAsMDNode(I));
+  BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, II).addReg(AddrReg);
 
   // Make sure the CFG is up-to-date.
   for (auto *Succ : BI->successors())
@@ -3301,8 +3274,6 @@ bool AArch64FastISel::fastLowerCall(CallLoweringInfo &CLI) {
   MIB.addRegMask(TRI.getCallPreservedMask(*FuncInfo.MF, CC));
 
   CLI.Call = MIB;
-
-  partsFastISel->addMetadataToCall(MIB, CLI, Addr.getReg());
 
   // Finish off the call including any return values.
   return finishCall(CLI, RetVT, NumBytes);
@@ -5125,7 +5096,6 @@ bool AArch64FastISel::selectAtomicCmpXchg(const AtomicCmpXchgInst *I) {
 }
 
 bool AArch64FastISel::fastSelectInstruction(const Instruction *I) {
-  partsFastISel->getLog()->debug(FuncInfo.Fn->getName()) << "entering " << __FUNCTION__ << "\n";
   switch (I->getOpcode()) {
   default:
     break;

@@ -1,6 +1,5 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Operator.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/PartsOptPass.h"
 
 CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
@@ -14,7 +13,7 @@ CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
   // Get PARTS intrinsic declaration for correct input type
   auto autcall = Intrinsic::getDeclaration(F.getParent(), intrinsicID, { calledValueType });
   // Get type_id as Constant
-  auto typeIdConstant = PartsTypeMetadata::idConstantFromType(F.getContext(), calledValueType);
+  auto typeIdConstant = PARTS::getTypeIDConstantFrom(*calledValueType, F.getContext());
   // Insert PARTS intrinsics
   auto paced = Builder.CreateCall(autcall, { calledValue, typeIdConstant }, "");
 

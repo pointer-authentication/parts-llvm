@@ -16,6 +16,7 @@
 #include "PartsUtils.h"
 
 using namespace llvm;
+using namespace llvm::PARTS;
 
 PartsFrameLowering_ptr PartsFrameLowering::get() {
   return std::make_shared<PartsFrameLowering>();

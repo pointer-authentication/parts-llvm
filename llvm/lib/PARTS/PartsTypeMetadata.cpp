@@ -9,9 +9,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <regex>
-#include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
+#include "llvm/PARTS/Parts.h"
+#include <regex>
 
 extern "C" {
 // A bit ugly, but works...
@@ -22,223 +22,79 @@ extern "C" {
 
 using namespace llvm;
 
-PartsTypeMetadata::PartsTypeMetadata(type_id_t type_id)
-    : m_type_id(type_id) {
-  // Do we need to do something?
-}
+namespace {
 
-PartsTypeMetadata::PartsTypeMetadata(const MDNode *MDN) {
-  assert(MDN != nullptr && "cannot construct from nullptr");
-  assert(isPartsTypeMetadataContainer(MDN) && "Constructor must have valid MDNode");
-
-  unsigned i = 1;
-  m_type_id = dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(UINT64_MAX);
-  m_known = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
-  m_pointer = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
-  m_data = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
-  m_ignored = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
-  m_isPACed = 1 == (dyn_cast<ConstantAsMetadata>(MDN->getOperand(i++))->getValue()->getUniqueInteger().getLimitedValue(1));
-}
-
-PartsTypeMetadata::~PartsTypeMetadata() {
-}
-
-MDNode *PartsTypeMetadata::getMDNode(LLVMContext &C) {
-
-  Metadata* vals[numNodes] = {
-      MDString::get(C, MetadataKindString),
-      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, m_type_id))),
-      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_known ? 1 : 0))),
-      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_pointer ? 1 : 0))),
-      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_data ? 1 : 0))),
-      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_ignored ? 1 : 0))),
-      ConstantAsMetadata::get(Constant::getIntegerValue(Type::getInt64Ty(C), APInt(1, m_isPACed ? 1 : 0))),
-  };
-  return MDNode::get(C, vals);
-}
-
-void PartsTypeMetadata::attach(LLVMContext &C, Instruction &I) {
-  I.setMetadata(MetadataKindString, getMDNode(C));
-}
-
-std::string PartsTypeMetadata::toString() {
-  return "[ignored:" + std::to_string((isIgnored() ? 1 : 0)) +
-         "[PACed:" + std::to_string((isPACed() ? 1 : 0)) +
-         "," + (isPointer() ? (isCodePointer() ? "codePointer" : "dataPointer") : "not-a-pointer") +
-         ",id:" + std::to_string(getTypeId()) + "]";
-}
-
-MDNode *PartsTypeMetadata::retrieveAsMDNode(const Instruction *I) {
-  auto MDN = I->getMetadata(MetadataKindString);
-
-  if (isPartsTypeMetadataContainer(MDN)) {
-    assert(isa<ConstantAsMetadata>(MDN->getOperand(1)) && "Cannot find PartsTypeMetadata although kind is okay?");
-    return MDN;
-  }
-
-  //errs() << "Found nothing\n";
-  return nullptr;
-}
-
-const PartsTypeMetadata_ptr PartsTypeMetadata::retrieve(const MachineInstr &MI)
-{
-  const auto numOps = MI.getNumOperands();
-
-  for (unsigned i = 0; i < numOps; i++) {
-    const auto op = MI.getOperand(i);
-
-    if (op.isMetadata()) {
-      if (const PartsTypeMetadata_ptr n = retrieve(op.getMetadata()))
-        return n;
-    }
-  }
-  return nullptr;
-}
-
-const PartsTypeMetadata_ptr PartsTypeMetadata::retrieve(const MDNode *MDNp)
-{
-  if (isPartsTypeMetadataContainer(MDNp)) {
-    return std::make_shared<PartsTypeMetadata>(MDNp);
-  }
-
-  if (MDNp->getNumOperands() == 1) {
-    const auto &op = MDNp->getOperand(0);
-    if (isa<MDNode>(op))
-      return retrieve(dyn_cast<MDNode>(op));
-  }
-
-  return nullptr;
-}
-
-PartsTypeMetadata_ptr PartsTypeMetadata::get(const type_id_t type_id) {
-  return std::make_shared<PartsTypeMetadata>(type_id);
-}
-
-PartsTypeMetadata_ptr PartsTypeMetadata::get(const Type *const type)
-{
-  auto TMD = get(idFromType(type));
-  TMD->setIsKnown(true);
-
-  if (TyIsPointer(type)) {
-    TMD->setIsPointer(true);
-    TMD->setIsCodePointer(TyIsCodePointer(type));
-  } else {
-    TMD->setIsPointer(false);
-  }
-
-  return TMD;
-}
-
-PartsTypeMetadata_ptr PartsTypeMetadata::getUnknown()
-{
-  return std::make_shared<PartsTypeMetadata>(0);
-}
-
-PartsTypeMetadata_ptr PartsTypeMetadata::getIgnored()
-{
-  auto TMD =  std::make_shared<PartsTypeMetadata>(0);
-  TMD->setIgnored(true);
-  
-  return TMD;
-}
-
-bool PartsTypeMetadata::isPartsTypeMetadataContainer(const MDNode *const MDN) {
-  return (MDN != nullptr && MDN->getNumOperands() == numNodes &&
-          isa<MDString>(MDN->getOperand(0)) && isa<ConstantAsMetadata>(MDN->getOperand(1)) &&
-          dyn_cast<MDString>(MDN->getOperand(0))->getString() == MetadataKindString);
-}
-
-std::string PartsTypeMetadata::TypeToString(const Type *const type) {
-  if (type->isPointerTy()) {
-    return std::string("ptr.").append(TypeToString(type->getPointerElementType()));
-  }
-
-  if (type->isStructTy()) {
-    auto structName = dyn_cast<StructType>(type)->getStructName();
-    std::regex e ("^(\\w+\\.\\w+)(\\.\\w+)?$");
-    return std::regex_replace(structName.str(), e, "$1");
-  }
-
-  if (type->isArrayTy()) {
-    return std::string("a.")
-        .append(std::to_string(type->getArrayNumElements()))
-        .append(TypeToString(type->getArrayElementType()));
-  }
-
-  if (type->isFunctionTy()) {
-    auto FuncTy = dyn_cast<FunctionType>(type);
-    std::string typeString = "f.";
-    typeString.append(TypeToString(FuncTy->getReturnType()));
+// Build string representation of the Type to llvm::raw_string_ostream
+void buildTypeString(const Type *T, llvm::raw_string_ostream &O) {
+  if (T->isPointerTy()) {
+    O << "ptr.";
+    buildTypeString(T->getPointerElementType(), O);
+  } else if (T->isStructTy()) {
+    auto structName = dyn_cast<StructType>(T)->getStructName();
+    std::regex e("^(\\w+\\.\\w+)(\\.\\w+)?$");
+    O << std::regex_replace(structName.str(), e, "$1");
+  } else if (T->isArrayTy()) {
+    O << "a." << T->getArrayNumElements();
+    buildTypeString(T->getArrayElementType(), O);
+  } else if (T->isFunctionTy()) {
+    auto FuncTy = dyn_cast<FunctionType>(T);
+    O << "f.";
+    buildTypeString(FuncTy->getReturnType(), O);
 
     for (auto p = FuncTy->param_begin(); p != FuncTy->param_end(); p++) {
-      typeString.append(TypeToString(*p));
+      buildTypeString(*p, O);
     }
-
-    return typeString;
+  } else if (T->isVectorTy()) {
+    O << "vec." << T->getVectorNumElements();
+    buildTypeString(T->getVectorElementType(), O);
+  } else if (T->isVoidTy()) {
+    O << "v";
+  } else {
+    /* Make sure we've handled all cases we want to */
+    assert(T->isIntegerTy() || T->isFloatingPointTy());
+    T->print(O);
   }
-
-  if (type->isVectorTy()) {
-    return std::string("vec.")
-        .append(std::to_string(type->getVectorNumElements()))
-        .append(TypeToString(type->getVectorElementType()));
-  }
-
-  if (type->isVoidTy()) {
-    return "v";
-  }
-
-  /* Make sure we've handled all cases we want to */
-  assert(type->isIntegerTy() || type->isFloatingPointTy());
-
-  std::string type_str;
-  llvm::raw_string_ostream rso(type_str);
-  type->print(rso);
-  return rso.str();
 }
 
-type_id_t PartsTypeMetadata::idFromType(const Type *const type)
-{
-  if (!TyIsPointer(type))
-    return 0;
+// Get a TypeID from given Type
+uint64_t getTypeIDFor(const Type *T) {
+  if (!T->isPointerTy())
+    return 0; // Not a pointer, hence no type ID for this one
 
-  type_id_t type_id = 0;
+  // TODO: This should perform caching, so calling the same Type will not
+  // reprocess the stuff. Use a Dictionary-like ADT is suggested.
 
-  std::string typeString = TypeToString(type);
-  auto c_string = typeString.c_str();
+  uint64_t theTypeID = 0;
+  std::string buf;
+  llvm::raw_string_ostream typeIdStr(buf);
+
+  buildTypeString(T, typeIdStr);
+  typeIdStr.flush();
 
   // Prepare SHA3 generation
+  auto rawBuf = buf.c_str();
   mbedtls_sha3_context sha3_context;
   mbedtls_sha3_type_t sha3_type = MBEDTLS_SHA3_256;
   mbedtls_sha3_init(&sha3_context);
 
   // Prepare input and output variables
-  auto *input = reinterpret_cast<const unsigned char*>(c_string);
-  auto *output= new unsigned char[32]();
+  auto *input = reinterpret_cast<const unsigned char *>(rawBuf);
+  auto *output = new unsigned char[32]();
 
   // Generate hash
-  auto result = mbedtls_sha3(input, typeString.length(), sha3_type, output);
+  auto result = mbedtls_sha3(input, buf.length(), sha3_type, output);
   if (result != 0)
     llvm_unreachable("SHA3 hashing failed :(");
-
-  memcpy(&type_id, output, sizeof(type_id_t));
-
+  memcpy(&theTypeID, output, sizeof(theTypeID));
   delete[] output;
 
-  return type_id;
+  return theTypeID;
 }
 
-Constant *PartsTypeMetadata::idConstantFromType(LLVMContext &C, const Type *const type) {
-  return Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, idFromType(type)));
+} // namespace
+
+Constant *llvm::PARTS::getTypeIDConstantFrom(const Type &T, LLVMContext &C) {
+  auto typeID = getTypeIDFor(&T);
+  return Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, typeID));
 }
-
-raw_ostream &operator<<(raw_ostream &stream, const PartsTypeMetadata_ptr pmd) {
-  stream << "PartsTypeMetadata(" << pmd->getTypeId();
-  return stream;
-}
-
-Constant *PartsTypeMetadata::getTypeIdConstant(LLVMContext &C) const {
-  return Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, getTypeId()));
-}
-
-
 

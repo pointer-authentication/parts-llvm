@@ -23,6 +23,8 @@ namespace llvm {
 
 namespace PARTS {
 
+	using type_id_t = uint64_t;
+
 class PartsUtils;
 
 typedef std::shared_ptr<PartsUtils> PartsUtils_ptr;
@@ -48,19 +50,26 @@ public:
 
   inline bool checkIfRegInstrumentable(unsigned reg);
 
-  PartsTypeMetadata_ptr inferPauthTypeIdRegBackwards(MachineFunction &MF,
+  /* UNUSED
+  PartsTypeMetadata inferPauthTypeIdRegBackwards(MachineFunction &MF,
                                                      MachineBasicBlock &MBB,
                                                      MachineInstr &MI,
                                                      unsigned targetReg);
 
-  PartsTypeMetadata_ptr inferPauthTypeIdStackBackwards(MachineFunction &MF,
+
+
+  PartsTypeMetadata inferPauthTypeIdStackBackwards(MachineFunction &MF,
                                                        MachineBasicBlock &MBB,
                                                        MachineInstr &MI,
                                                        unsigned targetReg, unsigned reg, int64_t imm);
 
-  void attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstr *MI);
+   
 
-  void attach(LLVMContext &C, PartsTypeMetadata_ptr PTMD, MachineInstrBuilder *MIB);
+  void attach(LLVMContext &C, PartsTypeMetadata PTMD, MachineInstr *MI);
+
+  void attach(LLVMContext &C, PartsTypeMetadata PTMD,
+              MachineInstrBuilder *MIB);
+                           */
 
   void pacCodePointer(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned dstReg,
                       unsigned srcReg, unsigned modReg, type_id_t type_id, const DebugLoc &DL);

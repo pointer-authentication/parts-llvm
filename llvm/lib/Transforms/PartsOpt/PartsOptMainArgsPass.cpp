@@ -19,6 +19,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
+using namespace llvm::PARTS;
 
 #define DEBUG_TYPE "PartsOptMainArgsPass"
 
@@ -88,7 +89,7 @@ Function *PartsOptMainArgsPass::createFixFunction(Module &M)
       Intrinsic::getDeclaration(&M, Intrinsic::pa_pacda, { load->getType() }),
       {
           load,
-          PartsTypeMetadata::idConstantFromType(M.getContext(), load->getType())
+          PARTS::getTypeIDConstantFrom(*load->getType(), M.getContext())
       }
   );
 
@@ -142,9 +143,9 @@ bool PartsOptMainArgsPass::runOnModule(Module &M) {
   args.push_back(&argc);
   args.push_back(&argv);
 
-  args.push_back(PartsTypeMetadata::idConstantFromType(
-      M.getContext(),
-      dyn_cast<PointerType>(argv.getType())->getElementType()
+  args.push_back(PARTS::getTypeIDConstantFrom(
+      *dyn_cast<PointerType>(argv.getType())->getElementType(),
+      M.getContext()
   ));
 
   IRBuilder<> Builder(&I);
