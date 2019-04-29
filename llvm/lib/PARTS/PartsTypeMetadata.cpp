@@ -12,6 +12,7 @@
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/Parts.h"
 #include <regex>
+#include <map>
 
 extern "C" {
 // A bit ugly, but works...
@@ -23,6 +24,8 @@ extern "C" {
 using namespace llvm;
 
 namespace {
+
+std::map<const Type *, uint64_t> TypeIDCache;
 
 // Build string representation of the Type to llvm::raw_string_ostream
 void buildTypeString(const Type *T, llvm::raw_string_ostream &O) {
@@ -63,6 +66,9 @@ uint64_t getTypeIDFor(const Type *T) {
 
   // TODO: This should perform caching, so calling the same Type will not
   // reprocess the stuff. Use a Dictionary-like ADT is suggested.
+  decltype(TypeIDCache)::iterator id;
+  if ((id = TypeIDCache.find(T)) != TypeIDCache.end())
+    return id->second;
 
   uint64_t theTypeID = 0;
   std::string buf;
@@ -87,6 +93,8 @@ uint64_t getTypeIDFor(const Type *T) {
     llvm_unreachable("SHA3 hashing failed :(");
   memcpy(&theTypeID, output, sizeof(theTypeID));
   delete[] output;
+
+  TypeIDCache.emplace(T, theTypeID);
 
   return theTypeID;
 }
