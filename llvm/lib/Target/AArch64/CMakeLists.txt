@@ -68,6 +68,7 @@ add_llvm_target(AArch64CodeGen
   AArch64PARTS/PartsFastISel.cpp
   AArch64PARTS/PartsFrameLowering.cpp
   AArch64PARTS/PartsUtils.cpp
+  AArch64PARTS/AArch64PartsSpillPass.cpp
 
   DEPENDS
   intrinsics_gen
