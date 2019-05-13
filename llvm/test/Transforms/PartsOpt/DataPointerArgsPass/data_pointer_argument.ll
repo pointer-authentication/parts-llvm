@@ -12,6 +12,7 @@
 
 define void @test_no_args() {
 entry:
+; CHECK-LABEL: entry:
 ; CHECK-NOT: {{.*}}parts.data.pointer.argument{{.*}}
   call void @func_noargs()
   ret void
@@ -19,6 +20,7 @@ entry:
 
 define void @test_data(i64 %d0) {
 entry:
+; CHECK-LABEL: entry:
 ; CHECK-NOT: {{.*}}parts.data.pointer.argument{{.*}}
   call void @func_data(i64 %d0)
   ret void
@@ -26,6 +28,7 @@ entry:
 
 define void @test_data_pointer(i64* %d0) {
 entry:
+; CHECK-LABEL: entry:
 ; CHECK:  %0 = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d0)
 ; CHECK:  call void @func(i64* %0)
   call void @func(i64* %d0)
@@ -34,6 +37,7 @@ entry:
 
 define void @test_two_data_pointer(i64* %d0, i32* %d1) {
 entry:
+; CHECK-LABEL: entry:
 ; CHECK:  [[DP0:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d0)
 ; CHECK:  [[DP1:%[0-9]+]] = call i32* {{.*}}parts.data.pointer.argument{{.*}}(i32* %d1)
 ; CHECK:  call void @func_two(i64* [[DP0]], i32* [[DP1]])
@@ -43,6 +47,7 @@ entry:
 
 define void @test_one_data_pointer_one_data(i64* %d0, i32 %d1) {
 entry:
+; CHECK-LABEL: entry:
 ; CHECK:  [[DP0:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d0)
 ; CHECK-NOT:  {{.*}}parts.data.pointer.argument{{.*}}
 ; CHECK:  call void @func_one_pointer(i64* [[DP0]], i32 %d1)
@@ -51,6 +56,8 @@ entry:
 }
 
 define void @test_n_data_pointers(i64* %d0, i64* %d1, i64* %d2, i64* %d3, i64* %d4, i64* %d5, i64* %d6, i64* %d7) {
+entry:
+; CHECK-LABEL: entry:
 ; CHECK:  [[DP0:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d0)
 ; CHECK:  [[DP1:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d1)
 ; CHECK:  [[DP2:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d2)
@@ -65,6 +72,8 @@ define void @test_n_data_pointers(i64* %d0, i64* %d1, i64* %d2, i64* %d3, i64* %
 }
 
 define void @test_mix_dp_data(i64* %d0, i64 %d1, i64 %d2, i64 %d3, i64* %d4, i64 %d5, i64 %d6, i64* %d7) {
+entry:
+; CHECK-LABEL: entry:
 ; CHECK:  [[DP0:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d0)
 ; CHECK-NEXT:  [[DP4:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d4)
 ; CHECK-NEXT:  [[DP7:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d7)
@@ -76,6 +85,7 @@ define void @test_mix_dp_data(i64* %d0, i64 %d1, i64 %d2, i64 %d3, i64* %d4, i64
 
 define void @test_indirect_call(void ()* %f0) {
 entry:
+; CHECK-LABEL: entry:
 ; CHECK-NOT:  {{.*}}parts.data.pointer.argument{{.*}}
 ; CHECK:  call void %f0()
   call void %f0()
