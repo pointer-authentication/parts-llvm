@@ -44,7 +44,7 @@ struct PartsOptDataPointerArgsPass: public FunctionPass {
   bool runOnFunction(Function &F) override;
 
 private:
-  bool insertIntrinsic(Function &F, Argument *A);
+  bool insertIntrinsic(Function &F, Argument *A, Instruction &I);
 };
 
 } // anonyous namespace
@@ -59,22 +59,20 @@ bool PartsOptDataPointerArgsPass::runOnFunction(Function &F) {
   if (!(PARTS::useDpi()))
     return false;
 
-  auto A = F.arg_begin();
-  if (A == F.arg_end())
-    return false;
-
-  if (isDataPointer(A->getType()))
-    return insertIntrinsic(F, A);
-
-  return false;
-}
-
-bool PartsOptDataPointerArgsPass::insertIntrinsic(Function &F, Argument *A) {
+  bool modified = false;
   auto &B = F.getEntryBlock();
   auto &I = *B.begin();
+
+  for (auto AI = F.arg_begin(), AE = F.arg_end(); AI != AE; ++AI)
+    if (isDataPointer(AI->getType()))
+      modified = insertIntrinsic(F, AI, I);
+
+  return modified;
+}
+
+bool PartsOptDataPointerArgsPass::insertIntrinsic(Function &F, Argument *A, Instruction &I) {
   auto dp_arg = createPartsIntrinsicNoTypeID(F, I, A,
                                        Intrinsic::parts_data_pointer_argument);
-
   A->replaceAllUsesWith(dp_arg);
   dp_arg->setOperand(0, A);
 
