@@ -74,6 +74,14 @@ define void @test_mix_dp_data(i64* %d0, i64 %d1, i64 %d2, i64 %d3, i64* %d4, i64
   ret void
 }
 
+define void @test_indirect_call(void ()* %f0) {
+entry:
+; CHECK-NOT:  {{.*}}parts.data.pointer.argument{{.*}}
+; CHECK:  call void %f0()
+  call void %f0()
+  ret void
+}
+
 declare void @func_noargs()
 declare void @func_data(i64)
 declare void @func(i64*)
