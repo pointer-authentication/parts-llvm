@@ -64,9 +64,20 @@ define void @test_n_data_pointers(i64* %d0, i64* %d1, i64* %d2, i64* %d3, i64* %
   ret void
 }
 
+define void @test_mix_dp_data(i64* %d0, i64 %d1, i64 %d2, i64 %d3, i64* %d4, i64 %d5, i64 %d6, i64* %d7) {
+; CHECK:  [[DP0:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d0)
+; CHECK-NEXT:  [[DP4:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d4)
+; CHECK-NEXT:  [[DP7:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d7)
+; CHECK-NOT:  {{.*}}parts.data.pointer.argument{{.*}}
+; CHECK: call void @func_mix(i64* [[DP0]], i64 %d1, i64 %d2, i64 %d3, i64* [[DP4]], i64 %d5, i64 %d6, i64* [[DP7]])
+  call void @func_mix(i64* %d0, i64 %d1, i64 %d2, i64 %d3, i64* %d4, i64 %d5, i64 %d6, i64* %d7)
+  ret void
+}
+
 declare void @func_noargs()
 declare void @func_data(i64)
 declare void @func(i64*)
 declare void @func_two(i64*, i32*)
 declare void @func_one_pointer(i64*, i32)
-declare void @func_eight(i64 *, i64*, i64 *, i64*, i64 *, i64*, i64 *, i64*)
+declare void @func_eight(i64*, i64*, i64*, i64*, i64*, i64*, i64*, i64*)
+declare void @func_mix(i64*, i64, i64, i64, i64*, i64, i64, i64*)
