@@ -56,6 +56,14 @@ let isPseudo = 1 in {
                     Sched<[]>;
 }
 
+let isPseudo = 1 in {
+  def PARTS_DATA_PTR_ARG : Pseudo<(outs GPR64:$dst),
+                           (ins GPR64:$ptr),
+                           [(set i64:$dst, (int_parts_data_pointer_argument GPR64:$ptr))],
+                           "$dst = $ptr">,
+                      Sched<[]>;
+}
+
 let isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [SP] in {
   def TCRETURNriAA : Pseudo<(outs), (ins tcGPR64:$dst, i32imm:$FPDiff, GPR64sp:$mod), []>,
                    Sched<[WriteBrReg]>;
