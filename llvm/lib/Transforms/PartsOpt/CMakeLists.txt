@@ -18,6 +18,7 @@ add_llvm_loadable_module(PartsOpt
   PartsOptRasPass.cpp
   PartsOptMainArgsPass.cpp
   PartsOptGlobalsPass.cpp
+  PartsOptDataPointerArgsPass.cpp
   DEPENDS intrinsics_gen
   PLUGIN_TOOL opt
 )
