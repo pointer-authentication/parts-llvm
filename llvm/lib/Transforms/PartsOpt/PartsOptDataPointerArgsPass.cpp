@@ -18,8 +18,10 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsLog.h"
+#include "llvm/PARTS/PartsOptPass.h"
 
 using namespace llvm;
+using namespace llvm::PARTS::PartsOptPass;
 
 #define DEBUG_TYPE "PartsOptDataPointerArgsPass"
 
@@ -54,38 +56,20 @@ bool PartsOptDataPointerArgsPass::runOnFunction(Function &F) {
   if (!(PARTS::useDpi()))
     return false;
 
-#if 0
   auto AI = F.arg_begin();
   if (AI == F.arg_end())
     return false;
 
-  if (AI->getType()->getTypeID() != Type::IntegerTyID)
-    llvm_unreachable("first argument to main is not an integer!?!");
-
-  auto &argc = *AI++;
-  if (AI == F.arg_end() || AI->getType()->getTypeID() != Type::PointerTyID)
-    llvm_unreachable("second argument to main not a char **ptr!?!\n");
-
-  auto &argv = *AI++;
-  if (AI != F.arg_end())
-    llvm_unreachable("unexpected arguments to main!?!\n");
+  if (!isDataPointer(AI->getType()))
+    return false;
 
   auto &B = F.getEntryBlock();
   auto &I = *B.begin();
+  auto dp_arg = createPartsIntrinsicNoTypeID(F, I, AI,
+                                       Intrinsic::parts_data_pointer_argument);
 
-  std::vector<Value*> args(0);
-  args.push_back(&argc);
-  args.push_back(&argv);
+  AI->replaceAllUsesWith(dp_arg);
+  dp_arg->setOperand(0, AI);
 
-  args.push_back(PartsTypeMetadata::idConstantFromType(
-      F.getContext(),
-      dyn_cast<PointerType>(argv.getType())->getElementType()
-  ));
-
-  IRBuilder<> Builder(&I);
-  Builder.CreateCall(funcFixMain, args);
   return true;
-#else
-  return false;
-#endif
 }
