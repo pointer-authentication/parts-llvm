@@ -32,6 +32,17 @@ entry:
   ret void
 }
 
+define void @test_two_data_pointer(i64* %d0, i32* %d1) {
+entry:
+; CHECK:  [[DP0:%[0-9]+]] = call i64* {{.*}}parts.data.pointer.argument{{.*}}(i64* %d0)
+; CHECK:  [[DP1:%[0-9]+]] = call i32* {{.*}}parts.data.pointer.argument{{.*}}(i32* %d1)
+; CHECK:  call void @func_two(i64* [[DP0]], i32* [[DP1]])
+  call void @func_two(i64* %d0, i32* %d1)
+  ret void
+}
+
+
 declare void @func_noargs()
 declare void @func_data(i64)
 declare void @func(i64*)
+declare void @func_two(i64*, i32*)
