@@ -56,12 +56,18 @@ let isPseudo = 1 in {
                     Sched<[]>;
 }
 
-let isPseudo = 1 in {
+let isPseudo = 1, hasNoSchedulingInfo = 1 in {
   def PARTS_DATA_PTR_ARG : Pseudo<(outs GPR64:$dst),
                            (ins GPR64:$ptr),
                            [(set i64:$dst, (int_parts_data_pointer_argument GPR64:$ptr))],
                            "$dst = $ptr">,
                       Sched<[]>;
+
+  let mayStore = 1 in
+    def PARTS_SPILL: Pseudo <(outs), (ins GPR64z:$ptr, GPR64sp:$Rn, i32imm:$offset), []>;
+
+  let mayLoad = 1 in
+    def PARTS_RELOAD: Pseudo <(outs GPR64z:$ptr), (ins GPR64sp:$Rn, i32imm:$offset), []>;
 }
 
 let isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [SP] in {
