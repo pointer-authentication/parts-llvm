@@ -39,7 +39,7 @@ let isPseudo = 1, hasNoSchedulingInfo = 1 in {
                            [(set i64:$dst, (int_pa_autcall GPR64:$ptr, GPR64sp:$mod))],
                            "$dst = $ptr">;
 
-  def PARTS_DATA_PTR_ARG : Pseudo<(outs GPR64:$dst),
+  def PARTS_DATA_PTR: Pseudo<(outs GPR64:$dst),
                            (ins GPR64:$ptr),
                            [(set i64:$dst, (int_parts_data_pointer_argument GPR64:$ptr))],
                            "$dst = $ptr">;
