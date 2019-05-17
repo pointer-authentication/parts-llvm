@@ -2667,10 +2667,6 @@ void AArch64InstrInfo::storeRegToStackSlot(
   unsigned Opc = 0;
   bool Offset = true;
 
-  bool needpac = needsPACing(MF, SrcReg);
-  if (needpac)
-    MFI.setStackID(FI, 42);
-
   switch (TRI->getSpillSize(*RC)) {
   case 1:
     if (AArch64::FPR8RegClass.hasSubClassEq(RC))
@@ -2692,10 +2688,7 @@ void AArch64InstrInfo::storeRegToStackSlot(
     break;
   case 8:
     if (AArch64::GPR64allRegClass.hasSubClassEq(RC)) {
-      if (!needpac)
-        Opc = AArch64::STRXui;
-      else
-        Opc = AArch64::PARTS_SPILL;
+      Opc = AArch64::STRXui;
       if (TargetRegisterInfo::isVirtualRegister(SrcReg))
         MF.getRegInfo().constrainRegClass(SrcReg, &AArch64::GPR64RegClass);
       else
@@ -2757,6 +2750,12 @@ void AArch64InstrInfo::storeRegToStackSlot(
     break;
   }
   assert(Opc && "Unknown register class");
+
+  if (needsPACing(MF, SrcReg)) {
+    assert((Opc == AArch64::STRXui) && "PACing spill register size mismatch !");
+    MFI.setStackID(FI, 42);
+    Opc = AArch64::PARTS_SPILL;
+  }
 
   const MachineInstrBuilder MI = BuildMI(MBB, MBBI, DebugLoc(), get(Opc))
                                      .addReg(SrcReg, getKillRegState(isKill))
