@@ -2616,6 +2616,8 @@ void AArch64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   llvm_unreachable("unimplemented reg-to-reg copy");
 }
 
+#define PARTS_STACKID 42
+
 static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
 {
   const MachineRegisterInfo &MRI = MF.getRegInfo();
@@ -2753,7 +2755,7 @@ void AArch64InstrInfo::storeRegToStackSlot(
 
   if (needsPACing(MF, SrcReg)) {
     assert((Opc == AArch64::STRXui) && "PACing spill register size mismatch !");
-    MFI.setStackID(FI, 42);
+    MFI.setStackID(FI, PARTS_STACKID);
     Opc = AArch64::PARTS_SPILL;
   }
 
@@ -2888,7 +2890,7 @@ void AArch64InstrInfo::loadRegFromStackSlot(
   }
   assert(Opc && "Unknown register class");
 
-  if (MFI.getStackID(FI) == 42) {
+  if (MFI.getStackID(FI) == PARTS_STACKID) {
     assert((Opc == AArch64::LDRXui) && "PACing reload size mismatch !");
     MFI.setStackID(FI, 0);
     Opc = AArch64::PARTS_RELOAD;
