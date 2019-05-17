@@ -2616,6 +2616,20 @@ void AArch64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   llvm_unreachable("unimplemented reg-to-reg copy");
 }
 
+static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
+{
+  const MachineRegisterInfo &MRI = MF.getRegInfo();
+
+  if (MRI.def_empty(SrcReg) || !TargetRegisterInfo::isVirtualRegister(SrcReg))
+    return false;
+
+  for(auto &MO: MRI.def_operands(SrcReg))
+    if ((*MO.getParent()).getOpcode() == AArch64::PARTS_DATA_PTR)
+      return true;
+
+  return false;
+}
+
 static void storeRegPairToStackSlot(const TargetRegisterInfo &TRI,
                                     MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator InsertBefore,
@@ -2652,6 +2666,11 @@ void AArch64InstrInfo::storeRegToStackSlot(
       PtrInfo, MachineMemOperand::MOStore, MFI.getObjectSize(FI), Align);
   unsigned Opc = 0;
   bool Offset = true;
+
+  bool needpac = needsPACing(MF, SrcReg);
+  if (needpac)
+    MFI.setStackID(FI, 42);
+
   switch (TRI->getSpillSize(*RC)) {
   case 1:
     if (AArch64::FPR8RegClass.hasSubClassEq(RC))
@@ -2673,7 +2692,10 @@ void AArch64InstrInfo::storeRegToStackSlot(
     break;
   case 8:
     if (AArch64::GPR64allRegClass.hasSubClassEq(RC)) {
-      Opc = AArch64::STRXui;
+      if (!needpac)
+        Opc = AArch64::STRXui;
+      else
+        Opc = AArch64::PARTS_SPILL;
       if (TargetRegisterInfo::isVirtualRegister(SrcReg))
         MF.getRegInfo().constrainRegClass(SrcReg, &AArch64::GPR64RegClass);
       else
@@ -2804,7 +2826,10 @@ void AArch64InstrInfo::loadRegFromStackSlot(
     break;
   case 8:
     if (AArch64::GPR64allRegClass.hasSubClassEq(RC)) {
-      Opc = AArch64::LDRXui;
+      if (MFI.getStackID(FI) == 42)
+        Opc = AArch64::PARTS_RELOAD; //FIXE: Reset StackID
+      else
+        Opc = AArch64::LDRXui;
       if (TargetRegisterInfo::isVirtualRegister(DestReg))
         MF.getRegInfo().constrainRegClass(DestReg, &AArch64::GPR64RegClass);
       else
@@ -3176,6 +3201,7 @@ int llvm::isAArch64FrameOffsetLegal(const MachineInstr &MI, int &Offset,
     Scale = 8;
     UnscaledOp = AArch64::PRFUMi;
     break;
+  case AArch64::PARTS_RELOAD:
   case AArch64::LDRXui:
     Scale = 8;
     UnscaledOp = AArch64::LDURXi;
@@ -3233,6 +3259,7 @@ int llvm::isAArch64FrameOffsetLegal(const MachineInstr &MI, int &Offset,
     UnscaledOp = AArch64::LDURSWi;
     break;
 
+  case AArch64::PARTS_SPILL:
   case AArch64::STRXui:
     Scale = 8;
     UnscaledOp = AArch64::STURXi;
