@@ -2825,10 +2825,7 @@ void AArch64InstrInfo::loadRegFromStackSlot(
     break;
   case 8:
     if (AArch64::GPR64allRegClass.hasSubClassEq(RC)) {
-      if (MFI.getStackID(FI) == 42)
-        Opc = AArch64::PARTS_RELOAD; //FIXE: Reset StackID
-      else
-        Opc = AArch64::LDRXui;
+      Opc = AArch64::LDRXui;
       if (TargetRegisterInfo::isVirtualRegister(DestReg))
         MF.getRegInfo().constrainRegClass(DestReg, &AArch64::GPR64RegClass);
       else
@@ -2890,6 +2887,12 @@ void AArch64InstrInfo::loadRegFromStackSlot(
     break;
   }
   assert(Opc && "Unknown register class");
+
+  if (MFI.getStackID(FI) == 42) {
+    assert((Opc == AArch64::LDRXui) && "PACing reload size mismatch !");
+    MFI.setStackID(FI, 0);
+    Opc = AArch64::PARTS_RELOAD;
+  }
 
   const MachineInstrBuilder MI = BuildMI(MBB, MBBI, DebugLoc(), get(Opc))
                                      .addReg(DestReg, getDefRegState(true))
