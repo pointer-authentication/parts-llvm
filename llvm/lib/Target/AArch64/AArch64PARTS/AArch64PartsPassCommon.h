@@ -74,8 +74,7 @@ inline void AArch64PartsPassCommon::insertPACInstr(MachineBasicBlock &MBB,
                                                    unsigned dstReg,
                                                    unsigned modReg,
                                                    const MCInstrDesc &InstrDesc) {
-  BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc)
-      .addUse(dstReg)
+  BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc, dstReg)
       .addUse(modReg);
 }
 
@@ -93,7 +92,7 @@ inline void AArch64PartsPassCommon::replacePartsXPACDIntrinsic(MachineFunction &
                                                           MachineBasicBlock &MBB,
                                                           MachineInstr &MI) {
   const unsigned dst = MI.getOperand(0).getReg();
-  BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(AArch64::XPACD)).addUse(dst);
+  BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(AArch64::XPACD), dst);
   MI.removeFromParent();
 }
 
