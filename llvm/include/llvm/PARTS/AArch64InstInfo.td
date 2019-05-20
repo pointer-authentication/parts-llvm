@@ -44,11 +44,14 @@ let isPseudo = 1, hasNoSchedulingInfo = 1 in {
                            [(set i64:$dst, (int_parts_data_pointer_argument GPR64:$ptr))],
                            "$dst = $ptr">;
 
-  let mayStore = 1 in
+  let mayStore = 1 in {
     def PARTS_SPILL: Pseudo <(outs), (ins GPR64z:$ptr, GPR64sp:$Rn, i32imm:$offset), []>;
-
-  let mayLoad = 1 in
-    def PARTS_RELOAD: Pseudo <(outs GPR64z:$ptr), (ins GPR64sp:$Rn, i32imm:$offset), []>;
+    def PARTS_USPILL: Pseudo <(outs), (ins GPR64:$ptr, GPR64sp:$Rn, i32imm:$offset), []>;
+  }
+  let mayLoad = 1 in {
+    def PARTS_RELOAD: Pseudo <(outs GPR64:$ptr), (ins GPR64sp:$Rn, i32imm:$offset), []>;
+    def PARTS_URELOAD: Pseudo <(outs GPR64:$ptr), (ins GPR64sp:$Rn, i32imm:$offset), []>;
+  }
 }
 
 let isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [SP] in {

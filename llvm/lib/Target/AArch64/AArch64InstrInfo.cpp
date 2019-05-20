@@ -3206,6 +3206,9 @@ int llvm::isAArch64FrameOffsetLegal(const MachineInstr &MI, int &Offset,
     UnscaledOp = AArch64::PRFUMi;
     break;
   case AArch64::PARTS_RELOAD:
+    Scale = 8;
+    UnscaledOp = AArch64::PARTS_URELOAD;
+    break;
   case AArch64::LDRXui:
     Scale = 8;
     UnscaledOp = AArch64::LDURXi;
@@ -3264,6 +3267,9 @@ int llvm::isAArch64FrameOffsetLegal(const MachineInstr &MI, int &Offset,
     break;
 
   case AArch64::PARTS_SPILL:
+    Scale = 8;
+    UnscaledOp = AArch64::PARTS_USPILL;
+    break;
   case AArch64::STRXui:
     Scale = 8;
     UnscaledOp = AArch64::STURXi;
