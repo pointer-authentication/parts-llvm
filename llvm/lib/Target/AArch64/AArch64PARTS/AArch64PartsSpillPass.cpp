@@ -30,7 +30,7 @@
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/PartsEventCount.h"
 #include "llvm/PARTS/Parts.h"
-#include "PartsUtils.h"
+#include "AArch64PartsPassCommon.h"
 
 #define DEBUG_TYPE "AArch64PartsSpillPass"
 
@@ -40,23 +40,23 @@ using namespace llvm;
 using namespace llvm::PARTS;
 
 namespace {
- class AArch64PartsSpillPass : public MachineFunctionPass {
+  class AArch64PartsSpillPass : public MachineFunctionPass, private AArch64PartsPassCommon {
 
- public:
-   static char ID;
+  public:
+    static char ID;
 
-   AArch64PartsSpillPass() : MachineFunctionPass(ID) {}
+    AArch64PartsSpillPass() : MachineFunctionPass(ID) {}
 
-   StringRef getPassName() const override { return DEBUG_TYPE; }
+    StringRef getPassName() const override { return DEBUG_TYPE; }
 
-   bool doInitialization(Module &M) override;
-   bool runOnMachineFunction(MachineFunction &) override;
+    bool doInitialization(Module &M) override;
+    bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
+    bool runOnMachineFunction(MachineFunction &) override;
 
- private:
-   const AArch64InstrInfo *TII = nullptr;
+  private:
+    const AArch64InstrInfo *TII = nullptr;
 
- };
-
+   };
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PartsSpillPass() {
@@ -69,17 +69,43 @@ bool AArch64PartsSpillPass::doInitialization(Module &M) {
   return true;
 }
 
+bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
+                                      MachineBasicBlock::instr_iterator &MIi) {
+
+  auto &MI = *MIi;
+
+  switch(MI.getOpcode()) {
+    case AArch64::PARTS_SPILL:
+      insertPACInstr(MBB, &MI, MI.getOperand(0).getReg(), AArch64::SP, TII->get(AArch64::PACDA));
+      MI.setDesc(TII->get(AArch64::STRXui));
+      MI.getOperand(0).setIsRenamable(false);
+      StatPartsSpills++;
+      break;
+   case AArch64::PARTS_RELOAD:
+      insertPACInstr(MBB, &(*std::next(MIi)), MI.getOperand(0).getReg(), AArch64::SP, TII->get(AArch64::AUTDA));
+      MI.setDesc(TII->get(AArch64::LDRXui));
+      MI.getOperand(0).setIsRenamable(false);
+      break;
+   case AArch64::PARTS_DATA_PTR:
+      MIi--;
+      MI.removeFromParent();
+      break;
+    default:
+      return false;
+      break;
+  }
+
+  return true;
+}
+
 bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
   bool modified = false;
 
   TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
 
-#if 0
   for (auto &MBB : MF)
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
       modified = handleInstruction(MBB, MIi) || modified;
-#endif
-  StatPartsSpills = 0;
 
   return modified;
 }
