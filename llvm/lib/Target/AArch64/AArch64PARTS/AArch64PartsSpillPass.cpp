@@ -56,6 +56,8 @@ namespace {
   private:
     const AArch64InstrInfo *TII = nullptr;
 
+    void lowerPartsSpillIntrinsic(MachineBasicBlock &MBB, MachineInstr &InsertPoint, MachineInstr &MI, unsigned PACDesc, unsigned MemDesc);
+
    };
 } // end anonymous namespace
 
@@ -69,6 +71,18 @@ bool AArch64PartsSpillPass::doInitialization(Module &M) {
   return true;
 }
 
+
+void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
+                                                     MachineInstr &InsertPoint,
+                                                     MachineInstr &MI,
+                                                     unsigned PACDesc,
+                                                     unsigned MemDesc)
+{
+      insertPACInstr(MBB, &InsertPoint, MI.getOperand(0).getReg(), AArch64::SP, TII->get(PACDesc));
+      MI.setDesc(TII->get(MemDesc));
+      MI.getOperand(0).setIsRenamable(false);
+}
+
 bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
                                       MachineBasicBlock::instr_iterator &MIi) {
 
@@ -76,15 +90,11 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
 
   switch(MI.getOpcode()) {
     case AArch64::PARTS_SPILL:
-      insertPACInstr(MBB, &MI, MI.getOperand(0).getReg(), AArch64::SP, TII->get(AArch64::PACDA));
-      MI.setDesc(TII->get(AArch64::STRXui));
-      MI.getOperand(0).setIsRenamable(false);
+      lowerPartsSpillIntrinsic(MBB, MI, MI, AArch64::PACDA, AArch64::STRXui);
       StatPartsSpills++;
       break;
    case AArch64::PARTS_RELOAD:
-      insertPACInstr(MBB, &(*std::next(MIi)), MI.getOperand(0).getReg(), AArch64::SP, TII->get(AArch64::AUTDA));
-      MI.setDesc(TII->get(AArch64::LDRXui));
-      MI.getOperand(0).setIsRenamable(false);
+      lowerPartsSpillIntrinsic(MBB, *MI.getNextNode(), MI, AArch64::AUTDA, AArch64::LDRXui);
       break;
    case AArch64::PARTS_DATA_PTR:
       MIi--;
