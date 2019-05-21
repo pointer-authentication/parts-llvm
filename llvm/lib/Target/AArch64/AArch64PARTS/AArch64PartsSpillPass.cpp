@@ -55,7 +55,8 @@ namespace {
   private:
     const AArch64InstrInfo *TII = nullptr;
 
-    void lowerPartsSpillIntrinsic(MachineBasicBlock &MBB, MachineInstr &InsertPoint, MachineInstr &MI, unsigned PACDesc, unsigned MemDesc);
+    void lowerPartsSpillIntrinsic(MachineBasicBlock &MBB, MachineInstr &InsertPoint,
+                                  MachineInstr &MI, unsigned PACDesc, unsigned MemDesc);
 
    };
 } // end anonymous namespace
@@ -70,16 +71,15 @@ bool AArch64PartsSpillPass::doInitialization(Module &M) {
   return true;
 }
 
-
 void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
                                                      MachineInstr &InsertPoint,
                                                      MachineInstr &MI,
                                                      unsigned PACDesc,
                                                      unsigned MemDesc)
 {
-      insertPACInstr(MBB, &InsertPoint, MI.getOperand(0).getReg(), AArch64::SP, TII->get(PACDesc));
-      MI.setDesc(TII->get(MemDesc));
-      MI.getOperand(0).setIsRenamable(false);
+  insertPACInstr(MBB, &InsertPoint, MI.getOperand(0).getReg(), AArch64::SP, TII->get(PACDesc));
+  MI.setDesc(TII->get(MemDesc));
+  MI.getOperand(0).setIsRenamable(false);
 }
 
 bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
