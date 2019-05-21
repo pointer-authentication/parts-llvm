@@ -48,12 +48,12 @@ namespace {
     StringRef getPassName() const override { return DEBUG_TYPE; }
 
     bool doInitialization(Module &M) override;
-    bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
     bool runOnMachineFunction(MachineFunction &) override;
 
   private:
     const AArch64InstrInfo *TII = nullptr;
 
+    bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
     void lowerPartsSpillIntrinsic(MachineBasicBlock &MBB, MachineInstr &InsertPoint,
                                   MachineInstr &MI, unsigned PACDesc, unsigned MemDesc);
 
