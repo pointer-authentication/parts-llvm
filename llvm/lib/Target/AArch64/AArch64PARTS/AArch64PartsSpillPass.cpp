@@ -8,7 +8,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <iostream>
 // LLVM includes
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
