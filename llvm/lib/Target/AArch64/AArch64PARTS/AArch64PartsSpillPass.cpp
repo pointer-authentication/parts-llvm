@@ -38,13 +38,13 @@ using namespace llvm;
 using namespace llvm::PARTS;
 
 namespace {
-  class AArch64PartsSpillPass : public MachineFunctionPass, private AArch64PartsPassCommon {
+  class AArch64PartsSpillPass : public MachineFunctionPass,
+                                private AArch64PartsPassCommon {
 
   public:
     static char ID;
 
     AArch64PartsSpillPass() : MachineFunctionPass(ID) {}
-
     StringRef getPassName() const override { return DEBUG_TYPE; }
 
     bool doInitialization(Module &M) override;
@@ -53,10 +53,13 @@ namespace {
   private:
     const AArch64InstrInfo *TII = nullptr;
 
-    bool handleInstruction(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-    void lowerPartsSpillIntrinsic(MachineBasicBlock &MBB, MachineInstr *InsertPoint,
-                                  MachineInstr &MI, unsigned PACDesc, unsigned MemDesc);
-
+    bool handleInstruction(MachineBasicBlock &MBB,
+                           MachineBasicBlock::instr_iterator &MIi);
+    void lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
+                                  MachineInstr *InsertPoint,
+                                  MachineInstr &MI,
+                                  unsigned PACDesc,
+                                  unsigned MemDesc);
    };
 } // end anonymous namespace
 
@@ -94,7 +97,8 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
       StatPartsSpills++;
       break;
    case AArch64::PARTS_RELOAD:
-      lowerPartsSpillIntrinsic(MBB, MI.getNextNode(), MI, AArch64::AUTDA, AArch64::LDRXui);
+      lowerPartsSpillIntrinsic(MBB, MI.getNextNode(), MI, AArch64::AUTDA,
+                                                              AArch64::LDRXui);
       StatPartsReload++;
       break;
    case AArch64::PARTS_DATA_PTR:
@@ -115,7 +119,8 @@ bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
   TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
 
   for (auto &MBB : MF)
-    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
+    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie;
+                                                                         ++MIi)
       modified = handleInstruction(MBB, MIi) || modified;
 
   return modified;
