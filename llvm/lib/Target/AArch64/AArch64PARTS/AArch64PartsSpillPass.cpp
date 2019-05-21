@@ -35,6 +35,7 @@
 #define DEBUG_TYPE "AArch64PartsSpillPass"
 
 STATISTIC(StatPartsSpills, DEBUG_TYPE ": Number of spills PACed");
+STATISTIC(StatPartsReload, DEBUG_TYPE ": Number of PACed reloads");
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -95,6 +96,7 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
       break;
    case AArch64::PARTS_RELOAD:
       lowerPartsSpillIntrinsic(MBB, *MI.getNextNode(), MI, AArch64::AUTDA, AArch64::LDRXui);
+      StatPartsReload++;
       break;
    case AArch64::PARTS_DATA_PTR:
       MIi--;
