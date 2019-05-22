@@ -2618,6 +2618,22 @@ void AArch64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 
 #define PARTS_STACKID 42
 
+static bool isUnprotectedDataPtr(MachineOperand &MO)
+{
+  unsigned Opc = MO.getParent()->getOpcode();
+
+  switch (Opc) {
+    case AArch64::PARTS_DATA_PTR:
+    case AArch64::PARTS_AUTDA:
+      return true;
+      break;
+  default:
+      break;
+  }
+
+ return false;
+}
+
 static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
 {
   const MachineRegisterInfo &MRI = MF.getRegInfo();
@@ -2626,7 +2642,7 @@ static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
     return false;
 
   for(auto &MO: MRI.def_operands(SrcReg))
-    if ((*MO.getParent()).getOpcode() == AArch64::PARTS_DATA_PTR)
+    if (isUnprotectedDataPtr(MO))
       return true;
 
   return false;
