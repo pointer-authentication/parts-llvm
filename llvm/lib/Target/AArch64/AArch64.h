@@ -59,6 +59,7 @@ createAArch64InstructionSelector(const AArch64TargetMachine &,
 FunctionPass *createAArch64PreLegalizeCombiner();
 
 FunctionPass *createPartsPassIntrinsics();
+FunctionPass *createAArch64EarlyPartsPassDpi();
 FunctionPass *createPartsPassDpi();
 FunctionPass *createAArch64EarlyPartsPassCpi();
 FunctionPass *createAArch64PartsPassCpi();

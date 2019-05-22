@@ -505,6 +505,8 @@ bool AArch64PassConfig::addGlobalInstructionSelect() {
 }
 
 bool AArch64PassConfig::addILPOpts() {
+  if (PARTS::useDpi())
+    addPass(createAArch64EarlyPartsPassDpi());
   if (PARTS::useFeCfi())
     addPass(createAArch64EarlyPartsPassCpi());
   if (EnableCondOpt)
