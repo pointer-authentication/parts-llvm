@@ -96,9 +96,18 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
       lowerPartsSpillIntrinsic(MBB, &MI, MI, AArch64::PACDA, AArch64::STRXui);
       StatPartsSpills++;
       break;
+    case AArch64::PARTS_USPILL:
+      lowerPartsSpillIntrinsic(MBB, &MI, MI, AArch64::PACDA, AArch64::STURXi);
+      StatPartsSpills++;
+      break;
    case AArch64::PARTS_RELOAD:
       lowerPartsSpillIntrinsic(MBB, MI.getNextNode(), MI, AArch64::AUTDA,
                                                               AArch64::LDRXui);
+      StatPartsReload++;
+      break;
+   case AArch64::PARTS_URELOAD:
+      lowerPartsSpillIntrinsic(MBB, MI.getNextNode(), MI, AArch64::AUTDA,
+                                                              AArch64::LDURXi);
       StatPartsReload++;
       break;
    case AArch64::PARTS_DATA_PTR:
