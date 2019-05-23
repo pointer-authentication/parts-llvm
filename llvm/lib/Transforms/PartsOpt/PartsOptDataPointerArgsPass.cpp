@@ -35,6 +35,7 @@ private:
   bool insertIntrinsic(Function &F, Value *A, Instruction &I);
   bool handleInstruction(Function &F, Instruction &I);
   bool markDataPointerArguments(Function &F);
+  bool markDataPointerCallReturns(Function &F);
 };
 
 } // anonyous namespace
@@ -50,12 +51,7 @@ bool PartsOptDataPointerArgsPass::runOnFunction(Function &F) {
     return false;
 
   bool modified = markDataPointerArguments(F);
-
-  for (auto &BB:F)
-    for (auto &I: BB)
-      modified = handleInstruction(F, I) || modified;
-
-  return modified;
+  return markDataPointerCallReturns(F) || modified;
 }
 
 bool PartsOptDataPointerArgsPass::markDataPointerArguments(Function &F) {
@@ -66,6 +62,16 @@ bool PartsOptDataPointerArgsPass::markDataPointerArguments(Function &F) {
   for (auto AI = F.arg_begin(), AE = F.arg_end(); AI != AE; ++AI)
     if (isDataPointer(AI->getType()))
       modified = insertIntrinsic(F, AI, I);
+
+  return modified;
+}
+
+bool PartsOptDataPointerArgsPass::markDataPointerCallReturns(Function &F) {
+  bool modified = false;
+
+  for (auto &BB:F)
+    for (auto &I: BB)
+      modified = handleInstruction(F, I) || modified;
 
   return modified;
 }
