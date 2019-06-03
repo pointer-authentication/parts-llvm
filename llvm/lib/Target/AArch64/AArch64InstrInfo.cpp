@@ -2634,21 +2634,6 @@ static bool isUnprotectedDataPtr(MachineOperand &MO)
  return false;
 }
 
-static bool isPotencialAddressExpression(MachineOperand &MO)
-{
-  unsigned Opc = MO.getParent()->getOpcode();
-
-  switch (Opc) {
-    case AArch64::CSELXr:
-      return true;
-      break;
-  default:
-      break;
-  }
-
- return false;
-}
-
 static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
 {
   const MachineRegisterInfo &MRI = MF.getRegInfo();
@@ -2659,8 +2644,6 @@ static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
   for(auto &MO: MRI.def_operands(SrcReg))
     if (isUnprotectedDataPtr(MO))
       return true;
-    else if (isPotencialAddressExpression(MO))
-      return needsPACing(MF, MO.getParent()->getOperand(1).getReg());
 
   return false;
 }
