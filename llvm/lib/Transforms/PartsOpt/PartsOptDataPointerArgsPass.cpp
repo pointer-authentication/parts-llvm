@@ -34,7 +34,6 @@ struct PartsOptDataPointerArgsPass: public FunctionPass {
 private:
   bool insertIntrinsic(Function &F, Value *A, Instruction &I);
   bool handleInstruction(Function &F, Instruction &I);
-  bool handleCall(Function &F, Instruction &I);
   bool isPartsIntrinsic(Instruction &I);
   bool markDataPointerArguments(Function &F);
   bool markDataPointerCallReturns(Function &F);
@@ -84,8 +83,8 @@ inline bool PartsOptDataPointerArgsPass::handleInstruction(Function &F, Instruct
     default:
       break;
     case Instruction::Call:
-      modified = handleCall(F, I);
-      break;
+      if (isPartsIntrinsic(I)) break;
+      // Fall through
     case Instruction::Select:
       if (isDataPointer(I.getType()))
         modified = insertIntrinsic(F, &I, *I.getNextNode());
@@ -100,13 +99,6 @@ inline bool PartsOptDataPointerArgsPass::isPartsIntrinsic(Instruction &I) {
   Function *CalledFunc = CI->getCalledFunction();
   // FIXME: Check PARTS Instrisic Opcode. We currently ignore ALL intrisics. Is this correct ?
   return CalledFunc && CalledFunc->isIntrinsic();
-}
-
-inline bool PartsOptDataPointerArgsPass::handleCall(Function &F, Instruction &I) {
-  if (isDataPointer(I.getType()) && !isPartsIntrinsic(I))
-    return insertIntrinsic(F, &I, *I.getNextNode());
-
-  return false;
 }
 
 bool PartsOptDataPointerArgsPass::insertIntrinsic(Function &F, Value *A, Instruction &I) {
