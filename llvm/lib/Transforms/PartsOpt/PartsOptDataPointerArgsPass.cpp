@@ -35,6 +35,7 @@ private:
   bool insertIntrinsic(Function &F, Value *A, Instruction &I);
   bool handleInstruction(Function &F, Instruction &I);
   bool handleCall(Function &F, Instruction &I);
+  bool isPartsIntrinsic(Instruction &I);
   bool markDataPointerArguments(Function &F);
   bool markDataPointerCallReturns(Function &F);
 };
@@ -88,10 +89,15 @@ inline bool PartsOptDataPointerArgsPass::handleInstruction(Function &F, Instruct
   return false;
 }
 
-inline bool PartsOptDataPointerArgsPass::handleCall(Function &F, Instruction &I) {
+inline bool PartsOptDataPointerArgsPass::isPartsIntrinsic(Instruction &I) {
   CallInst *CI = dyn_cast<CallInst>(&I);
   Function *CalledFunc = CI->getCalledFunction();
-  if (isDataPointer(I.getType()) && CalledFunc && !CalledFunc->isIntrinsic())
+  // FIXME: Check PARTS Instrisic Opcode. We currently ignore ALL intrisics. Is this correct ?
+  return CalledFunc && CalledFunc->isIntrinsic();
+}
+
+inline bool PartsOptDataPointerArgsPass::handleCall(Function &F, Instruction &I) {
+  if (isDataPointer(I.getType()) && !isPartsIntrinsic(I))
     return insertIntrinsic(F, &I, *I.getNextNode());
 
   return false;
