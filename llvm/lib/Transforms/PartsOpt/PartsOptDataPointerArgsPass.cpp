@@ -78,10 +78,14 @@ bool PartsOptDataPointerArgsPass::markDataPointerCallReturns(Function &F) {
 }
 
 inline bool PartsOptDataPointerArgsPass::handleInstruction(Function &F, Instruction &I) {
-  if (I.getOpcode() != Instruction::Call)
-    return false;
+  if (I.getOpcode() == Instruction::Call)
+    return handleCall(F, I);
+  else if (I.getOpcode() == Instruction::Select) {
+    if (isDataPointer(I.getType()))
+      return insertIntrinsic(F, &I, *I.getNextNode());
+  }
 
-  return handleCall(F, I);
+  return false;
 }
 
 inline bool PartsOptDataPointerArgsPass::handleCall(Function &F, Instruction &I) {
