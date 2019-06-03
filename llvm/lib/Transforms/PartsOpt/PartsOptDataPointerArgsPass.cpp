@@ -86,6 +86,8 @@ inline bool PartsOptDataPointerArgsPass::handleInstruction(Function &F, Instruct
       if (isPartsIntrinsic(I)) break;
       // Fall through
     case Instruction::Select:
+    case Instruction::PHI:
+    case Instruction::GetElementPtr:
       if (isDataPointer(I.getType()))
         modified = insertIntrinsic(F, &I, *I.getNextNode());
       break;
