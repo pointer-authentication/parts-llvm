@@ -34,6 +34,7 @@ struct PartsOptDataPointerArgsPass: public FunctionPass {
 private:
   bool insertIntrinsic(Function &F, Value *A, Instruction &I);
   bool handleInstruction(Function &F, Instruction &I);
+  bool handleCall(Function &F, Instruction &I);
   bool markDataPointerArguments(Function &F);
   bool markDataPointerCallReturns(Function &F);
 };
@@ -80,6 +81,10 @@ inline bool PartsOptDataPointerArgsPass::handleInstruction(Function &F, Instruct
   if (I.getOpcode() != Instruction::Call)
     return false;
 
+  return handleCall(F, I);
+}
+
+inline bool PartsOptDataPointerArgsPass::handleCall(Function &F, Instruction &I) {
   CallInst *CI = dyn_cast<CallInst>(&I);
   Function *CalledFunc = CI->getCalledFunction();
   if (isDataPointer(I.getType()) && CalledFunc && !CalledFunc->isIntrinsic())
