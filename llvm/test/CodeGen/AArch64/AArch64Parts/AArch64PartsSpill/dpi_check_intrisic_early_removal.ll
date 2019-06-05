@@ -21,8 +21,8 @@ entry:
   %2 = call i64* @llvm.parts.data.pointer.argument.p0i64(i64* %dataptronstack)
   %3 = call i64* @llvm.parts.data.pointer.argument.p0i64(i64* %dataptronstack2)
   %4 = call i64* @llvm.parts.data.pointer.argument.p0i64(i64* %dataptronstack3)
-; CHECK: [[VREG1:%[0-9]+]]:gpr64 = PARTS_DATA_PTR [[VREG1]]
-; CHECK: [[VREG2:%[0-9]+]]:gpr64 = PARTS_DATA_PTR [[VREG2]]
+; CHECK: PARTS_DATA_PTR
+; CHECK: PARTS_DATA_PTR
 ; CHECK-NOT: PARTS_DATA_PTR
   call void asm sideeffect "nop", "~{x0},~{x1},~{x2},~{x3},~{x4},~{x5},~{x6},~{x7},~{x8},~{x9},~{x10},~{x11},~{x12},~{x13},~{x14},~{x15},~{x16},~{x17},~{x18},~{x19},~{x20},~{x21},~{x22},~{x23},~{x24},~{x25},~{x26},~{x27},~{x28},~{x29},~{x30},~{x31}"() #1
   call void @func2(i64* %0, i64* %1, i64 %d2, i64 %d3, i64 %d4, i64 %d5, i64 %d6, i64 %d7, i64* %2, i64* %3, i64* %4)
