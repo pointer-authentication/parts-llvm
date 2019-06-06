@@ -2638,10 +2638,10 @@ static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
 {
   const MachineRegisterInfo &MRI = MF.getRegInfo();
 
-  if (MRI.def_empty(SrcReg) || !TargetRegisterInfo::isVirtualRegister(SrcReg))
+  if (!TargetRegisterInfo::isVirtualRegister(SrcReg))
     return false;
 
-  for(auto &MO: MRI.def_operands(SrcReg))
+  for(auto &MO: MRI.use_operands(SrcReg))
     if (isUnprotectedDataPtr(MO))
       return true;
 
