@@ -60,7 +60,8 @@ namespace {
                                   MachineInstr &MI,
                                   unsigned PACDesc,
                                   unsigned MemDesc);
-   };
+    void removeIntrinsic(MachineBasicBlock::instr_iterator &MIi);
+  };
 } // end anonymous namespace
 
 FunctionPass *llvm::createAArch64PartsSpillPass() {
@@ -117,8 +118,7 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
       StatPartsReload++;
       break;
    case AArch64::PARTS_DATA_PTR:
-      MIi--;
-      MI.removeFromParent();
+      removeIntrinsic(MIi);
       break;
     default:
       return false;
@@ -126,6 +126,12 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
   }
 
   return true;
+}
+
+void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock::instr_iterator &MIi)
+{
+  auto &MI = *MIi--;
+  MI.removeFromParent();
 }
 
 bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
