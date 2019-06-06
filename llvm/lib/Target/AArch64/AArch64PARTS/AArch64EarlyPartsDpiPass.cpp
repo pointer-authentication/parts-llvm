@@ -101,9 +101,8 @@ inline bool AArch64EarlyPartsDpiPass::handleInstruction(
   auto srcReg = MIi->getOperand(0).getReg();
   auto &MRI = MF.getRegInfo();
 
-  for (auto DefIi = MRI.def_instr_begin(srcReg), DefIe = MRI.def_instr_end();
-                                                       DefIi != DefIe; ++DefIi)
-    if (DefIi->mayLoad())
+  for (auto &DefI: MRI.def_instructions(srcReg))
+    if (DefI.mayLoad())
       return removeIntrinsic(MIi);
 
   return false;
