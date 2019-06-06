@@ -18,15 +18,15 @@ entry:
 ; CHECK:  pacda	[[PTR_SPILL:x[0-9]+]], sp
 ; CHECK:  str	[[PTR_SPILL]], [sp]
 ; CHECK:  nop
-  %0 = call i8* @llvm.parts.data.pointer.argument.p0i8(i8* %call)
+  call void @llvm.parts.data.pointer.argument.p0i8(i8* %call)
   call void asm sideeffect "nop", "~{x0},~{x1},~{x2},~{x3},~{x4},~{x5},~{x6},~{x7},~{x8},~{x9},~{x10},~{x11},~{x12},~{x13},~{x14},~{x15},~{x16},~{x17},~{x18},~{x19},~{x20},~{x21},~{x22},~{x23},~{x24},~{x25},~{x26},~{x27},~{x28},~{x29},~{x30},~{x31},~{sp},~{lr},~{fp}"() #1
 ; CHECK:  ldr	[[PTR_RELOAD:x[0-9]+]], [sp]
 ; CHECK:  autda	[[PTR_RELOAD]], sp
 ; CHECK:  mov	[[PTR:x[0-9]+]], [[PTR_RELOAD]]
 ; CHECK:  pacda	[[PTR]], {{x[0-9]+}}
-  %1 = call i8* @llvm.pa.pacda.p0i8(i8* %0, i64 -1457565293528958492)
-  store i8* %1, i8** %data, align 8
-  ret i8* %0
+  %0 = call i8* @llvm.pa.pacda.p0i8(i8* %call, i64 -1457565293528958492)
+  store i8* %0, i8** %data, align 8
+  ret i8* %call
 }
 
 declare i8* @my_simple_alloc(i64)
@@ -35,6 +35,6 @@ declare i8* @my_simple_alloc(i64)
 declare i8* @llvm.pa.pacda.p0i8(i8*, i64) #0
 
 ; Function Attrs: nounwind readnone
-declare i8* @llvm.parts.data.pointer.argument.p0i8(i8*) #0
+declare void @llvm.parts.data.pointer.argument.p0i8(i8*) #0
 
 attributes #0 = { nounwind readnone }

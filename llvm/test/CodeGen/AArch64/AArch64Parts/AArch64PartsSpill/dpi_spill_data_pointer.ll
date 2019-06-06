@@ -10,10 +10,10 @@
 
 define void @spill_data_pointer(i64* %d0, i64* %d1, i64* %d2, i64 %d3, i64 %d4, i64 %d5, i64 %d6, i64 %d7, i64* %dataptronstack) {
 entry:
-  %0 = call i64* @llvm.parts.data.pointer.argument.p0i64(i64* %d0)
-  %1 = call i64* @llvm.parts.data.pointer.argument.p0i64(i64* %d1)
-  %2 = call i64* @llvm.parts.data.pointer.argument.p0i64(i64* %d2)
-  %3 = call i64* @llvm.parts.data.pointer.argument.p0i64(i64* %dataptronstack)
+  call void @llvm.parts.data.pointer.argument.p0i64(i64* %d0)
+  call void @llvm.parts.data.pointer.argument.p0i64(i64* %d1)
+  call void @llvm.parts.data.pointer.argument.p0i64(i64* %d2)
+  call void @llvm.parts.data.pointer.argument.p0i64(i64* %dataptronstack)
 
 ; CHECK-LABEL: @spill_data_pointer
 
@@ -25,11 +25,11 @@ entry:
 ; CHECK:  autda {{x[0-9]+}}, sp
 ; CHECK:  autda {{x[0-9]+}}, sp
 ; CHECK:  bl  func
-  call void @func(i64* %0, i64* %1, i64* %2, i64 %d3, i64 %d4, i64 %d5, i64 %d6, i64 %d7, i64* %3)
+  call void @func(i64* %d0, i64* %d1, i64* %d2, i64 %d3, i64 %d4, i64 %d5, i64 %d6, i64 %d7, i64* %dataptronstack)
   ret void
 }
 
 declare void @func(i64*, i64*, i64*, i64, i64, i64, i64, i64, i64*)
-declare i64* @llvm.parts.data.pointer.argument.p0i64(i64*)
+declare void @llvm.parts.data.pointer.argument.p0i64(i64*)
 
 attributes #1 = { nounwind }
