@@ -8,8 +8,8 @@
 ; CHECK-LABEL: @simple_pointer
 ; CHECK: alloca
 ; CHECK: %call = call i8* @my_simple_alloc(i64 4096)
-; CHECK: %0 = call i8* {{.*}}parts.data.pointer.argument{{.*}}
-; CHECK: ret i8* %0
+; CHECK: call void {{.*}}parts.data.pointer.argument{{.*}}
+; CHECK: ret i8* %call
 define i8* @simple_pointer() {
 entry:
   %data = alloca i8*, align 8
