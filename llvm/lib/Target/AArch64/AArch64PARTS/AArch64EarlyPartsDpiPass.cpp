@@ -54,9 +54,7 @@ namespace {
  private:
    inline bool handleInstruction(MachineFunction &MF, MachineBasicBlock &MBB,
                                       MachineBasicBlock::instr_iterator &MIi);
-   inline bool removeIntrinsic(MachineRegisterInfo &MRI,
-                               MachineBasicBlock::instr_iterator &MIi,
-                               unsigned dstReg, unsigned srcReg);
+   inline bool removeIntrinsic( MachineBasicBlock::instr_iterator &MIi);
   };
 } // end anonymous namespace
 
@@ -81,12 +79,10 @@ bool AArch64EarlyPartsDpiPass::runOnMachineFunction(MachineFunction &MF) {
   return modified;
 }
 
-inline bool AArch64EarlyPartsDpiPass::removeIntrinsic(MachineRegisterInfo &MRI,
-                                        MachineBasicBlock::instr_iterator &MIi,
-                                        unsigned dstReg, unsigned srcReg) {
+inline bool AArch64EarlyPartsDpiPass::removeIntrinsic(
+                                      MachineBasicBlock::instr_iterator &MIi) {
   auto &MI = *MIi--;
 
-  MRI.replaceRegWith(dstReg, srcReg);
   MI.removeFromParent();
   StatUnneededDataPtr++;
 
@@ -102,14 +98,13 @@ inline bool AArch64EarlyPartsDpiPass::handleInstruction(
   if (MIOpcode != AArch64::PARTS_DATA_PTR)
     return false;
 
-  auto dstReg = MIi->getOperand(0).getReg();
-  auto srcReg = MIi->getOperand(1).getReg();
+  auto srcReg = MIi->getOperand(0).getReg();
   auto &MRI = MF.getRegInfo();
 
   for (auto DefIi = MRI.def_instr_begin(srcReg), DefIe = MRI.def_instr_end();
                                                        DefIi != DefIe; ++DefIi)
     if (DefIi->mayLoad())
-      return removeIntrinsic(MRI, MIi, dstReg, srcReg);
+      return removeIntrinsic(MIi);
 
   return false;
 }
