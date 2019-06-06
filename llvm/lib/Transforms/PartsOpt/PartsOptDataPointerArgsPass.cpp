@@ -106,7 +106,6 @@ inline bool PartsOptDataPointerArgsPass::isPartsIntrinsic(Instruction &I) {
 bool PartsOptDataPointerArgsPass::insertIntrinsic(Function &F, Value *A, Instruction &I) {
   auto dp_arg = createPartsIntrinsicNoTypeID(F, I, A,
                                        Intrinsic::parts_data_pointer_argument);
-  A->replaceAllUsesWith(dp_arg);
   dp_arg->setOperand(0, A);
 
   return true;
