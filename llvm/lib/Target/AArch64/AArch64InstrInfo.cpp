@@ -2618,9 +2618,9 @@ void AArch64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 
 #define PARTS_STACKID 42
 
-static bool isUnprotectedDataPtr(MachineOperand &MO)
+static bool isUnprotectedDataPtr(MachineInstr &MI)
 {
-  unsigned Opc = MO.getParent()->getOpcode();
+  unsigned Opc = MI.getOpcode();
 
   switch (Opc) {
     case AArch64::PARTS_DATA_PTR:
@@ -2641,8 +2641,8 @@ static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
   if (!TargetRegisterInfo::isVirtualRegister(SrcReg))
     return false;
 
-  for(auto &MO: MRI.use_operands(SrcReg))
-    if (isUnprotectedDataPtr(MO))
+  for(auto &MI: MRI.use_instructions(SrcReg))
+    if (isUnprotectedDataPtr(MI))
       return true;
 
   return false;
