@@ -99,13 +99,13 @@ void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
                                                      unsigned PACDesc,
                                                      unsigned MemDesc)
 {
-  auto &MO = MI.getOperand(0);
+  unsigned Reg = MI.getOperand(0).getReg();
 
   if (InsertPoint)
-    BuildMI(MBB, InsertPoint, MI.getDebugLoc(), TII->get(PACDesc), MO.getReg())
+    BuildMI(MBB, InsertPoint, MI.getDebugLoc(), TII->get(PACDesc), Reg)
         .addUse(AArch64::SP);
   else
-    BuildMI(&MBB, MI.getDebugLoc(), TII->get(PACDesc), MO.getReg())
+    BuildMI(&MBB, MI.getDebugLoc(), TII->get(PACDesc), Reg)
         .addUse(AArch64::SP);
 
   MI.setDesc(TII->get(MemDesc));
