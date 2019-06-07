@@ -157,8 +157,7 @@ void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
                                       MachineBasicBlock::instr_iterator &MIi) {
   auto &MI = *MIi--;
   auto &MRI = MBB.getParent()->getRegInfo();
-  auto &MO = MI.getOperand(0);
-  unsigned srcReg = MO.getReg();
+  unsigned srcReg = MI.getOperand(0).getReg();
 
   MI.removeFromParent();
 
