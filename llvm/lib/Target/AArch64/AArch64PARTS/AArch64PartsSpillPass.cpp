@@ -67,6 +67,7 @@ namespace {
     void removeIntrinsic(MachineBasicBlock &MBB,
                          MachineBasicBlock::instr_iterator &MIi);
     void removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg);
+    void removeDeadMachineInstrs();
   };
 } // end anonymous namespace
 
@@ -153,6 +154,14 @@ void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
     removeDefsWithNoUses(MRI, srcReg); // FIXME: Do not remove in place, may turn MIi invalid. Accumulate in a worklist the registers and remove at the end of the basic block processing
 }
 
+void AArch64PartsSpillPass::removeDeadMachineInstrs()
+{
+    for(auto MI: DeleteInstrList)
+      MI->removeFromParent();
+
+    DeleteInstrList.clear();
+}
+
 bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
   bool modified = false;
 
@@ -163,11 +172,7 @@ bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
                                                                          ++MIi)
       modified = handleInstruction(MBB, MIi) || modified;
 
-    for(auto MI: DeleteInstrList) {
-      errs() << "REMOVING MI: " << *MI;
-      MI->removeFromParent();
-    }
-    DeleteInstrList.clear();
-  }
+    removeDeadMachineInstrs();
+ }
   return modified;
 }
