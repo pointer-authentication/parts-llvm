@@ -734,6 +734,8 @@ declare void @llvm.parts.data.pointer.argument.p0i8(i8*) #0
 
 attributes #0 = { nounwind }
 ; CHECK-LABEL: Str64Ldr64
+; PARTS: Check that we do not keep dead instructions around
+; CHECK-NOT: add
 ; CHECK: mov x0, x1
 ; CHECK-LABEL: Str64Ldr32_0
 ; CHECK: and x0, x1, #0xffffffff
