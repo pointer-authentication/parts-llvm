@@ -57,6 +57,7 @@ namespace {
     const AArch64InstrInfo *TII = nullptr;
     SmallVector<MachineInstr *, RM_INSTR_SIZE> DeleteInstrList;
 
+    bool handleMBBInstructions(MachineBasicBlock &MBB);
     bool handleInstruction(MachineBasicBlock &MBB,
                            MachineBasicBlock::instr_iterator &MIi);
     void lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
@@ -79,6 +80,17 @@ char AArch64PartsSpillPass::ID = 0;
 
 bool AArch64PartsSpillPass::doInitialization(Module &M) {
   return true;
+}
+
+bool AArch64PartsSpillPass::handleMBBInstructions(MachineBasicBlock &MBB) {
+  bool modified = false;
+
+  for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
+    modified = handleInstruction(MBB, MIi) || modified;
+
+  removeDeadMachineInstrs();
+
+  return modified;
 }
 
 void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
@@ -167,12 +179,8 @@ bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
 
   TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
 
-  for (auto &MBB : MF) {
-    for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie;
-                                                                         ++MIi)
-      modified = handleInstruction(MBB, MIi) || modified;
+  for (auto &MBB : MF)
+    modified = handleMBBInstructions(MBB);
 
-    removeDeadMachineInstrs();
- }
   return modified;
 }
