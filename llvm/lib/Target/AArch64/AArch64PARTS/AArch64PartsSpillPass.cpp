@@ -82,6 +82,17 @@ bool AArch64PartsSpillPass::doInitialization(Module &M) {
   return true;
 }
 
+bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
+  bool modified = false;
+
+  TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
+
+  for (auto &MBB : MF)
+    modified = handleMBBInstructions(MBB);
+
+  return modified;
+}
+
 bool AArch64PartsSpillPass::handleMBBInstructions(MachineBasicBlock &MBB) {
   bool modified = false;
 
@@ -91,24 +102,6 @@ bool AArch64PartsSpillPass::handleMBBInstructions(MachineBasicBlock &MBB) {
   removeDeadMachineInstrs();
 
   return modified;
-}
-
-void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
-                                                     MachineInstr *InsertPoint,
-                                                     MachineInstr &MI,
-                                                     unsigned PACDesc,
-                                                     unsigned MemDesc)
-{
-  unsigned Reg = MI.getOperand(0).getReg();
-
-  if (InsertPoint)
-    BuildMI(MBB, InsertPoint, MI.getDebugLoc(), TII->get(PACDesc), Reg)
-        .addUse(AArch64::SP);
-  else
-    BuildMI(&MBB, MI.getDebugLoc(), TII->get(PACDesc), Reg)
-        .addUse(AArch64::SP);
-
-  MI.setDesc(TII->get(MemDesc));
 }
 
 bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
@@ -146,10 +139,22 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
   return true;
 }
 
-void AArch64PartsSpillPass::removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg)
+void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
+                                                     MachineInstr *InsertPoint,
+                                                     MachineInstr &MI,
+                                                     unsigned PACDesc,
+                                                     unsigned MemDesc)
 {
-  for (auto &MI: MRI.def_instructions(srcReg))
-    DeleteInstrList.push_back(&MI);
+  unsigned Reg = MI.getOperand(0).getReg();
+
+  if (InsertPoint)
+    BuildMI(MBB, InsertPoint, MI.getDebugLoc(), TII->get(PACDesc), Reg)
+        .addUse(AArch64::SP);
+  else
+    BuildMI(&MBB, MI.getDebugLoc(), TII->get(PACDesc), Reg)
+        .addUse(AArch64::SP);
+
+  MI.setDesc(TII->get(MemDesc));
 }
 
 void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
@@ -164,21 +169,16 @@ void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
     removeDefsWithNoUses(MRI, srcReg);
 }
 
+void AArch64PartsSpillPass::removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg)
+{
+  for (auto &MI: MRI.def_instructions(srcReg))
+    DeleteInstrList.push_back(&MI);
+}
+
 void AArch64PartsSpillPass::removeDeadMachineInstrs()
 {
     for(auto MI: DeleteInstrList)
       MI->removeFromParent();
 
     DeleteInstrList.clear();
-}
-
-bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
-  bool modified = false;
-
-  TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
-
-  for (auto &MBB : MF)
-    modified = handleMBBInstructions(MBB);
-
-  return modified;
 }
