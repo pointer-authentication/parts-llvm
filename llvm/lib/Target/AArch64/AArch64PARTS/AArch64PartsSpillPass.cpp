@@ -109,7 +109,6 @@ void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
         .addUse(AArch64::SP);
 
   MI.setDesc(TII->get(MemDesc));
-  MO.setIsRenamable(false);
 }
 
 bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
