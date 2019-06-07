@@ -134,17 +134,6 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
   return true;
 }
 
-#if 0
-static void removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg)
-{
-  for (auto Ii = MRI.def_instr_begin(srcReg), Ei = MRI.def_instr_end(),
-      NextIi = Ii; Ii != Ei; Ii = NextIi) {
-    NextIi = std::next(Ii);
-    Ii->removeFromParent();
-  }
-
-}
-#else
 void AArch64PartsSpillPass::removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg)
 {
   for (auto Ii = MRI.def_instr_begin(srcReg), Ei = MRI.def_instr_end(),
@@ -153,8 +142,6 @@ void AArch64PartsSpillPass::removeDefsWithNoUses(MachineRegisterInfo &MRI, unsig
     DeleteInstrList.push_back(&*Ii);
   }
 }
-
-#endif
 
 void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
                                       MachineBasicBlock::instr_iterator &MIi) {
