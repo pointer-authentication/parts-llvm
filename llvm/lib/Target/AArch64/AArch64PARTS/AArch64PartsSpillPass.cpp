@@ -163,7 +163,7 @@ void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
   MI.removeFromParent();
 
   if (MRI.use_empty(srcReg))
-    removeDefsWithNoUses(MRI, srcReg); // FIXME: Do not remove in place, may turn MIi invalid. Accumulate in a worklist the registers and remove at the end of the basic block processing
+    removeDefsWithNoUses(MRI, srcReg);
 }
 
 void AArch64PartsSpillPass::removeDeadMachineInstrs()
