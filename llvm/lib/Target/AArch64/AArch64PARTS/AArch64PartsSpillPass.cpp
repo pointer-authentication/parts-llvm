@@ -143,8 +143,7 @@ void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
                                                      MachineInstr *InsertPoint,
                                                      MachineInstr &MI,
                                                      unsigned PACDesc,
-                                                     unsigned MemDesc)
-{
+                                                     unsigned MemDesc) {
   unsigned Reg = MI.getOperand(0).getReg();
 
   if (InsertPoint)
@@ -176,8 +175,7 @@ void AArch64PartsSpillPass::addForRemovalDefsWithNoUses(
     DeleteInstrList.push_back(&MI);
 }
 
-void AArch64PartsSpillPass::removeDeadMachineInstrs()
-{
+void AArch64PartsSpillPass::removeDeadMachineInstrs() {
     for(auto MI: DeleteInstrList)
       MI->removeFromParent();
 
