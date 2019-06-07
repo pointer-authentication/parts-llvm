@@ -67,7 +67,7 @@ namespace {
                                   unsigned MemDesc);
     void removeIntrinsic(MachineBasicBlock &MBB,
                          MachineBasicBlock::instr_iterator &MIi);
-    void removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg);
+    void addForRemovalDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg);
     void removeDeadMachineInstrs();
   };
 } // end anonymous namespace
@@ -166,11 +166,12 @@ void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
   MI.removeFromParent();
 
   if (MRI.use_empty(srcReg))
-    removeDefsWithNoUses(MRI, srcReg);
+    addForRemovalDefsWithNoUses(MRI, srcReg);
 }
 
-void AArch64PartsSpillPass::removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg)
-{
+void AArch64PartsSpillPass::addForRemovalDefsWithNoUses(
+                                                      MachineRegisterInfo &MRI,
+                                                      unsigned srcReg) {
   for (auto &MI: MRI.def_instructions(srcReg))
     DeleteInstrList.push_back(&MI);
 }
