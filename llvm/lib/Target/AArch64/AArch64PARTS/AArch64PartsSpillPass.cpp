@@ -16,6 +16,7 @@
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/IR/IRBuilder.h"
@@ -38,6 +39,8 @@ using namespace llvm;
 using namespace llvm::PARTS;
 
 namespace {
+  #define RM_INSTR_SIZE 32  //TODO: Fine tune this value. Currently chosen by a hunch :-P
+
   class AArch64PartsSpillPass : public MachineFunctionPass,
                                 private AArch64PartsPassCommon {
 
@@ -52,6 +55,7 @@ namespace {
 
   private:
     const AArch64InstrInfo *TII = nullptr;
+    SmallVector<MachineInstr *, RM_INSTR_SIZE> DeleteInstrList;
 
     bool handleInstruction(MachineBasicBlock &MBB,
                            MachineBasicBlock::instr_iterator &MIi);
@@ -60,7 +64,9 @@ namespace {
                                   MachineInstr &MI,
                                   unsigned PACDesc,
                                   unsigned MemDesc);
-    void removeIntrinsic(MachineBasicBlock::instr_iterator &MIi);
+    void removeIntrinsic(MachineBasicBlock &MBB,
+                         MachineBasicBlock::instr_iterator &MIi);
+    void removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg);
   };
 } // end anonymous namespace
 
@@ -118,7 +124,7 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
       StatPartsReload++;
       break;
    case AArch64::PARTS_DATA_PTR:
-      removeIntrinsic(MIi);
+      removeIntrinsic(MBB, MIi);
       break;
     default:
       return false;
@@ -128,10 +134,39 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
   return true;
 }
 
-void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock::instr_iterator &MIi)
+#if 0
+static void removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg)
 {
+  for (auto Ii = MRI.def_instr_begin(srcReg), Ei = MRI.def_instr_end(),
+      NextIi = Ii; Ii != Ei; Ii = NextIi) {
+    NextIi = std::next(Ii);
+    Ii->removeFromParent();
+  }
+
+}
+#else
+void AArch64PartsSpillPass::removeDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg)
+{
+  for (auto Ii = MRI.def_instr_begin(srcReg), Ei = MRI.def_instr_end(),
+      NextIi = Ii; Ii != Ei; Ii = NextIi) {
+    NextIi = std::next(Ii);
+    DeleteInstrList.push_back(&*Ii);
+  }
+}
+
+#endif
+
+void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
+                                      MachineBasicBlock::instr_iterator &MIi) {
   auto &MI = *MIi--;
+  auto &MRI = MBB.getParent()->getRegInfo();
+  auto &MO = MI.getOperand(0);
+  unsigned srcReg = MO.getReg();
+
   MI.removeFromParent();
+
+  if (MRI.use_empty(srcReg))
+    removeDefsWithNoUses(MRI, srcReg); // FIXME: Do not remove in place, may turn MIi invalid. Accumulate in a worklist the registers and remove at the end of the basic block processing
 }
 
 bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
@@ -139,10 +174,16 @@ bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
 
   TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
 
-  for (auto &MBB : MF)
+  for (auto &MBB : MF) {
     for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie;
                                                                          ++MIi)
       modified = handleInstruction(MBB, MIi) || modified;
 
+    for(auto MI: DeleteInstrList) {
+      errs() << "REMOVING MI: " << *MI;
+      MI->removeFromParent();
+    }
+    DeleteInstrList.clear();
+  }
   return modified;
 }
