@@ -168,8 +168,9 @@ void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
 void AArch64PartsSpillPass::addForRemovalDefsWithNoUses(
                                                       MachineRegisterInfo &MRI,
                                                       unsigned srcReg) {
-  for (auto &MI: MRI.def_instructions(srcReg))
-    DeleteInstrList.push_back(&MI);
+  for (auto &MO: MRI.def_operands(srcReg))
+    if (!MO.isImplicit())
+      DeleteInstrList.push_back(MO.getParent());
 }
 
 void AArch64PartsSpillPass::removeDeadMachineInstrs() {
