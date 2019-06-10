@@ -1,8 +1,8 @@
 //===----------------------------------------------------------------------===//
 //
-// Authors: Zaheer Ahmed Gauhar
-//          Hans Liljestrand <hans.liljestrand@pm.me>
-// Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/
+// Author: Hans Liljestrand <hans@liljestrand.dev>
+//         Zaheer Ahmed Gauhar
+// Copyright (c) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
 //
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
