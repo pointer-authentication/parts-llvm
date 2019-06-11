@@ -99,11 +99,9 @@ bool AArch64PartsRDFOpt::runOnMachineFunction(MachineFunction &MF) {
 
   TargetOperandInfo TOI(TII);
   DataFlowGraph G(MF, TII, TRI, MDT, MDF, TOI);
-
   G.build(BuildOptions::KeepDeadPhis);
-  AArch64PartsDCE DCE(G, MRI);
 
-  DCE.trace(true);
+  AArch64PartsDCE DCE(G, MRI);
   modified = DCE.run();
 
   if (modified)
