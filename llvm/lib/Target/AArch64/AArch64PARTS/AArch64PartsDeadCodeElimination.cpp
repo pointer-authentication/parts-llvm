@@ -59,9 +59,6 @@ namespace {
     }
 
     static char ID;
-
-  private:
-    const AArch64InstrInfo *TII = nullptr;
   };
 
 
@@ -94,10 +91,10 @@ bool AArch64PartsRDFOpt::runOnMachineFunction(MachineFunction &MF) {
   auto &MRI = MF.getRegInfo();
   const auto &STI = MF.getSubtarget<AArch64Subtarget>();
   const auto &TRI = *STI.getRegisterInfo();
-  TII = STI.getInstrInfo();
+  const auto &TII = *STI.getInstrInfo();
 
-  TargetOperandInfo TOI(*TII);
-  DataFlowGraph G(MF, *TII, TRI, MDT, MDF, TOI);
+  TargetOperandInfo TOI(TII);
+  DataFlowGraph G(MF, TII, TRI, MDT, MDF, TOI);
 
   G.build(BuildOptions::KeepDeadPhis);
   AArch64PartsDCE DCE(G, MRI);
