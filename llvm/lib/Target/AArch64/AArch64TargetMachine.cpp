@@ -548,6 +548,7 @@ void AArch64PassConfig::addPostRegAlloc() {
     // Improve performance for some FP/SIMD code for A57.
     addPass(createAArch64A57FPLoadBalancing());
   addPass(createAArch64PartsSpillPass());
+  addPass(createAArch64PartsRDFOpt());
 }
 
 void AArch64PassConfig::addPreSched2() {

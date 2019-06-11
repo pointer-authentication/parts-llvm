@@ -66,6 +66,7 @@ FunctionPass *createAArch64PartsPassCpi();
 FunctionPass *createAArch64PartsEmulatedTimingPass();
 FunctionPass *createAArch64PartsPassRuntimeStatistics();
 FunctionPass *createAArch64PartsSpillPass();
+FunctionPass *createAArch64PartsRDFOpt();
 
 void initializeAArch64A53Fix835769Pass(PassRegistry&);
 void initializeAArch64A57FPLoadBalancingPass(PassRegistry&);
@@ -88,6 +89,7 @@ void initializeAArch64StorePairSuppressPass(PassRegistry&);
 void initializeFalkorHWPFFixPass(PassRegistry&);
 void initializeFalkorMarkStridedAccessesLegacyPass(PassRegistry&);
 void initializeLDTLSCleanupPass(PassRegistry&);
+void initializeAArch64PartsRDFOptPass(PassRegistry&);
 } // end namespace llvm
 
 #endif
