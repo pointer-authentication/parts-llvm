@@ -1,87 +1,56 @@
+# PARTS 
+
+This is an initial release of the source code for the
+[PARTS](https://pointer-authentication.github.io). The project is still in
+development and this source code will be updated at a later date, together with
+additional testing code.
+
 # Build instructions
 
-The default setup uses the system LLVM toolchain to build the compiler. The
-build configuration should be adequate for now and is relatively fast, in
-particular, the LLVM build uses shared libraries which allow for quick partial
-recompiles during development.
+The PARTS / LLVM compiler is built using the LLVM cmake build system [LLVM
+documentation](https://releases.llvm.org/6.0.0/docs/CMake.html).
 
-Setup is done by `setup_build.sh`, which is tested on clean Ubuntu 16.04 and
-18.04 installations. To see usage just run it without arguments. Options are
-pretty limited, but it does allow some shell variables to modify the behavior
-(e.g., `build_tool="Unix Makefiles"` switches from `ninja` to `make`. 
+To compile PARTS / LLVM for x86 on Ubuntu 16.04 or 18.04 you likely need the
+following packages `git cmake python-dev libncurses5-dev swig libedit-dev
+libxml2-dev build-essential gcc-7-plugin-dev clang-6 libclang-6-dev lld-6`.
 
-Bigger changes require manual editing of the script. For instance, to add more
-LLVM sub-repos edit `setup_build.sh` and add/remove entries as needed. These
-"sub-repos" are essentially various tools and projects for LLVM (e.g., clang
-itself is a tool).
-
-**Note that the setup script is locatoin dependent, always keep the script in
-the LLVM root directory.**
-
-## Ubuntu 16.04 (for 18.04, see next section)
-
-Clone and checkout [**pa-simplelr**
-branch](https://version.aalto.fi/gitlab/platsec/pointer-authentication/pa-llvm/tree/pa-simplelr)
-from our PA LLVM repository (or a mainline LLVM **release_60** and manually
-copy in `setup_build.sh`).
-
-Check and install dependencies:
+Once installed, you can build the compiler with the following commands
 
 ```
-./setup_build.sh pkgs | xargs sudo apt-get -y install
+git clone --single-branch https://github.com/pointer-authentication/PARTS-llvm.git
+cd PARTS-llvm
+git clone -b release_60 --single-branch https://github.com/llvm-mirror/clang.git tools/clang --depth 1
+mkdir build
+cd build
+cmake \
+          -DCMAKE_INSTALL_PREFIX=${HOME}/opt/PARTS \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=Off \
+          -DLLVM_TARGETS_TO_BUILD=AArch64 \
+          -DLLVM_BUILD_TOOLS=Off \
+          -DLLVM_BUILD_TESTS=Off \ \
+          -DLLVM_BUILD_EXAMPLES=Off \
+          -DLLVM_BUILD_DOCS=Off \
+          -DLLVM_INCLUDE_EXAMPLES=Off \
+          -DLLVM_ENABLE_LTO=Off \
+          -DLLVM_ENABLE_DOXYGEN=Off \
+          -DLLVM_ENABLE_RTTI=Off \
+          ..
+make -j$(nproc)
 ```
 
-The base LLVM repository needs to be amended with additional tools and/or
-projects, these are setup in subdirectories (e.g., `./tools/*` and
-`./projects/*`). To automatically setup these run:
+# Licensing
 
-```
-./setup_build.sh repos
-```
+LLVM and PARTS are open source software. You may freely distribute it under the
+terms of the license agreement found in `LICENSE.txt`.
 
-In case there are any failures you might need to manually fix the directory
-structure (you can find more details in the [LLVM
-docs](https://llvm.org/docs/GettingStarted.html#git-mirror)).
-
-To start the actual build process and installation run:
-
-```
-mkdir build; cd build
-../setup_build.sh cmake
-ninja && ninja install
-```
-
-You should end up with a LLVM installation under
-`~/opt/llvm/llvm-rel60_debug/`. The `hello_world/Makefile` test code in the
-[pa-misc](https://version.aalto.fi/gitlab/platsec/pointer-authentication/pa-misc)
-repository is already setup to use this path for immediate testing.
-
-## Ubuntu 18.04
-
-Setup the following environmental variables to use newer and available compiler
-versions:
-
-```
-export system_llvm=6.0
-export system_gcc=7
-```
-
-Then just follow the 16.04 instructions above.
-
-## cmake options (e.g., for CLion use)
-
-You can get the cmake variables that are set by running:
-
-```
-# Set env variables as needed (e.g., system_llvm or system_gcc).
-./setup_build.sh args
-```
-
-You can use this output to setup the CLion IDE, for instance. Or perhaps just
-to troubleshoot.
+PARTS is however bundled with the SHA-3 implementation from [mbed
+TLS](https://tls.mbed.org), distributed under the Apache-2.0 license. The
+related code and `LICENSE.txt` file is in the `lib/PARTS-sha3` folder.
 
 
 # Original LLVM README.txt
+
 ```
 Low Level Virtual Machine (LLVM)
 ================================
