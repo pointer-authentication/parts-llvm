@@ -62,7 +62,6 @@ namespace {
 
   private:
     const AArch64InstrInfo *TII = nullptr;
-    MachineRegisterInfo *MRI;
   };
 
 
@@ -92,22 +91,23 @@ bool AArch64PartsRDFOpt::runOnMachineFunction(MachineFunction &MF) {
 
   const auto &MDT = getAnalysis<MachineDominatorTree>();
   const auto &MDF = getAnalysis<MachineDominanceFrontier>();
-  MRI = &MF.getRegInfo();
-  const auto &TRI = *MF.getSubtarget<AArch64Subtarget>().getRegisterInfo();
-  TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
+  auto &MRI = MF.getRegInfo();
+  const auto &STI = MF.getSubtarget<AArch64Subtarget>();
+  const auto &TRI = *STI.getRegisterInfo();
+  TII = STI.getInstrInfo();
 
   TargetOperandInfo TOI(*TII);
   DataFlowGraph G(MF, *TII, TRI, MDT, MDF, TOI);
 
   G.build(BuildOptions::KeepDeadPhis);
-  AArch64PartsDCE DCE(G, *MRI);
+  AArch64PartsDCE DCE(G, MRI);
 
   DCE.trace(true);
   modified = DCE.run();
 
   if (modified) {
     dbgs() << "Starting liveness recomputation on: " << MF.getName() << '\n';
-    Liveness LV(*MRI, G);
+    Liveness LV(MRI, G);
     LV.trace(true);
     LV.computeLiveIns();
     LV.resetLiveIns();
