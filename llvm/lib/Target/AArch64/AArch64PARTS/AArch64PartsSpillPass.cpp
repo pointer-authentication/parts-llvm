@@ -108,20 +108,20 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
 
   switch(MI.getOpcode()) {
     case AArch64::PARTS_SPILL:
-      lowerPartsSpillIntrinsic(MBB, &MI, MI, AArch64::PACDA, AArch64::STRXui);
+      lowerPartsSpillIntrinsic(MBB, &MI, MI, AArch64::PARTS_PACDA, AArch64::STRXui);
       StatPartsSpills++;
       break;
     case AArch64::PARTS_USPILL:
-      lowerPartsSpillIntrinsic(MBB, &MI, MI, AArch64::PACDA, AArch64::STURXi);
+      lowerPartsSpillIntrinsic(MBB, &MI, MI, AArch64::PARTS_PACDA, AArch64::STURXi);
       StatPartsSpills++;
       break;
    case AArch64::PARTS_RELOAD:
-      lowerPartsSpillIntrinsic(MBB, MI.getNextNode(), MI, AArch64::AUTDA,
+      lowerPartsSpillIntrinsic(MBB, MI.getNextNode(), MI, AArch64::PARTS_AUTDA,
                                                               AArch64::LDRXui);
       StatPartsReload++;
       break;
    case AArch64::PARTS_URELOAD:
-      lowerPartsSpillIntrinsic(MBB, MI.getNextNode(), MI, AArch64::AUTDA,
+      lowerPartsSpillIntrinsic(MBB, MI.getNextNode(), MI, AArch64::PARTS_AUTDA,
                                                               AArch64::LDURXi);
       StatPartsReload++;
       break;
@@ -145,9 +145,11 @@ void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
 
   if (InsertPoint)
     BuildMI(MBB, InsertPoint, MI.getDebugLoc(), TII->get(PACDesc), Reg)
+        .addUse(Reg)
         .addUse(AArch64::SP);
   else
     BuildMI(&MBB, MI.getDebugLoc(), TII->get(PACDesc), Reg)
+        .addUse(Reg)
         .addUse(AArch64::SP);
 
   MI.setDesc(TII->get(MemDesc));
