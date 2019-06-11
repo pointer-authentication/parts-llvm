@@ -53,8 +53,6 @@ Value *PartsIntr::load_aut_pointer(Function &F, Instruction &I, PartsTypeMetadat
   // Insert the unPAC/AUT intrinsic
 
   Type *arg_types[] = { I.getType() };
-  //(errs
-  I.dump();
   auto aut = partsMD->isCodePointer() ?
              Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autia, arg_types) :
              Intrinsic::getDeclaration(F.getParent(), Intrinsic::pa_autda, arg_types);
