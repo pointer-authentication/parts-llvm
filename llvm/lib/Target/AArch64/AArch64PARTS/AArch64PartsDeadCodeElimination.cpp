@@ -62,7 +62,6 @@ namespace {
 
   private:
     const AArch64InstrInfo *TII = nullptr;
-    MachineDominatorTree *MDT;
     MachineRegisterInfo *MRI;
   };
 
@@ -91,14 +90,14 @@ FunctionPass *llvm::createAArch64PartsRDFOpt() {
 bool AArch64PartsRDFOpt::runOnMachineFunction(MachineFunction &MF) {
   bool modified = false;
 
-  MDT = &getAnalysis<MachineDominatorTree>();
+  const auto &MDT = getAnalysis<MachineDominatorTree>();
   const auto &MDF = getAnalysis<MachineDominanceFrontier>();
   MRI = &MF.getRegInfo();
   const auto &TRI = *MF.getSubtarget<AArch64Subtarget>().getRegisterInfo();
   TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
 
   TargetOperandInfo TOI(*TII);
-  DataFlowGraph G(MF, *TII, TRI, *MDT, MDF, TOI);
+  DataFlowGraph G(MF, *TII, TRI, MDT, MDF, TOI);
 
   G.build(BuildOptions::KeepDeadPhis);
   AArch64PartsDCE DCE(G, *MRI);
