@@ -36,7 +36,6 @@ using namespace llvm;
 using namespace llvm::PARTS;
 
 namespace {
-  #define RM_INSTR_SIZE 32  //TODO: Fine tune this value. Currently chosen by a hunch :-P
 
   class AArch64PartsSpillPass : public MachineFunctionPass,
                                 private AArch64PartsPassCommon {
@@ -52,7 +51,6 @@ namespace {
 
   private:
     const AArch64InstrInfo *TII = nullptr;
-    SmallVector<MachineInstr *, RM_INSTR_SIZE> DeleteInstrList;
 
     bool handleMBBInstructions(MachineBasicBlock &MBB);
     bool handleInstruction(MachineBasicBlock &MBB,
@@ -62,10 +60,6 @@ namespace {
                                   MachineInstr &MI,
                                   unsigned PACDesc,
                                   unsigned MemDesc);
-    void removeIntrinsic(MachineBasicBlock &MBB,
-                         MachineBasicBlock::instr_iterator &MIi);
-    void addForRemovalDefsWithNoUses(MachineRegisterInfo &MRI, unsigned srcReg);
-    void removeDeadMachineInstrs();
   };
 } // end anonymous namespace
 
@@ -96,8 +90,6 @@ bool AArch64PartsSpillPass::handleMBBInstructions(MachineBasicBlock &MBB) {
   for (auto MIi = MBB.instr_begin(), MIie = MBB.instr_end(); MIi != MIie; ++MIi)
     modified = handleInstruction(MBB, MIi) || modified;
 
-  removeDeadMachineInstrs();
-
   return modified;
 }
 
@@ -126,7 +118,8 @@ bool AArch64PartsSpillPass::handleInstruction(MachineBasicBlock &MBB,
       StatPartsReload++;
       break;
    case AArch64::PARTS_DATA_PTR:
-      removeIntrinsic(MBB, MIi);
+      --MIi;
+      MI.removeFromParent();
       break;
     default:
       return false;
@@ -153,31 +146,4 @@ void AArch64PartsSpillPass::lowerPartsSpillIntrinsic(MachineBasicBlock &MBB,
         .addUse(AArch64::SP);
 
   MI.setDesc(TII->get(MemDesc));
-}
-
-void AArch64PartsSpillPass::removeIntrinsic(MachineBasicBlock &MBB,
-                                      MachineBasicBlock::instr_iterator &MIi) {
-  auto &MI = *MIi--;
-  auto &MRI = MBB.getParent()->getRegInfo();
-  unsigned srcReg = MI.getOperand(0).getReg();
-
-  MI.removeFromParent();
-
-  if (MRI.use_empty(srcReg))
-    addForRemovalDefsWithNoUses(MRI, srcReg);
-}
-
-void AArch64PartsSpillPass::addForRemovalDefsWithNoUses(
-                                                      MachineRegisterInfo &MRI,
-                                                      unsigned srcReg) {
-  for (auto &MO: MRI.def_operands(srcReg))
-    if (!MO.isImplicit())
-      DeleteInstrList.push_back(MO.getParent());
-}
-
-void AArch64PartsSpillPass::removeDeadMachineInstrs() {
-    for(auto MI: DeleteInstrList)
-      MI->removeFromParent();
-
-    DeleteInstrList.clear();
 }
