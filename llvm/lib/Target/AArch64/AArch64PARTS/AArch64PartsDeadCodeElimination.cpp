@@ -59,6 +59,11 @@ namespace {
     }
 
     static char ID;
+
+  private:
+    void recalculateFunctionLiveness(MachineRegisterInfo &MRI,
+                                     DataFlowGraph &DFG);
+
   };
 
   struct AArch64PartsDCE : public DeadCodeElimination {
@@ -101,16 +106,18 @@ bool AArch64PartsRDFOpt::runOnMachineFunction(MachineFunction &MF) {
   DCE.trace(true);
   modified = DCE.run();
 
-  if (modified) {
-    dbgs() << "Starting liveness recomputation on: " << MF.getName() << '\n';
-    Liveness LV(MRI, G);
-    LV.trace(true);
-    LV.computeLiveIns();
-    LV.resetLiveIns();
-    LV.resetKills();
-  }
+  if (modified)
+    recalculateFunctionLiveness(MRI, G);
 
   return modified;
+}
+void AArch64PartsRDFOpt::recalculateFunctionLiveness(MachineRegisterInfo &MRI,
+                                                     DataFlowGraph &DFG) {
+  Liveness LV(MRI, DFG);
+
+  LV.computeLiveIns();
+  LV.resetLiveIns(); // Update LiveIns
+  LV.resetKills(); // Update Kill flags
 }
 
 bool AArch64PartsDCE::run(void)
