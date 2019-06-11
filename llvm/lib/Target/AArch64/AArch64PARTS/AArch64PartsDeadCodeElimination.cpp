@@ -61,7 +61,6 @@ namespace {
     static char ID;
   };
 
-
   struct AArch64PartsDCE : public DeadCodeElimination {
     AArch64PartsDCE(DataFlowGraph &G, MachineRegisterInfo &MRI)
       : DeadCodeElimination(G, MRI) {}
