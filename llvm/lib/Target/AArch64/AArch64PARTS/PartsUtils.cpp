@@ -8,13 +8,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/IR/Constants.h>
-#include <llvm/CodeGen/MachineRegisterInfo.h>
-
 #include "PartsUtils.h"
-
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsLog.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/CodeGen/MachineRegisterInfo.h"
+#include <sstream>
 
 using namespace llvm;
 using namespace llvm::PARTS;
