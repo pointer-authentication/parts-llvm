@@ -71,6 +71,7 @@ add_llvm_target(AArch64CodeGen
   AArch64PARTS/PartsUtils.cpp
   AArch64PARTS/AArch64PartsSpillPass.cpp
   AArch64PARTS/AArch64PartsDeadCodeElimination.cpp
+  AArch64PARTS/AArch64PartsDpiForCSR.cpp
 
   DEPENDS
   intrinsics_gen
