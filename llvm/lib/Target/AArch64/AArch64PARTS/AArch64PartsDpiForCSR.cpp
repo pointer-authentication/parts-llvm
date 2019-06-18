@@ -67,6 +67,9 @@ namespace {
     bool handleInstruction(NodeAddr<StmtNode *> SA, DataFlowGraph &DFG);
     void getMachineInstrLivePhysReg(MachineInstr *MI, LivePhysRegs &LV);
     void getLiveCSR(LivePhysRegs &LV, SmallVector<MCPhysReg, 16> &CSRset);
+    NodeId getCSRDef(const MCPhysReg &CSR,
+                                   DataFlowGraph &DFG,
+                                   NodeAddr<StmtNode *> SA);
   };
 } // end anonymous namespace
 
@@ -117,6 +120,14 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
   getMachineInstrLivePhysReg(MI, LV);
   getLiveCSR(LV, CSRset);
 
+  for(auto CSR: CSRset) {
+    NodeId CSRDef = getCSRDef(CSR, DFG, SA);
+    if (CSRDef) {
+      errs() << "FOUND:\n";
+      NodeAddr<DefNode *> DA = DFG.addr<DefNode *>(CSRDef);
+      NodeAddr<StmtNode *>(DA.Addr->getOwner(DFG)).Addr->getCode()->dump();
+    }
+  }
   return false;
 }
 
@@ -137,4 +148,22 @@ void AArch64PartsDpiForCSR::getLiveCSR(LivePhysRegs &LV,
   for (const MCPhysReg *CSR = MRI->getCalleeSavedRegs(); CSR && *CSR; ++CSR)
     if (LV.contains(*CSR))
       CSRset.push_back(*CSR);
+}
+
+NodeId AArch64PartsDpiForCSR::getCSRDef(const MCPhysReg &CSR,
+                                        DataFlowGraph &DFG,
+                                        NodeAddr<StmtNode *> SA) {
+  Liveness LV(*MRI, DFG);
+  auto RefRR = DFG.makeRegRef(CSR, 0);
+  auto RA = LV.getNearestAliasedRef(RefRR, SA);
+
+  if (RA.Id == 0)
+    return 0;
+
+  if (RA.Addr->getKind() == NodeAttrs::Def)
+    return RA.Id;
+
+  assert(RA.Addr->getKind() == NodeAttrs::Use);
+
+  return RA.Addr->getReachingDef();
 }
