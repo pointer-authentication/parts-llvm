@@ -60,6 +60,8 @@ namespace {
     }
 
     static char ID;
+  private:
+    bool handleInstruction(NodeAddr<StmtNode *> SA, DataFlowGraph &DFG);
   };
 } // end anonymous namespace
 
@@ -86,8 +88,22 @@ bool AArch64PartsDpiForCSR::runOnMachineFunction(MachineFunction &MF) {
   const auto &TII = *STI.getInstrInfo();
 
   TargetOperandInfo TOI(TII);
-  DataFlowGraph G(MF, TII, TRI, MDT, MDF, TOI);
-  G.build(BuildOptions::KeepDeadPhis);
+  DataFlowGraph DFG(MF, TII, TRI, MDT, MDF, TOI);
+  DFG.build(BuildOptions::KeepDeadPhis);
+
+  for (NodeAddr<BlockNode *> BA: DFG.getFunc().Addr->members(DFG))
+    for (NodeAddr<StmtNode *> SA: BA.Addr->members_if(DFG.IsCode<NodeAttrs::Stmt>, DFG))
+      modified = handleInstruction(SA, DFG) || modified;
 
   return modified;
+}
+
+bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
+                                              DataFlowGraph &DFG) {
+  auto MI = SA.Addr->getCode();
+
+  if (!MI->isCall())
+    return false;
+
+  return false;
 }
