@@ -61,6 +61,9 @@ namespace {
 
     static char ID;
   private:
+    const TargetRegisterInfo *TRI = nullptr;
+    MachineRegisterInfo *MRI = nullptr;
+
     bool handleInstruction(NodeAddr<StmtNode *> SA, DataFlowGraph &DFG);
   };
 } // end anonymous namespace
@@ -84,11 +87,12 @@ bool AArch64PartsDpiForCSR::runOnMachineFunction(MachineFunction &MF) {
   const auto &MDT = getAnalysis<MachineDominatorTree>();
   const auto &MDF = getAnalysis<MachineDominanceFrontier>();
   const auto &STI = MF.getSubtarget<AArch64Subtarget>();
-  const auto &TRI = *STI.getRegisterInfo();
   const auto &TII = *STI.getInstrInfo();
+  TRI = STI.getRegisterInfo();
+  MRI = &MF.getRegInfo();
 
   TargetOperandInfo TOI(TII);
-  DataFlowGraph DFG(MF, TII, TRI, MDT, MDF, TOI);
+  DataFlowGraph DFG(MF, TII, *TRI, MDT, MDF, TOI);
   DFG.build(BuildOptions::KeepDeadPhis);
 
   for (NodeAddr<BlockNode *> BA: DFG.getFunc().Addr->members(DFG))
@@ -104,6 +108,15 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
 
   if (!MI->isCall())
     return false;
+
+  auto MBB = MI->getParent();
+  LivePhysRegs LV(*TRI);
+  LV.addLiveIns(*MBB);
+
+  for (auto MIi = MBB->instr_rbegin(); &*MIi != MI; ++MIi)
+    LV.stepBackward(*MIi);
+
+  LV.stepBackward(*MI);
 
   return false;
 }
