@@ -66,7 +66,7 @@ namespace {
 
     bool handleInstruction(NodeAddr<StmtNode *> SA, DataFlowGraph &DFG);
     void getMachineInstrLivePhysReg(MachineInstr *MI, LivePhysRegs &LV);
-    void getLiveCSR(SmallVector<MCPhysReg, 16> *CSRset, LivePhysRegs &LV);
+    void getLiveCSR(LivePhysRegs &LV, SmallVector<MCPhysReg, 16> &CSRset);
   };
 } // end anonymous namespace
 
@@ -115,7 +115,7 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
   SmallVector<MCPhysReg, 16> CSRset;
 
   getMachineInstrLivePhysReg(MI, LV);
-  getLiveCSR(&CSRset, LV);
+  getLiveCSR(LV, CSRset);
 
   return false;
 }
@@ -131,9 +131,10 @@ void AArch64PartsDpiForCSR::getMachineInstrLivePhysReg(MachineInstr *MI,
   LV.stepBackward(*MI);
 }
 
-void AArch64PartsDpiForCSR::getLiveCSR(SmallVector<MCPhysReg, 16> *CSRset,
-                                       LivePhysRegs &LV) {
+void AArch64PartsDpiForCSR::getLiveCSR(LivePhysRegs &LV,
+                                       SmallVector<MCPhysReg, 16> &CSRset)
+                                        {
   for (const MCPhysReg *CSR = MRI->getCalleeSavedRegs(); CSR && *CSR; ++CSR)
     if (LV.contains(*CSR))
-      CSRset->push_back(*CSR);
+      CSRset.push_back(*CSR);
 }
