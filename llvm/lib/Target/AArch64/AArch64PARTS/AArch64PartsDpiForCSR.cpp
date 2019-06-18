@@ -61,6 +61,7 @@ namespace {
 
     static char ID;
   private:
+    const TargetInstrInfo *TII = nullptr;
     const TargetRegisterInfo *TRI = nullptr;
     MachineRegisterInfo *MRI = nullptr;
 
@@ -92,12 +93,12 @@ bool AArch64PartsDpiForCSR::runOnMachineFunction(MachineFunction &MF) {
   const auto &MDT = getAnalysis<MachineDominatorTree>();
   const auto &MDF = getAnalysis<MachineDominanceFrontier>();
   const auto &STI = MF.getSubtarget<AArch64Subtarget>();
-  const auto &TII = *STI.getInstrInfo();
+  TII = STI.getInstrInfo();
   TRI = STI.getRegisterInfo();
   MRI = &MF.getRegInfo();
 
-  TargetOperandInfo TOI(TII);
-  DataFlowGraph DFG(MF, TII, *TRI, MDT, MDF, TOI);
+  TargetOperandInfo TOI(*TII);
+  DataFlowGraph DFG(MF, *TII, *TRI, MDT, MDF, TOI);
   DFG.build(BuildOptions::KeepDeadPhis);
 
   for (NodeAddr<BlockNode *> BA: DFG.getFunc().Addr->members(DFG))
@@ -105,6 +106,22 @@ bool AArch64PartsDpiForCSR::runOnMachineFunction(MachineFunction &MF) {
       modified = handleInstruction(SA, DFG) || modified;
 
   return modified;
+}
+
+// FIXME: Duplicate code from AArch64InstrInfo.cpp
+static bool isUnprotectedDataPtr(MachineInstr &MI)
+{
+  unsigned Opc = MI.getOpcode();
+
+  switch (Opc) {
+    case AArch64::PARTS_DATA_PTR:
+    case AArch64::PARTS_AUTDA:
+      return true;
+      break;
+    default:
+      break;
+  }
+  return false;
 }
 
 bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
@@ -123,9 +140,32 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
   for(auto CSR: CSRset) {
     NodeId CSRDef = getCSRDef(CSR, DFG, SA);
     if (CSRDef) {
-      errs() << "FOUND:\n";
       NodeAddr<DefNode *> DA = DFG.addr<DefNode *>(CSRDef);
-      NodeAddr<StmtNode *>(DA.Addr->getOwner(DFG)).Addr->getCode()->dump();
+      NodeId CSRUse = DA.Addr->getReachedUse();
+      while (CSRUse != 0) {
+        NodeAddr<UseNode *> UA = DFG.addr<UseNode *>(CSRUse);
+        NodeAddr<InstrNode *> I = UA.Addr->getOwner(DFG);
+        if (!DFG.IsCode<NodeAttrs::Phi>(I)) {
+          auto UseMI = NodeAddr<StmtNode *>(UA.Addr->getOwner(DFG)).Addr->getCode();
+          if (isUnprotectedDataPtr(*UseMI)) {
+            auto MBB = MI->getParent();
+            BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(AArch64::PARTS_PACDA), CSR)
+              .addUse(CSR)
+              .addUse(AArch64::SP);
+            auto InsertPoint = MI->getNextNode();
+            if (InsertPoint)
+              BuildMI(*MBB, InsertPoint, MI->getDebugLoc(), TII->get(AArch64::PARTS_AUTDA), CSR)
+                .addUse(CSR)
+                .addUse(AArch64::SP);
+            else
+              BuildMI(MBB, MI->getDebugLoc(), TII->get(AArch64::PARTS_AUTDA), CSR)
+                .addUse(CSR)
+                .addUse(AArch64::SP);
+            UseMI->dump();
+          }
+        }
+        CSRUse = UA.Addr->getSibling();
+      }
     }
   }
   return false;
