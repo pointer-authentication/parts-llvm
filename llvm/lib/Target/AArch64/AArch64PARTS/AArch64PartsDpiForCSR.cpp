@@ -148,8 +148,10 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
         NodeAddr<InstrNode *> I = UA.Addr->getOwner(DFG);
         if (!DFG.IsCode<NodeAttrs::Phi>(I)) {
           auto UseMI = NodeAddr<StmtNode *>(UA.Addr->getOwner(DFG)).Addr->getCode();
-          if (isUnprotectedDataPtr(*UseMI))
+          if (isUnprotectedDataPtr(*UseMI)) {
             protectCSR(MI, CSR);
+            break;
+          }
         }
         CSRUse = UA.Addr->getSibling();
       }
