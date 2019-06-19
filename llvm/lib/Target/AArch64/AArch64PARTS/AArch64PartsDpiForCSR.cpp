@@ -161,7 +161,7 @@ bool AArch64PartsDpiForCSR::doesCSRDefholdDataPtr(DataFlowGraph &DFG,
     NodeAddr<UseNode *> UA = DFG.addr<UseNode *>(CSRUse);
     NodeAddr<InstrNode *> I = UA.Addr->getOwner(DFG);
     if (!DFG.IsCode<NodeAttrs::Phi>(I)) {
-      auto UseMI = NodeAddr<StmtNode *>(UA.Addr->getOwner(DFG)).Addr->getCode();
+      auto UseMI = NodeAddr<StmtNode *>(I).Addr->getCode();
       if (isUnprotectedDataPtr(*UseMI))
         return true;
     }
