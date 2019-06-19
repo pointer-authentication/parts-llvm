@@ -67,6 +67,9 @@ namespace {
 
     bool handleInstruction(NodeAddr<StmtNode *> SA, DataFlowGraph &DFG);
     void getMachineInstrLivePhysReg(MachineInstr *MI, LivePhysRegs &LV);
+    bool doesCSRholdDataPtr(DataFlowGraph &DFG,
+                            NodeAddr<StmtNode *> SA,
+                            MCPhysReg CSR);
     bool doesCSRDefholdDataPtr(DataFlowGraph &DFG, MCPhysReg CSRDef);
     bool isInstrNodeDataPtr(DataFlowGraph &DFG, NodeAddr<InstrNode *> I);
     bool protectCSR(MachineInstr *MI, MCPhysReg CSR);
@@ -147,13 +150,18 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
   getMachineInstrLivePhysReg(MI, LV);
   getLiveCSR(LV, CSRset);
 
-  for(auto CSR: CSRset) {
+  for(auto CSR: CSRset)
+    if (doesCSRholdDataPtr(DFG, SA, CSR))
+      modified = protectCSR(MI, CSR);
+
+    return modified;
+}
+
+bool AArch64PartsDpiForCSR::doesCSRholdDataPtr(DataFlowGraph &DFG,
+                                               NodeAddr<StmtNode *> SA,
+                                               MCPhysReg CSR) {
     NodeId CSRDef = getCSRDef(CSR, DFG, SA);
-    if (CSRDef)
-      if (doesCSRDefholdDataPtr(DFG, CSRDef))
-        modified = protectCSR(MI, CSR);
-  }
-  return modified;
+    return CSRDef && doesCSRDefholdDataPtr(DFG, CSRDef);
 }
 
 bool AArch64PartsDpiForCSR::doesCSRDefholdDataPtr(DataFlowGraph &DFG,
