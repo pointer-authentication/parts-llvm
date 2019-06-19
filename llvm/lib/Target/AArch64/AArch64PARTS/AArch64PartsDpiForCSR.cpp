@@ -70,6 +70,11 @@ namespace {
     bool doesCSRDefholdDataPtr(DataFlowGraph &DFG, MCPhysReg CSRDef);
     bool isInstrNodeDataPtr(DataFlowGraph &DFG, NodeAddr<InstrNode *> I);
     bool protectCSR(MachineInstr *MI, MCPhysReg CSR);
+    void insertPartsIntrinsicForCSR(MachineBasicBlock *MBB,
+                                     MachineInstr  *MI,
+                                     const DebugLoc &DL,
+                                     const MCInstrDesc &MCID,
+                                     const MCPhysReg CSR);
     void getLiveCSR(LivePhysRegs &LV, SmallVector<MCPhysReg, 16> &CSRset);
     NodeId getCSRDef(const MCPhysReg &CSR,
                      DataFlowGraph &DFG,
@@ -181,20 +186,22 @@ bool AArch64PartsDpiForCSR::protectCSR(MachineInstr *MI, MCPhysReg CSR) {
   auto MBB = MI->getParent();
   const auto &DL = MI->getDebugLoc();
 
-  BuildMI(*MBB, MI, DL, TII->get(AArch64::PARTS_PACDA), CSR)
-    .addUse(CSR)
-    .addUse(AArch64::SP);
-  auto InsertPoint = MI->getNextNode();
-  if (InsertPoint)
-    BuildMI(*MBB, InsertPoint, DL, TII->get(AArch64::PARTS_AUTDA), CSR)
-      .addUse(CSR)
-      .addUse(AArch64::SP);
-  else
-    BuildMI(MBB, DL, TII->get(AArch64::PARTS_AUTDA), CSR)
-      .addUse(CSR)
-      .addUse(AArch64::SP);
+  insertPartsIntrinsicForCSR(MBB, MI, DL, TII->get(AArch64::PARTS_PACDA), CSR);
+  insertPartsIntrinsicForCSR(MBB, MI->getNextNode(), DL,
+                             TII->get(AArch64::PARTS_AUTDA), CSR);
 
   return true;
+}
+
+void AArch64PartsDpiForCSR::insertPartsIntrinsicForCSR(MachineBasicBlock *MBB,
+                                                       MachineInstr  *MI,
+                                                       const DebugLoc &DL,
+                                                       const MCInstrDesc &MCID,
+                                                       const MCPhysReg CSR) {
+  if (MI)
+    BuildMI(*MBB, MI, DL, MCID, CSR).addUse(CSR).addUse(AArch64::SP);
+  else
+    BuildMI(MBB, DL, MCID, CSR).addUse(CSR).addUse(AArch64::SP);
 }
 
 void AArch64PartsDpiForCSR::getMachineInstrLivePhysReg(MachineInstr *MI,
