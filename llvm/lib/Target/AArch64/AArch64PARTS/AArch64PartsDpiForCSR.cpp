@@ -67,6 +67,7 @@ namespace {
 
     bool handleInstruction(NodeAddr<StmtNode *> SA, DataFlowGraph &DFG);
     void getMachineInstrLivePhysReg(MachineInstr *MI, LivePhysRegs &LV);
+    bool doesCSRDefholdDataPtr(DataFlowGraph &DFG, MCPhysReg CSRDef);
     void protectCSR(MachineInstr *MI, MCPhysReg CSR);
     void getLiveCSR(LivePhysRegs &LV, SmallVector<MCPhysReg, 16> &CSRset);
     NodeId getCSRDef(const MCPhysReg &CSR,
@@ -140,23 +141,29 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
 
   for(auto CSR: CSRset) {
     NodeId CSRDef = getCSRDef(CSR, DFG, SA);
-    if (CSRDef) {
-      NodeAddr<DefNode *> DA = DFG.addr<DefNode *>(CSRDef);
-      NodeId CSRUse = DA.Addr->getReachedUse();
-      while (CSRUse != 0) {
-        NodeAddr<UseNode *> UA = DFG.addr<UseNode *>(CSRUse);
-        NodeAddr<InstrNode *> I = UA.Addr->getOwner(DFG);
-        if (!DFG.IsCode<NodeAttrs::Phi>(I)) {
-          auto UseMI = NodeAddr<StmtNode *>(UA.Addr->getOwner(DFG)).Addr->getCode();
-          if (isUnprotectedDataPtr(*UseMI)) {
-            protectCSR(MI, CSR);
-            break;
-          }
-        }
-        CSRUse = UA.Addr->getSibling();
-      }
-    }
+    if (CSRDef)
+      if (doesCSRDefholdDataPtr(DFG, CSRDef))
+        protectCSR(MI, CSR);
   }
+  return false;
+}
+
+bool AArch64PartsDpiForCSR::doesCSRDefholdDataPtr(DataFlowGraph &DFG,
+                                                  MCPhysReg CSRDef) {
+  NodeAddr<DefNode *> DA = DFG.addr<DefNode *>(CSRDef);
+  NodeId CSRUse = DA.Addr->getReachedUse();
+
+  while (CSRUse != 0) {
+    NodeAddr<UseNode *> UA = DFG.addr<UseNode *>(CSRUse);
+    NodeAddr<InstrNode *> I = UA.Addr->getOwner(DFG);
+    if (!DFG.IsCode<NodeAttrs::Phi>(I)) {
+      auto UseMI = NodeAddr<StmtNode *>(UA.Addr->getOwner(DFG)).Addr->getCode();
+      if (isUnprotectedDataPtr(*UseMI))
+        return true;
+    }
+    CSRUse = UA.Addr->getSibling();
+  }
+
   return false;
 }
 
