@@ -72,8 +72,8 @@ namespace {
     void protectCSR(MachineInstr *MI, MCPhysReg CSR);
     void getLiveCSR(LivePhysRegs &LV, SmallVector<MCPhysReg, 16> &CSRset);
     NodeId getCSRDef(const MCPhysReg &CSR,
-                                   DataFlowGraph &DFG,
-                                   NodeAddr<StmtNode *> SA);
+                     DataFlowGraph &DFG,
+                     NodeAddr<StmtNode *> SA);
   };
 } // end anonymous namespace
 
