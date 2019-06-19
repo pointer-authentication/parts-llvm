@@ -69,7 +69,7 @@ namespace {
     void getMachineInstrLivePhysReg(MachineInstr *MI, LivePhysRegs &LV);
     bool doesCSRDefholdDataPtr(DataFlowGraph &DFG, MCPhysReg CSRDef);
     bool isInstrNodeDataPtr(DataFlowGraph &DFG, NodeAddr<InstrNode *> I);
-    void protectCSR(MachineInstr *MI, MCPhysReg CSR);
+    bool protectCSR(MachineInstr *MI, MCPhysReg CSR);
     void getLiveCSR(LivePhysRegs &LV, SmallVector<MCPhysReg, 16> &CSRset);
     NodeId getCSRDef(const MCPhysReg &CSR,
                      DataFlowGraph &DFG,
@@ -145,10 +145,8 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
   for(auto CSR: CSRset) {
     NodeId CSRDef = getCSRDef(CSR, DFG, SA);
     if (CSRDef)
-      if (doesCSRDefholdDataPtr(DFG, CSRDef)) {
-        protectCSR(MI, CSR);
-        modified = true;
-      }
+      if (doesCSRDefholdDataPtr(DFG, CSRDef))
+        modified = protectCSR(MI, CSR);
   }
   return modified;
 }
@@ -179,7 +177,7 @@ bool AArch64PartsDpiForCSR::isInstrNodeDataPtr(DataFlowGraph &DFG,
   return isUnprotectedDataPtr(*MI);
 }
 
-void AArch64PartsDpiForCSR::protectCSR(MachineInstr *MI, MCPhysReg CSR) {
+bool AArch64PartsDpiForCSR::protectCSR(MachineInstr *MI, MCPhysReg CSR) {
   auto MBB = MI->getParent();
 
   BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(AArch64::PARTS_PACDA), CSR)
@@ -194,6 +192,8 @@ void AArch64PartsDpiForCSR::protectCSR(MachineInstr *MI, MCPhysReg CSR) {
     BuildMI(MBB, MI->getDebugLoc(), TII->get(AArch64::PARTS_AUTDA), CSR)
       .addUse(CSR)
       .addUse(AArch64::SP);
+
+  return true;
 }
 
 void AArch64PartsDpiForCSR::getMachineInstrLivePhysReg(MachineInstr *MI,
