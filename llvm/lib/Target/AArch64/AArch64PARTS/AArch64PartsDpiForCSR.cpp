@@ -133,6 +133,8 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
   if (!MI->isCall())
     return false;
 
+  bool modified = false;
+
   LivePhysRegs LV(*TRI);
   SmallVector<MCPhysReg, 16> CSRset;
 
@@ -142,10 +144,12 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
   for(auto CSR: CSRset) {
     NodeId CSRDef = getCSRDef(CSR, DFG, SA);
     if (CSRDef)
-      if (doesCSRDefholdDataPtr(DFG, CSRDef))
+      if (doesCSRDefholdDataPtr(DFG, CSRDef)) {
         protectCSR(MI, CSR);
+        modified = true;
+      }
   }
-  return false;
+  return modified;
 }
 
 bool AArch64PartsDpiForCSR::doesCSRDefholdDataPtr(DataFlowGraph &DFG,
