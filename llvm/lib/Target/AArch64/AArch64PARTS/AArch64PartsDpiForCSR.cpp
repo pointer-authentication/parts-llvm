@@ -179,17 +179,18 @@ bool AArch64PartsDpiForCSR::isInstrNodeDataPtr(DataFlowGraph &DFG,
 
 bool AArch64PartsDpiForCSR::protectCSR(MachineInstr *MI, MCPhysReg CSR) {
   auto MBB = MI->getParent();
+  const auto &DL = MI->getDebugLoc();
 
-  BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(AArch64::PARTS_PACDA), CSR)
+  BuildMI(*MBB, MI, DL, TII->get(AArch64::PARTS_PACDA), CSR)
     .addUse(CSR)
     .addUse(AArch64::SP);
   auto InsertPoint = MI->getNextNode();
   if (InsertPoint)
-    BuildMI(*MBB, InsertPoint, MI->getDebugLoc(), TII->get(AArch64::PARTS_AUTDA), CSR)
+    BuildMI(*MBB, InsertPoint, DL, TII->get(AArch64::PARTS_AUTDA), CSR)
       .addUse(CSR)
       .addUse(AArch64::SP);
   else
-    BuildMI(MBB, MI->getDebugLoc(), TII->get(AArch64::PARTS_AUTDA), CSR)
+    BuildMI(MBB, DL, TII->get(AArch64::PARTS_AUTDA), CSR)
       .addUse(CSR)
       .addUse(AArch64::SP);
 
