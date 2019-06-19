@@ -154,7 +154,7 @@ bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
     if (doesCSRholdDataPtr(DFG, SA, CSR))
       modified = protectCSR(MI, CSR);
 
-    return modified;
+  return modified;
 }
 
 bool AArch64PartsDpiForCSR::doesCSRholdDataPtr(DataFlowGraph &DFG,
