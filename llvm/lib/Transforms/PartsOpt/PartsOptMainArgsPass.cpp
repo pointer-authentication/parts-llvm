@@ -37,10 +37,11 @@ struct PartsOptMainArgsPass: public FunctionPass {
   bool runOnFunction(Function &F) override;
 };
 
-} // anonyous namespace
+} // anonymous namespace
 
 char PartsOptMainArgsPass::ID = 0;
-static RegisterPass<PartsOptMainArgsPass> X("parts-opt-mainargs", "PARTS fix for main args, needed for DPI");
+static RegisterPass<PartsOptMainArgsPass> X("parts-opt-mainargs",
+                                            "PARTS DPI fix for main args");
 
 bool PartsOptMainArgsPass::doInitialization(Module &M)
 {
@@ -58,7 +59,8 @@ bool PartsOptMainArgsPass::doInitialization(Module &M)
   auto result = Type::getVoidTy(C);
 
   FunctionType* signature = FunctionType::get(result, params, false);
-  funcFixMain = Function::Create(signature, Function::ExternalLinkage, "__pauth_pac_main_args", &M);
+  funcFixMain = Function::Create(signature, Function::ExternalLinkage,
+                                 "__pauth_pac_main_args", &M);
 
   return true;
 }
