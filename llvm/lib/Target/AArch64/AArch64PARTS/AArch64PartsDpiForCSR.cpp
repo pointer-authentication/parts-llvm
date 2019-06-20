@@ -71,7 +71,9 @@ namespace {
                             NodeAddr<StmtNode *> SA,
                             MCPhysReg CSR);
     bool doesCSRDefholdDataPtr(DataFlowGraph &DFG, MCPhysReg CSRDef);
-    bool isInstrNodeDataPtr(DataFlowGraph &DFG, NodeAddr<InstrNode *> I);
+    bool isInstrNodeDataPtr(DataFlowGraph &DFG,
+                            NodeAddr<InstrNode *> I,
+                            MCPhysReg CSR);
     bool protectCSR(MachineInstr *MI, MCPhysReg CSR);
     void insertPartsIntrinsicForCSR(MachineBasicBlock *MBB,
                                      MachineInstr  *MI,
@@ -120,14 +122,18 @@ bool AArch64PartsDpiForCSR::runOnMachineFunction(MachineFunction &MF) {
 }
 
 // FIXME: Duplicate code from AArch64InstrInfo.cpp
-static bool isUnprotectedDataPtr(MachineInstr &MI)
+static bool isUnprotectedDataPtr(MachineInstr &MI, MCPhysReg CSR)
 {
   unsigned Opc = MI.getOpcode();
 
   switch (Opc) {
     case AArch64::PARTS_DATA_PTR:
-    case AArch64::PARTS_AUTDA:
       return true;
+    case AArch64::PARTS_AUTDA: {
+      auto DefReg = MI.getOperand(0).getReg();
+      if (DefReg == CSR)
+        return true;
+      }
       break;
     default:
       break;
@@ -172,7 +178,7 @@ bool AArch64PartsDpiForCSR::doesCSRDefholdDataPtr(DataFlowGraph &DFG,
   while (CSRUse != 0) {
     NodeAddr<UseNode *> UA = DFG.addr<UseNode *>(CSRUse);
     NodeAddr<InstrNode *> I = UA.Addr->getOwner(DFG);
-    if (isInstrNodeDataPtr(DFG, I))
+    if (isInstrNodeDataPtr(DFG, I, CSRDef))
       return true;
     CSRUse = UA.Addr->getSibling();
   }
@@ -181,13 +187,14 @@ bool AArch64PartsDpiForCSR::doesCSRDefholdDataPtr(DataFlowGraph &DFG,
 }
 
 bool AArch64PartsDpiForCSR::isInstrNodeDataPtr(DataFlowGraph &DFG,
-                                               NodeAddr<InstrNode *> I) {
+                                               NodeAddr<InstrNode *> I,
+                                               MCPhysReg CSR) {
   if (DFG.IsCode<NodeAttrs::Phi>(I))
     return false;
 
   auto MI = NodeAddr<StmtNode *>(I).Addr->getCode();
 
-  return isUnprotectedDataPtr(*MI);
+  return isUnprotectedDataPtr(*MI, CSR);
 }
 
 bool AArch64PartsDpiForCSR::protectCSR(MachineInstr *MI, MCPhysReg CSR) {
