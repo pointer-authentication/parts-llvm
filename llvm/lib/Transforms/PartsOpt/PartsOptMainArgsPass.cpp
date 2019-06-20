@@ -79,16 +79,21 @@ bool PartsOptMainArgsPass::runOnFunction(Function &F) {
   if (AI == F.arg_end())
     return false;
 
-  if (AI->getType()->getTypeID() != Type::IntegerTyID)
-    llvm_unreachable("first argument to main is not an integer!?!");
 
   auto &argc = *AI++;
-  if (AI == F.arg_end() || AI->getType()->getTypeID() != Type::PointerTyID)
-    llvm_unreachable("second argument to main not a char **ptr!?!\n");
+  if (AI == F.arg_end())
+    return false;
 
   auto &argv = *AI++;
+
   if (AI != F.arg_end())
-    llvm_unreachable("unexpected arguments to main!?!\n");
+    // Seems we have a main(int argc, char **argv, char **envp) type main
+    llvm_unreachable("envp support not implemented!\n");
+
+  assert(argc.getType()->getTypeID() == Type::IntegerTyID &&
+         "first argument to main is not an integer!?!");
+  assert(argv.getType()->getTypeID() == Type::PointerTyID &&
+         "second argument to main not a char **ptr!?!");
 
   auto &B = F.getEntryBlock();
   auto &I = *B.begin();
