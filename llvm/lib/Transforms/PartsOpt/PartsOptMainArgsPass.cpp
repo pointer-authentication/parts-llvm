@@ -9,7 +9,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Constants.h"
@@ -30,14 +29,7 @@ struct PartsOptMainArgsPass: public FunctionPass {
 
   Function *funcFixMain = nullptr;
 
-  PartsLog_ptr log;
-
-  PartsOptMainArgsPass() :
-      FunctionPass(ID),
-      log(PartsLog::getLogger(DEBUG_TYPE))
-  {
-    DEBUG_PA(log->enable());
-  }
+  PartsOptMainArgsPass() : FunctionPass(ID) {}
 
   bool doInitialization(Module &M) override;
   bool doFinalization(Module &M) override;
@@ -111,7 +103,7 @@ bool PartsOptMainArgsPass::runOnFunction(Function &F) {
   IRBuilder<> Builder(&I);
   Builder.CreateCall(funcFixMain, args);
 
-  DEBUG_PA(log->info() << "Adding call to __pauth_pac_main_args\n");
+  DEBUG(dbgs() << "Adding call to __pauth_pac_main_args");
   return true;
 }
 
