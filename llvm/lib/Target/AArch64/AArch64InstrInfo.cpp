@@ -13,6 +13,7 @@
 
 #include "AArch64InstrInfo.h"
 #include "AArch64MachineFunctionInfo.h"
+#include "AArch64PARTS/PartsSpill.h"
 #include "AArch64Subtarget.h"
 #include "MCTargetDesc/AArch64AddressingModes.h"
 #include "Utils/AArch64BaseInfo.h"
@@ -2614,28 +2615,6 @@ void AArch64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   }
 
   llvm_unreachable("unimplemented reg-to-reg copy");
-}
-
-#define PARTS_STACKID 42
-
-static bool isUnprotectedDataPtr(MachineInstr &MI, unsigned Reg)
-{
-  unsigned Opc = MI.getOpcode();
-
-  switch (Opc) {
-  case AArch64::PARTS_DATA_PTR:
-    return true;
-  case AArch64::PARTS_AUTDA: {
-    auto DefReg = MI.getOperand(0).getReg();
-    if (DefReg == Reg)
-      return true;
-    }
-    break;
-  default:
-      break;
-  }
-
- return false;
 }
 
 static bool needsPACing(MachineFunction &MF, unsigned SrcReg)

@@ -10,6 +10,7 @@
 
 // LLVM includes
 #include "AArch64.h"
+#include "AArch64PARTS/PartsSpill.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
 #include "AArch64InstrInfo.h"
@@ -119,26 +120,6 @@ bool AArch64PartsDpiForCSR::runOnMachineFunction(MachineFunction &MF) {
       modified = handleInstruction(SA, DFG) || modified;
 
   return modified;
-}
-
-// FIXME: Duplicate code from AArch64InstrInfo.cpp
-static bool isUnprotectedDataPtr(MachineInstr &MI, MCPhysReg CSR)
-{
-  unsigned Opc = MI.getOpcode();
-
-  switch (Opc) {
-    case AArch64::PARTS_DATA_PTR:
-      return true;
-    case AArch64::PARTS_AUTDA: {
-      auto DefReg = MI.getOperand(0).getReg();
-      if (DefReg == CSR)
-        return true;
-      }
-      break;
-    default:
-      break;
-  }
-  return false;
 }
 
 bool AArch64PartsDpiForCSR::handleInstruction(NodeAddr<StmtNode *> SA,
