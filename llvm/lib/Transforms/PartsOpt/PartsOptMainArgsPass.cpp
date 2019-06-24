@@ -44,9 +44,10 @@ Function *PartsOptMainArgsPass::createFixFunction(Module &M)
   assert(PARTS::useDpi());
 
   auto &C = M.getContext();
+  auto *CTy = Type::getInt32Ty(C);
 
   Type* types[3];
-  types[0] = Type::getInt32Ty(C);
+  types[0] = CTy;
   types[1] = PointerType::get(Type::getInt8PtrTy(C), 0);
   types[2] = Type::getInt64Ty(C);
 
@@ -57,11 +58,53 @@ Function *PartsOptMainArgsPass::createFixFunction(Module &M)
   Function *funcFixMain = Function::Create(signature, Function::InternalLinkage,
                                  "__pauth_pac_main_args", &M);
 
+  // Get the function arguments
+  auto argsI = funcFixMain->arg_begin();
+  Value &argc = *argsI++;
+  Value &argv = *argsI;
+
+  // We're going to create three BBs and corresponding builders
   auto *entry = BasicBlock::Create(M.getContext(), "entry", funcFixMain);
+  auto *body = BasicBlock::Create(M.getContext(), "body", funcFixMain);
+  auto *exit = BasicBlock::Create(M.getContext(), "exit", funcFixMain);
+  IRBuilder<> entryBuilder(entry);
+  IRBuilder<> bodyBuilder(body);
+  IRBuilder<> exitBuilder(exit);
 
-  IRBuilder<> Builder(entry);
+  // Entry block simply either returns or enters the loop
+  auto *cmp = entryBuilder.CreateICmpSGT(&argc, ConstantInt::get(CTy, 0));
+  entryBuilder.CreateCondBr(cmp, body, exit);
 
-  Builder.CreateRetVoid();
+  // The loop conditional / index is update with a PHI node
+  auto *cond = bodyBuilder.CreatePHI(Type::getInt32Ty(C), 2);
+  cond->addIncoming(ConstantInt::get(Type::getInt32Ty(C), 0), entry);
+
+  // Load a argv element
+  auto *idx = bodyBuilder.CreateGEP(&argv, cond);
+  auto *load = bodyBuilder.CreateLoad(idx);
+
+  // PAC it
+  auto paced = bodyBuilder.CreateCall(
+      Intrinsic::getDeclaration(&M, Intrinsic::pa_pacda, { load->getType() }),
+      {
+          load,
+          PartsTypeMetadata::idConstantFromType(M.getContext(), load->getType())
+      }
+  );
+
+  // And store it back
+  bodyBuilder.CreateStore(paced, idx);
+
+  // Finally increment conditional and check exit condition
+  auto *next = bodyBuilder.CreateAdd(cond, ConstantInt::get(CTy, 1));
+  auto *exitCond = bodyBuilder.CreateICmpEQ(next, &argc);
+  bodyBuilder.CreateCondBr(exitCond, exit, body);
+  // Also add the update value to the cond PHI node
+  cond->addIncoming(next, body);
+
+  // The exit node just returns...
+  exitBuilder.CreateRetVoid();
+
   return funcFixMain;
 }
 
