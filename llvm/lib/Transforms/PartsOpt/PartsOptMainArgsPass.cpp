@@ -24,17 +24,13 @@ using namespace llvm;
 
 namespace {
 
-struct PartsOptMainArgsPass: public FunctionPass {
+struct PartsOptMainArgsPass: public ModulePass {
   static char ID; // Pass identification, replacement for typeid
 
-  Function *funcFixMain = nullptr;
+  PartsOptMainArgsPass() : ModulePass(ID) {}
 
-  PartsOptMainArgsPass() : FunctionPass(ID) {}
-
-  bool doInitialization(Module &M) override;
-  bool doFinalization(Module &M) override;
-
-  bool runOnFunction(Function &F) override;
+  Function *createFixFunction(Module &M);
+  bool runOnModule(Module &M) override;
 };
 
 } // anonymous namespace
@@ -43,10 +39,9 @@ char PartsOptMainArgsPass::ID = 0;
 static RegisterPass<PartsOptMainArgsPass> X("parts-opt-mainargs",
                                             "PARTS DPI fix for main args");
 
-bool PartsOptMainArgsPass::doInitialization(Module &M)
+Function *PartsOptMainArgsPass::createFixFunction(Module &M)
 {
-  if (!PARTS::useDpi())
-    return false;
+  assert(PARTS::useDpi());
 
   auto &C = M.getContext();
 
@@ -59,34 +54,34 @@ bool PartsOptMainArgsPass::doInitialization(Module &M)
   auto result = Type::getVoidTy(C);
 
   FunctionType* signature = FunctionType::get(result, params, false);
-  funcFixMain = Function::Create(signature, Function::ExternalLinkage,
+  Function *funcFixMain = Function::Create(signature, Function::InternalLinkage,
                                  "__pauth_pac_main_args", &M);
 
-  return true;
+  auto *entry = BasicBlock::Create(M.getContext(), "entry", funcFixMain);
+
+  IRBuilder<> Builder(entry);
+
+  Builder.CreateRetVoid();
+  return funcFixMain;
 }
 
-bool PartsOptMainArgsPass::doFinalization(Module &M) {
-  return PARTS::useDpi();
-}
-
-bool PartsOptMainArgsPass::runOnFunction(Function &F) {
-  if (!(PARTS::useDpi() &&F.getName().equals("main")))
+bool PartsOptMainArgsPass::runOnModule(Module &M) {
+  if (!PARTS::useDpi())
     return false;
 
-  assert(F.getName().equals("main"));
+  auto *F = M.getFunction("main");
 
-  auto AI = F.arg_begin();
-  if (AI == F.arg_end())
+  auto AI = F->arg_begin();
+  if (AI == F->arg_end())
     return false;
-
 
   auto &argc = *AI++;
-  if (AI == F.arg_end())
+  if (AI == F->arg_end())
     return false;
 
   auto &argv = *AI++;
 
-  if (AI != F.arg_end())
+  if (AI != F->arg_end())
     // Seems we have a main(int argc, char **argv, char **envp) type main
     llvm_unreachable("envp support not implemented!\n");
 
@@ -95,7 +90,9 @@ bool PartsOptMainArgsPass::runOnFunction(Function &F) {
   assert(argv.getType()->getTypeID() == Type::PointerTyID &&
          "second argument to main not a char **ptr!?!");
 
-  auto &B = F.getEntryBlock();
+  auto *funcFixMain = createFixFunction(M);
+
+  auto &B = F->getEntryBlock();
   auto &I = *B.begin();
 
   std::vector<Value*> args(0);
@@ -103,7 +100,7 @@ bool PartsOptMainArgsPass::runOnFunction(Function &F) {
   args.push_back(&argv);
 
   args.push_back(PartsTypeMetadata::idConstantFromType(
-      F.getContext(),
+      M.getContext(),
       dyn_cast<PointerType>(argv.getType())->getElementType()
   ));
 
