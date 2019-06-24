@@ -471,6 +471,11 @@ bool AArch64PassConfig::addInstSelector() {
       getOptLevel() != CodeGenOpt::None)
     addPass(createAArch64CleanupLocalDynamicTLSPass());
 
+  if (PARTS::useDpi())
+    addPass(createAArch64EarlyPartsPassDpi());
+  if (PARTS::useFeCfi())
+    addPass(createAArch64EarlyPartsPassCpi());
+
   return false;
 }
 
@@ -505,10 +510,6 @@ bool AArch64PassConfig::addGlobalInstructionSelect() {
 }
 
 bool AArch64PassConfig::addILPOpts() {
-  if (PARTS::useDpi())
-    addPass(createAArch64EarlyPartsPassDpi());
-  if (PARTS::useFeCfi())
-    addPass(createAArch64EarlyPartsPassCpi());
   if (EnableCondOpt)
     addPass(createAArch64ConditionOptimizerPass());
   if (EnableCCMP)
