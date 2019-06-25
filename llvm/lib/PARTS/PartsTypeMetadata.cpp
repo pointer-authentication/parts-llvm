@@ -37,7 +37,7 @@ void buildTypeString(const Type *T, llvm::raw_string_ostream &O) {
     std::regex e("^(\\w+\\.\\w+)(\\.\\w+)?$");
     O << std::regex_replace(structName.str(), e, "$1");
   } else if (T->isArrayTy()) {
-    O << "a." << T->getArrayNumElements();
+    O << "ptr.";
     buildTypeString(T->getArrayElementType(), O);
   } else if (T->isFunctionTy()) {
     auto FuncTy = dyn_cast<FunctionType>(T);
