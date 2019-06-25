@@ -36,6 +36,7 @@
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstrDesc.h"
+#include "llvm/PARTS/Parts.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/CommandLine.h"
@@ -50,6 +51,7 @@
 #include <utility>
 
 using namespace llvm;
+using namespace llvm::PARTS;
 
 #define GET_INSTRINFO_CTOR_DTOR
 #include "AArch64GenInstrInfo.inc"
@@ -2617,8 +2619,11 @@ void AArch64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   llvm_unreachable("unimplemented reg-to-reg copy");
 }
 
-static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
+static bool needsPACSpill(MachineFunction &MF, unsigned SrcReg)
 {
+  if (!PARTS::useDpi())
+    return false;
+
   const MachineRegisterInfo &MRI = MF.getRegInfo();
 
   if (!TargetRegisterInfo::isVirtualRegister(SrcReg))
@@ -2633,6 +2638,14 @@ static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
       return true;
 
   return false;
+}
+
+static bool needsPACReload(MachineFrameInfo &MFI, int FI)
+{
+  if (!PARTS::useDpi())
+    return false;
+
+  return MFI.getStackID(FI) == PARTS_STACKID;
 }
 
 static void storeRegPairToStackSlot(const TargetRegisterInfo &TRI,
@@ -2756,7 +2769,7 @@ void AArch64InstrInfo::storeRegToStackSlot(
   }
   assert(Opc && "Unknown register class");
 
-  if (needsPACing(MF, SrcReg)) {
+  if (needsPACSpill(MF, SrcReg)) {
     assert((Opc == AArch64::STRXui) && "PACing spill register size mismatch !");
     MFI.setStackID(FI, PARTS_STACKID);
     Opc = AArch64::PARTS_SPILL;
@@ -2893,7 +2906,7 @@ void AArch64InstrInfo::loadRegFromStackSlot(
   }
   assert(Opc && "Unknown register class");
 
-  if (MFI.getStackID(FI) == PARTS_STACKID) {
+  if (needsPACReload(MFI,FI)) {
     assert((Opc == AArch64::LDRXui) && "PACing reload size mismatch !");
     MFI.setStackID(FI, 0);
     Opc = AArch64::PARTS_RELOAD;
