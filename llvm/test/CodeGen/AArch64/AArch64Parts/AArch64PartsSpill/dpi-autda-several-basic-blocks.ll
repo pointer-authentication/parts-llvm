@@ -390,24 +390,29 @@ if.end119:                                        ; preds = %for.end117, %if.the
 ; CHECK:	ldrb	w9, [x8]
 ; CHECK:	tbz	w9, #0, .LBB0_6
 ; CHECK:	ldr	x0, [x8, #56]
+; CHECK:	pacda	x19, sp
 ; CHECK:	pacda	x21, sp
 ; CHECK:	autda	x0, x29
 ; CHECK-NOT: pacda x29, sp
-; CHECK:	blraa	x24, x20
+; CHECK:	blraa	x24, x23
 ; CHECK:	autda	x21, sp
+; CHECK:	autda	x19, sp
 ; CHECK:	cbnz	w0, .LBB0_8
 
-; CHECK-LABEL:.LBB0_30:
+; CHECK-LABEL:.LBB0_31:
 ; CHECK:	ldr	x8, [x21, x25, lsl #3]
-; CHECK:	autda	x8, x20
+; CHECK:	autda	x8, x27
 ; CHECK:	ldrb	w9, [x8]
-; CHECK:	tbz	w9, #0, .LBB0_32
+; CHECK:	tbz	w9, #0, .LBB0_33
 ; CHECK:	ldr	x0, [x8, #56]
+; CHECK:	pacda	x19, sp
 ; CHECK:	pacda	x21, sp
 ; CHECK:	autda	x0, x28
+; CHECK-NOT: pacda x28, sp
 ; CHECK:	blraa	x24, x29
 ; CHECK:	autda	x21, sp
-; CHECK:	cbnz	w0, .LBB0_34
+; CHECK:	autda	x19, sp
+; CHECK:	cbnz	w0, .LBB0_35
 
 ; Function Attrs: nounwind readnone
 declare %struct.frame_store* @llvm.pa.autda.p0s_struct.frame_stores(%struct.frame_store*, i64) #0
