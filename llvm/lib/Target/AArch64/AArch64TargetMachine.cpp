@@ -547,9 +547,12 @@ void AArch64PassConfig::addPostRegAlloc() {
   if (TM->getOptLevel() != CodeGenOpt::None && usingDefaultRegAlloc())
     // Improve performance for some FP/SIMD code for A57.
     addPass(createAArch64A57FPLoadBalancing());
-  addPass(createAArch64PartsDpiForCSR());
-  addPass(createAArch64PartsSpillPass());
-  addPass(createAArch64PartsRDFOpt());
+  if (PARTS::useDpi()) {
+    // Order matters: 1.CSR protection, 2.Spill Lowering, 3.DeadCodeElimination
+    addPass(createAArch64PartsDpiForCSR());
+    addPass(createAArch64PartsSpillPass());
+    addPass(createAArch64PartsRDFOpt());
+  }
 }
 
 void AArch64PassConfig::addPreSched2() {
