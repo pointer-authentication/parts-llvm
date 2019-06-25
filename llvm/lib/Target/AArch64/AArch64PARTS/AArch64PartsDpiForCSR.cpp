@@ -72,9 +72,8 @@ namespace {
                             NodeAddr<StmtNode *> SA,
                             MCPhysReg CSR);
     bool doesCSRDefholdDataPtr(DataFlowGraph &DFG, MCPhysReg CSRDef);
-    bool isInstrNodeDataPtr(DataFlowGraph &DFG,
-                            NodeAddr<InstrNode *> I,
-                            MCPhysReg CSR);
+    bool isInstrNodeDataPtrDef(DataFlowGraph &DFG, NodeAddr<InstrNode *> I);
+    bool isInstrNodeDataPtrUse(DataFlowGraph &DFG, NodeAddr<InstrNode *> I);
     bool protectCSR(MachineInstr *MI, MCPhysReg CSR);
     void insertPartsIntrinsicForCSR(MachineBasicBlock *MBB,
                                      MachineInstr  *MI,
@@ -154,12 +153,16 @@ bool AArch64PartsDpiForCSR::doesCSRholdDataPtr(DataFlowGraph &DFG,
 bool AArch64PartsDpiForCSR::doesCSRDefholdDataPtr(DataFlowGraph &DFG,
                                                   MCPhysReg CSRDef) {
   NodeAddr<DefNode *> DA = DFG.addr<DefNode *>(CSRDef);
+
+  if (isInstrNodeDataPtrDef(DFG, DA.Addr->getOwner(DFG)))
+    return true;
+
   NodeId CSRUse = DA.Addr->getReachedUse();
 
   while (CSRUse != 0) {
     NodeAddr<UseNode *> UA = DFG.addr<UseNode *>(CSRUse);
     NodeAddr<InstrNode *> I = UA.Addr->getOwner(DFG);
-    if (isInstrNodeDataPtr(DFG, I, CSRDef))
+    if (isInstrNodeDataPtrUse(DFG, I))
       return true;
     CSRUse = UA.Addr->getSibling();
   }
@@ -167,15 +170,25 @@ bool AArch64PartsDpiForCSR::doesCSRDefholdDataPtr(DataFlowGraph &DFG,
   return false;
 }
 
-bool AArch64PartsDpiForCSR::isInstrNodeDataPtr(DataFlowGraph &DFG,
-                                               NodeAddr<InstrNode *> I,
-                                               MCPhysReg CSR) {
+bool AArch64PartsDpiForCSR::isInstrNodeDataPtrDef(DataFlowGraph &DFG,
+                                               NodeAddr<InstrNode *> I) {
   if (DFG.IsCode<NodeAttrs::Phi>(I))
     return false;
 
   auto MI = NodeAddr<StmtNode *>(I).Addr->getCode();
 
-  return isUnprotectedDataPtr(*MI, CSR);
+  return isDataPtrDef(*MI);
+}
+
+
+bool AArch64PartsDpiForCSR::isInstrNodeDataPtrUse(DataFlowGraph &DFG,
+                                               NodeAddr<InstrNode *> I) {
+  if (DFG.IsCode<NodeAttrs::Phi>(I))
+    return false;
+
+  auto MI = NodeAddr<StmtNode *>(I).Addr->getCode();
+
+  return isDataPtrUse(*MI);
 }
 
 bool AArch64PartsDpiForCSR::protectCSR(MachineInstr *MI, MCPhysReg CSR) {

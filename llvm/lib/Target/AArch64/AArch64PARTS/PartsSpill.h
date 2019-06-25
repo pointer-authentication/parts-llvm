@@ -18,20 +18,30 @@ namespace llvm {
 
 #define PARTS_STACKID 42
 
-static inline bool isUnprotectedDataPtr(MachineInstr &MI, unsigned Reg) {
+static inline bool isDataPtrUse(MachineInstr &MI) {
   unsigned Opc = MI.getOpcode();
 
   switch (Opc) {
   case AArch64::PARTS_DATA_PTR:
     return true;
-  case AArch64::PARTS_AUTDA: {
-    auto DefReg = MI.getOperand(0).getReg();
-    if (DefReg == Reg)
-      return true;
-    }
     break;
   default:
-      break;
+    break;
+  }
+
+ return false;
+}
+
+static inline bool isDataPtrDef(MachineInstr &MI) {
+  unsigned Opc = MI.getOpcode();
+
+  switch (Opc) {
+  case AArch64::PARTS_RELOAD:
+  case AArch64::PARTS_AUTDA:
+    return true;
+    break;
+  default:
+    break;
   }
 
  return false;

@@ -2624,8 +2624,12 @@ static bool needsPACing(MachineFunction &MF, unsigned SrcReg)
   if (!TargetRegisterInfo::isVirtualRegister(SrcReg))
     return false;
 
+  for (auto &MI: MRI.def_instructions(SrcReg))
+    if (isDataPtrDef(MI))
+      return true;
+
   for(auto &MI: MRI.use_instructions(SrcReg))
-    if (isUnprotectedDataPtr(MI, SrcReg))
+    if (isDataPtrUse(MI))
       return true;
 
   return false;
