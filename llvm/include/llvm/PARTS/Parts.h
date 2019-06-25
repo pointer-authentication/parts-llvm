@@ -11,8 +11,6 @@
 #ifndef LLVM_PARTS_H
 #define LLVM_PARTS_H
 
-#define Pauth_ModifierReg AArch64::X23
-
 namespace llvm {
 
 namespace PARTS {

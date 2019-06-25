@@ -29,7 +29,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/Target/TargetOptions.h"
-#include "llvm/PARTS/Parts.h"
 
 using namespace llvm;
 
@@ -209,10 +208,6 @@ AArch64RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
     markSuperRegs(Reserved, AArch64::W16);
 
   assert(checkAllSuperRegsMarked(Reserved));
-
-  // pauth: Reserve register for PA modifier
-  markSuperRegs(Reserved, Pauth_ModifierReg);
-
   return Reserved;
 }
 
