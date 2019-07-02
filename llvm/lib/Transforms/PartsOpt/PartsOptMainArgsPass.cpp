@@ -50,9 +50,8 @@ Function *PartsOptMainArgsPass::createFixFunction(Module &M)
   Type* types[3];
   types[0] = CTy;
   types[1] = PointerType::get(Type::getInt8PtrTy(C), 0);
-  types[2] = Type::getInt64Ty(C);
 
-  ArrayRef<Type*> params(types, 3);
+  ArrayRef<Type*> params(types, 2);
   auto result = Type::getVoidTy(C);
 
   FunctionType* signature = FunctionType::get(result, params, false);
@@ -142,11 +141,6 @@ bool PartsOptMainArgsPass::runOnModule(Module &M) {
   std::vector<Value*> args(0);
   args.push_back(&argc);
   args.push_back(&argv);
-
-  args.push_back(PARTS::getTypeIDConstantFrom(
-      *dyn_cast<PointerType>(argv.getType())->getElementType(),
-      M.getContext()
-  ));
 
   IRBuilder<> Builder(&I);
   Builder.CreateCall(funcFixMain, args);
