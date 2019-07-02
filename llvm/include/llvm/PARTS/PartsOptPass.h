@@ -24,9 +24,9 @@ namespace PartsOptPass {
   bool isUnionMemberLoad(LoadInst *load);
   static inline bool isCodePointer(const Type *const type);
   static inline bool isDataPointer(const Type *const type);
-}; // PartOptPass
-}; // PARTS
-}; // llvm
+} // PartOptPass
+} // PARTS
+} // llvm
 
 static inline bool PartsOptPass::isCodePointer(const Type *const type) {
   return type->isPointerTy() && type->getPointerElementType()->isFunctionTy();
