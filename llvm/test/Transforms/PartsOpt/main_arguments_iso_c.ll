@@ -1,10 +1,10 @@
 ; Check intrinsic is added to handle ISO C compliant main() arguments.
 ; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-mainargs -S < %s | FileCheck %s
-; XFAIL: *
 
+; CHECK-LABEL: @main
+; CHECK: call void @__pauth_pac_main_args(i32 %argc, i8** %argv)
 define i32 @main(i32 %argc, i8** %argv) {
 entry:
-; CHECK: call void @__pauth_pac_main_args(i32 %argc, i8** %argv, i64 {{-?[0-9]+}})
   %argc.addr = alloca i32, align 4
   %argv.addr = alloca i8**, align 8
   store i32 %argc, i32* %argc.addr, align 4
@@ -15,5 +15,8 @@ entry:
   ret i32 0
 }
 
+; CHECK-LABEL: @do_something
 declare void @do_something(i32, i8**)
-; CHECK: declare void @__pauth_pac_main_args(i32, i8**, i64)
+
+; CHECK-LABEL: @__pauth_pac_main_args
+; CHECK: call i8* @llvm.pa.pacda.p0i8(i8* %5, i64 {{-?[0-9]+}})
