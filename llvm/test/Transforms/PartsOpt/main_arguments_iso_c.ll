@@ -1,5 +1,6 @@
 ; Check intrinsic is added to handle ISO C compliant main() arguments.
 ; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-mainargs -S < %s | FileCheck %s
+; XFAIL: *
 
 define i32 @main(i32 %argc, i8** %argv) {
 entry:
