@@ -203,15 +203,6 @@ bool PartsPassDpi::instrumentLoadStore(MachineFunction &MF, MachineBasicBlock &M
     return false;
   }
 
-  if (!partsType->isKnown()) {
-    errs() << "___________________________________________________________________\n";
-    errs() << MF.getFunction().getName() << " : " << MBB.getName() << "\n";
-    errs() << MIi->getFlag(MachineInstr::MIFlag::FrameSetup) << "\n";
-    errs() << MIi->getFlag(MachineInstr::MIFlag::FrameDestroy) << "\n";
-    MIi->dump();
-    errs() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
-  }
-
   skipIfB(!partsType->isKnown(), fName, "StoreLoad.Unknown_" + MIName, false, "type_id is unknown!\n");
   skipIfN(!partsType->isPointer(), fName, "StoreLoad.NotAPointer_" + MIName, "not a pointer, skipping!\n");
   skipIfN(partsType->isCodePointer(), fName, "PartsPassDpi.StoreLoad.IgnoringCodePointer_" + MIName, "ignoring code pointer\n");
