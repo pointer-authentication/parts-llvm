@@ -51,6 +51,8 @@ struct PartsOptRasPass: public ModulePass {
 char PartsOptRasPass::ID = 0;
 static RegisterPass<PartsOptRasPass> X("parts-opt-ras", "PARTS return address signing opt pass");
 
+Pass *llvm::PARTS::createPartsOptRasPass() { return new PartsOptRasPass(); }
+
 bool PartsOptRasPass::runOnModule(Module &M) {
   std::unique_ptr<RandomNumberGenerator> RNG = M.createRNG(this);
 

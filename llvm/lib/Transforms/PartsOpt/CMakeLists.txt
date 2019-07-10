@@ -15,7 +15,6 @@ endif()
 add_llvm_loadable_module(PartsOpt
   PartsOptCpiPass.cpp
   PartsOptDpiPass.cpp
-  PartsOptRasPass.cpp
   PartsOptMainArgsPass.cpp
   PartsOptGlobalsPass.cpp
   PartsOptDataPointerArgsPass.cpp

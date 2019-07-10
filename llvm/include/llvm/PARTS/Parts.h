@@ -11,6 +11,8 @@
 #ifndef LLVM_PARTS_H
 #define LLVM_PARTS_H
 
+#include "llvm/Pass.h"
+
 namespace llvm {
 
 namespace PARTS {
@@ -22,6 +24,8 @@ bool isUnionTypePunningSupported(void);
 bool useAny();
 bool useDummy();
 bool useRuntimeStats();
+
+Pass *createPartsOptRasPass();
 
 } // PARTS
 

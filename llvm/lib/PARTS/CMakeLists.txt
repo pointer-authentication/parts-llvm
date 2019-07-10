@@ -11,6 +11,7 @@
 add_llvm_library(Parts
   Parts.cpp
   PartsOptPass.cpp
+  PartsOptRasPass.cpp
   PartsLog.cpp
   PartsLogStream.cpp
   PartsTypeMetadata.cpp
