@@ -52,10 +52,6 @@ char PartsOptRasPass::ID = 0;
 static RegisterPass<PartsOptRasPass> X("parts-opt-ras", "PARTS return address signing opt pass");
 
 bool PartsOptRasPass::runOnModule(Module &M) {
-  if ( !PARTS::useBeCfi() )
-    return false;
-
-
   std::unique_ptr<RandomNumberGenerator> RNG = M.createRNG(this);
 
   /* A bit crude, but, use st to keep track of used numbers */
