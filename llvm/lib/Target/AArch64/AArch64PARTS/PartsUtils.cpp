@@ -13,6 +13,7 @@
 #include "llvm/PARTS/PartsLog.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
+#include <iomanip>
 #include <sstream>
 
 using namespace llvm;
@@ -243,8 +244,6 @@ void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineBasicBlock::inst
                                  type_id_t type_id, const DebugLoc &DL) {
   moveTypeIdToReg(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), modReg, type_id, DL);
 }
-
-#include <iomanip>
 
 void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg,
                                  type_id_t type_id, const DebugLoc &DL) {
