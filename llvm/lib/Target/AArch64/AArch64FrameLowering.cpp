@@ -886,7 +886,7 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
     return;
   }
 
-  if (PARTS::useBeCfi() && HasFP) {
+  if (HasFP) {
     // Insert pauth for LR
     assert(MFI.hasCalls() && "oh no something wen't wrong");
     PARTS->instrumentPrologue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DebugLoc());
@@ -1390,7 +1390,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
           .setMIFlag(MachineInstr::FrameDestroy);
 
     // Insert pauth instruction to authenticate LR
-    if (PARTS::useBeCfi() && MFI.hasCalls()) {
+    if (MFI.hasCalls()) {
       PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
     }
 
@@ -1473,15 +1473,11 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     BuildMI(MBB, MBB.getFirstTerminator(), DL, TII->get(AArch64::SEH_EpilogEnd))
         .setMIFlag(MachineInstr::FrameDestroy);
 
-  if (PARTS::useBeCfi()) {
-    assert(MFI.hasCalls() && "never expect to get leaf unction here");
-
-    if (MBBI == MBB.end() || MBBI->getParent() == &MBB) {
-      PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
-    } else {
-      auto tmpMBBI = MBB.getFirstTerminator();
-      PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, tmpMBBI, DL, IsTailCallReturn);
-    }
+  if (MBBI == MBB.end() || MBBI->getParent() == &MBB) {
+    PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
+  } else {
+    auto tmpMBBI = MBB.getFirstTerminator();
+    PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, tmpMBBI, DL, IsTailCallReturn);
   }
 }
 
