@@ -32,6 +32,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
+#include "llvm/PARTS/Parts.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/CommandLine.h"
@@ -41,7 +42,6 @@
 #include "llvm/Transforms/Scalar.h"
 #include <memory>
 #include <string>
-#include "llvm/PARTS/Parts.h"
 
 using namespace llvm;
 
