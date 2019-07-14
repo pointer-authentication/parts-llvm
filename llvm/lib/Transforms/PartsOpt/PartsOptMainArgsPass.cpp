@@ -145,7 +145,7 @@ bool PartsOptMainArgsPass::runOnModule(Module &M) {
   IRBuilder<> Builder(&I);
   Builder.CreateCall(funcFixMain, args);
 
-  DEBUG(dbgs() << "Adding call to __pauth_pac_main_args");
+  LLVM_DEBUG(dbgs() << "Adding call to __pauth_pac_main_args");
   return true;
 }
 
