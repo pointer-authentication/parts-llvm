@@ -15,14 +15,10 @@
 #define LLVM_LIB_TARGET_AARCH64_AARCH64FRAMELOWERING_H
 
 #include "llvm/CodeGen/TargetFrameLowering.h"
-#include "AArch64PARTS/PartsFrameLowering.h"
 
 namespace llvm {
 
 class AArch64FrameLowering : public TargetFrameLowering {
-private:
-  PartsFrameLowering_ptr PARTS = PartsFrameLowering::get();
-
 public:
   explicit AArch64FrameLowering()
       : TargetFrameLowering(StackGrowsDown, 16, 0, 16,

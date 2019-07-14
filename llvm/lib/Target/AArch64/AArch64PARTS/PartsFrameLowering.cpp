@@ -9,41 +9,50 @@
 //===----------------------------------------------------------------------===//
 
 #include "PartsFrameLowering.h"
-#include "llvm/CodeGen/MachineInstrBuilder.h"
-#include "AArch64RegisterInfo.h"
 #include "AArch64InstrInfo.h"
-#include "llvm/PARTS/Parts.h"
+#include "AArch64MachineFunctionInfo.h"
+#include "AArch64RegisterInfo.h"
 #include "PartsUtils.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/PARTS/Parts.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;
 
-PartsFrameLowering_ptr PartsFrameLowering::get() {
-  return std::make_shared<PartsFrameLowering>();
+static bool doInstrument(const MachineFunction &MF) {
+  const Function &F = MF.getFunction();
+  if (F.hasFnAttribute("no-parts") || !F.hasFnAttribute("parts-function_id")) return false;
+
+  // Skip if we don't spill LR
+  for (const auto &Info : MF.getFrameInfo().getCalleeSavedInfo())
+    if (Info.getReg() != AArch64::LR)
+      return true;
+
+  return false;
 }
 
 void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
-                                  MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                                  const DebugLoc &DL, const bool IsTailCallReturn) {
-  if (MBB.getParent()->getFunction().getFnAttribute("no-parts").getValueAsString() == "true") return;
-  if (!MBB.getParent()->getFunction().hasFnAttribute("parts-function_id")) return;
-
-  //FIXME: I assume there was a reason for IsTailCallReturn, but its no longer used at all!?!
-  (void) IsTailCallReturn;
+                                  MachineBasicBlock &MBB) {
+  if (!doInstrument(*MBB.getParent()))
+    return;
 
   auto partsUtils = PartsUtils::get(TRI, TII);
   auto modReg = PARTS::getModifierReg();
-  auto loc = (MBBI != MBB.end() ? &*MBBI : nullptr);
+  auto loc = MBB.getFirstTerminator();
 
-  partsUtils->createBeCfiModifier(MBB, loc, modReg, DebugLoc());
-  partsUtils->insertPAInstr(MBB, loc, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DebugLoc());
+  DebugLoc DL;
+  if (loc != MBB.end())
+    DL = loc->getDebugLoc();
+
+  partsUtils->createBeCfiModifier(MBB, &*loc, modReg, DebugLoc());
+  partsUtils->insertPAInstr(MBB, &*loc, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DL);
 }
 
 void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                                             MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
                                             const DebugLoc &DL) {
-  if (MBB.getParent()->getFunction().getFnAttribute("no-parts").getValueAsString() == "true") return;
-  if (!MBB.getParent()->getFunction().hasFnAttribute("parts-function_id")) return;
+  if (!doInstrument(*MBB.getParent()))
+    return;
 
   auto partsUtils = PartsUtils::get(TRI, TII);
   auto modReg = PARTS::getModifierReg();

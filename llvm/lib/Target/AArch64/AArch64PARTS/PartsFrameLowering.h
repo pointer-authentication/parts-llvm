@@ -11,36 +11,18 @@
 #ifndef LLVM_PARTSFRAMELOWERING_H
 #define LLVM_PARTSFRAMELOWERING_H
 
-#include "llvm/CodeGen/MachineBasicBlock.h"
 #include "AArch64InstrInfo.h"
-#include "llvm/PARTS/PartsLog.h"
-#include "PartsUtils.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
 
 namespace llvm {
+namespace PartsFrameLowering {
 
-class PartsFrameLowering;
-typedef std::shared_ptr<PartsFrameLowering> PartsFrameLowering_ptr;
+void instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI, MachineBasicBlock &MBB);
+void instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
+                        MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
+                        const DebugLoc &DL);
 
-class PartsFrameLowering {
-  PARTS::PartsLog_ptr log;
-
-public:
-  PartsFrameLowering() : log(PARTS::PartsLog::getLogger("PartsFrameLowering")) {
-    DEBUG_PA(log->enable());
-  }
-
-  static PartsFrameLowering_ptr get();
-
-  void instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
-                          MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                          const DebugLoc &DL, bool IsTailCallReturn);
-
-  void instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
-                          MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                          const DebugLoc &DL);
-};
-
-
+}
 }
 
 #endif //LLVM_PARTSFRAMELOWERING_H

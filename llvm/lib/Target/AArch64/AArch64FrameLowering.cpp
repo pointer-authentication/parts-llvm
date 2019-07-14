@@ -97,6 +97,7 @@
 #include "AArch64RegisterInfo.h"
 #include "AArch64Subtarget.h"
 #include "AArch64TargetMachine.h"
+#include "AArch64PARTS/PartsFrameLowering.h"
 #include "MCTargetDesc/AArch64AddressingModes.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/SmallVector.h"
@@ -134,9 +135,6 @@
 #include <cstdint>
 #include <iterator>
 #include <vector>
-#include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
-#include "AArch64PARTS/PartsFrameLowering.h"
 
 using namespace llvm;
 
@@ -840,6 +838,8 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
         .setMIFlags(MachineInstr::FrameSetup);
   }
 
+  PartsFrameLowering::instrumentPrologue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DebugLoc());
+
   // All calls are tail calls in GHC calling conv, and functions have no
   // prologue/epilogue.
   if (MF.getFunction().getCallingConv() == CallingConv::GHC)
@@ -884,12 +884,6 @@ void AArch64FrameLowering::emitPrologue(MachineFunction &MF,
           .setMIFlag(MachineInstr::FrameSetup);
 
     return;
-  }
-
-  if (HasFP) {
-    // Insert pauth for LR
-    assert(MFI.hasCalls() && "oh no something wen't wrong");
-    PARTS->instrumentPrologue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DebugLoc());
   }
 
   bool IsWin64 =
@@ -1312,6 +1306,7 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
   // it as the 2nd argument of AArch64ISD::TC_RETURN.
 
   auto Cleanup = make_scope_exit([&] { InsertReturnAddressAuth(MF, MBB); });
+  auto PartsCleanup = make_scope_exit([&] { PartsFrameLowering::instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB); });
 
   bool IsWin64 =
       Subtarget.isCallingConvWin64(MF.getFunction().getCallingConv());
@@ -1351,15 +1346,6 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
     }
   }
 
-  // Insert PAuth instruction to authenticate LR
-  if (!IsTailCallReturn) {
-    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::RETAA));
-    MBB.erase(MBBI);
-  } else {
-    BuildMI(MBB, MBBI, DebugLoc(), TII->get(AArch64::AUTIASP));
-    // TODO:
-  }
-
   // Move past the restores of the callee-saved registers.
   // If we plan on combining the sp bump of the local stack size and the callee
   // save stack size, we might need to adjust the CSR save and restore offsets.
@@ -1388,11 +1374,6 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
       BuildMI(MBB, MBB.getFirstTerminator(), DL,
               TII->get(AArch64::SEH_EpilogEnd))
           .setMIFlag(MachineInstr::FrameDestroy);
-
-    // Insert pauth instruction to authenticate LR
-    if (MFI.hasCalls()) {
-      PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
-    }
 
     return;
   }
@@ -1428,7 +1409,6 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
         BuildMI(MBB, MBB.getFirstTerminator(), DL,
                 TII->get(AArch64::SEH_EpilogEnd))
             .setMIFlag(MachineInstr::FrameDestroy);
-      // if (EnablePauthBECFI) PA::instrumentEpilogue(TII, MBB, MBBI, DL, IsTailCallReturn);
       return;
     }
 
@@ -1472,13 +1452,6 @@ void AArch64FrameLowering::emitEpilogue(MachineFunction &MF,
   if (NeedsWinCFI)
     BuildMI(MBB, MBB.getFirstTerminator(), DL, TII->get(AArch64::SEH_EpilogEnd))
         .setMIFlag(MachineInstr::FrameDestroy);
-
-  if (MBBI == MBB.end() || MBBI->getParent() == &MBB) {
-    PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, MBBI, DL, IsTailCallReturn);
-  } else {
-    auto tmpMBBI = MBB.getFirstTerminator();
-    PARTS->instrumentEpilogue(TII, Subtarget.getRegisterInfo(), MBB, tmpMBBI, DL, IsTailCallReturn);
-  }
 }
 
 /// getFrameIndexReference - Provide a base+offset reference to an FI slot for
