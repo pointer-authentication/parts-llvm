@@ -142,7 +142,7 @@ void AArch64PartsCpiPass::lowerPARTSPACIA(MachineBasicBlock &MBB,
 void AArch64PartsCpiPass::lowerPARTSAUTCALL(MachineBasicBlock &MBB,
                                             MachineInstr &MI) {
 
-  DEBUG(MBB.dump());
+  LLVM_DEBUG(MBB.dump());
   llvm_unreachable("Unexpected AUTCALL found !!!!");
 }
 

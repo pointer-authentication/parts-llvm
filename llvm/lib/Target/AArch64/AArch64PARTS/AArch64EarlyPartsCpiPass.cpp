@@ -144,7 +144,7 @@ inline bool AArch64EarlyPartsCpiPass::isIndirectCall(const MachineInstr &MI) con
 }
 
 void AArch64EarlyPartsCpiPass::triggerCompilationErrorOrphanAUTCALL(MachineBasicBlock &MBB) {
-  DEBUG(MBB.dump());
+  LLVM_DEBUG(MBB.dump());
   llvm_unreachable("failed to find BLR for AUTCALL");
 }
 
