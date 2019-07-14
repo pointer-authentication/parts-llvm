@@ -12,7 +12,7 @@ if(WIN32 OR CYGWIN)
   set(LLVM_LINK_COMPONENTS Core Support)
 endif()
 
-add_llvm_loadable_module(PartsOpt
+add_llvm_library(PartsOpt MODULE
   PartsOptCpiPass.cpp
   PartsOptDpiPass.cpp
   PartsOptMainArgsPass.cpp
