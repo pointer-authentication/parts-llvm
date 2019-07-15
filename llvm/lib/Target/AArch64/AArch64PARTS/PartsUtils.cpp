@@ -14,7 +14,6 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include <iomanip>
-#include <sstream>
 
 using namespace llvm;
 using namespace llvm::PARTS;
@@ -143,33 +142,6 @@ void PartsUtils::moveTypeIdToReg(MachineBasicBlock &MBB, MachineInstr *MIi, unsi
     BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t2).addImm(16);
     BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t3).addImm(32);
     BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t4).addImm(48);
-  }
-}
-
-void PartsUtils::createBeCfiModifier(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg, const DebugLoc &DL) {
-  auto &F = MBB.getParent()->getFunction();
-
-  assert(F.hasFnAttribute("parts-function_id")  && "missing parts-function_id attribute");
-
-  // auto type_id = PartsTypeMetadata::idFromType(F.getType());
-  uint64_t type_id; // FIXME: uint64_t value passed as string
-  std::istringstream iss(F.getFnAttribute("parts-function_id").getValueAsString());
-  iss >> type_id;
-
-  const auto t1 = ((type_id) % UINT16_MAX);
-  const auto t2 = ((type_id << 16) % UINT16_MAX);
-  const auto t3 = ((type_id << 32) % UINT16_MAX);
-
-  if (MIi == nullptr) {
-    BuildMI(&MBB, DL, TII->get(AArch64::ADDXri), modReg).addReg(AArch64::SP).addImm(0).addImm(0);
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t1).addImm(16);
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t2).addImm(32);
-    BuildMI(&MBB, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t3).addImm(48);
-  } else {
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), modReg).addReg(AArch64::SP).addImm(0).addImm(0);
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t1).addImm(16);
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t2).addImm(32);
-    BuildMI(MBB, MIi, DL, TII->get(AArch64::MOVKXi), modReg).addReg(modReg).addImm(t3).addImm(48);
   }
 }
 
