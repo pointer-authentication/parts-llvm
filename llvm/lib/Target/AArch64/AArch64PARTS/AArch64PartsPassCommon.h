@@ -37,8 +37,8 @@ protected:
   const AArch64RegisterInfo *TRI = nullptr;
 };
 
-};
-};
+}
+}
 
 inline void AArch64PartsPassCommon::initRunOn(MachineFunction &MF) {
   TM = &MF.getTarget();;
