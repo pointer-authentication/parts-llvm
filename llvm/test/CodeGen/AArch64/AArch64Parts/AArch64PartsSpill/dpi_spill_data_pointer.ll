@@ -19,7 +19,7 @@ entry:
 
 ; CHECK:  pacda [[PTR1:x[0-9]+]], sp
 ; CHECK:  pacda [[PTR2:x[0-9]+]], sp
-; CHECK:  stp [[PTR2]], [[PTR1]], [sp, #16]           // 8-byte Folded Spill
+; CHECK:  stp [[PTR2]], [[PTR1]], [sp, #16]
 ; CHECK:  nop
   call void asm sideeffect "nop", "~{x0},~{x1},~{x2},~{x3},~{x4},~{x5},~{x6},~{x7},~{x8},~{x9},~{x10},~{x11},~{x12},~{x13},~{x14},~{x15},~{x16},~{x17},~{x18},~{x19},~{x20},~{x21},~{x22},~{x23},~{x24},~{x25},~{x26},~{x27},~{x28},~{x29},~{x30},~{x31},~{fp}"() #1
 ; CHECK:  autda {{x[0-9]+}}, sp

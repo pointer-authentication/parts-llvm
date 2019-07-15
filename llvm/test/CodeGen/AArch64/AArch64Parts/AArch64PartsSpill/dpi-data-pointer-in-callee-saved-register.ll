@@ -15,7 +15,7 @@
 ;CHECK:	bl	foo
 ;CHECK: autda x19, sp
 ;CHECK:	mov	x0, x19
-;CHECK:	ldp	x19, x30, [sp], #16     // 8-byte Folded Reload
+;CHECK:	ldp	x19, x30, [sp], #16
 ;CHECK:	ret
 
 define i8* @test_select_ptr(i1 %tst, i8* %lhs, i8* %rhs) {
@@ -41,7 +41,7 @@ declare void @foo(i8*)
 ;CHECK:	bl  bar
 ;CHECK: autda x19, sp
 ;CHECK:	mov	x0, x19
-;CHECK:	ldp	x19, x30, [sp], #16     // 8-byte Folded Reload
+;CHECK:	ldp	x19, x30, [sp], #16
 ;CHECK:	ret
 
 define i8* @test_select_ptr2(i1 %tst, i8* %lhs, i8* %rhs) {

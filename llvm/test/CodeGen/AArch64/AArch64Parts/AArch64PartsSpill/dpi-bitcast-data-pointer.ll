@@ -11,9 +11,9 @@
 ;
 
 ;CHECK:        pacda   [[PTR:x[0-9]+]], sp
-;CHECK:        stp     [[PTR]], {{x[0-9]+}}, [sp]            // 8-byte Folded Spill
+;CHECK:        stp     [[PTR]], {{x[0-9]+}}, [sp]
 ;CHECK:        nop
-;CHECK:        ldp     [[PTR_RELOAD:x[0-9]+]], {{x[0-9]+}}, [sp]            // 8-byte Folded Reload
+;CHECK:        ldp     [[PTR_RELOAD:x[0-9]+]], {{x[0-9]+}}, [sp]
 ;CHECK:        autda   [[PTR_RELOAD]], sp
 
 define i64 @Str64Ldr64(i64* nocapture %P, i64 %v, i64 %n) {
