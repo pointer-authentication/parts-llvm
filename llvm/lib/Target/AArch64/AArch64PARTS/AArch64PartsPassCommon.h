@@ -11,6 +11,9 @@
 #ifndef __AARCH64PARTSOPTPASS_H__
 #define __AARCH64PARTSOPTPASS_H__
 
+#include "AArch64InstrInfo.h"
+#include "AArch64Subtarget.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
@@ -26,7 +29,6 @@ protected:
   inline bool hasNoPartsAttribute(MachineFunction &MF);
 
   inline void lowerPartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
-  inline void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned modReg, const MCInstrDesc &InstrDesc);
   inline void insertMovInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg, unsigned srcReg);
   inline void replacePartsIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI, const MCInstrDesc &InstrDesc);
   inline void replacePartsXPACDIntrinsic(MachineFunction &MF, MachineBasicBlock &MBB, MachineInstr &MI);
@@ -35,6 +37,9 @@ protected:
   const AArch64Subtarget *STI = nullptr;
   const AArch64InstrInfo *TII = nullptr;
   const AArch64RegisterInfo *TRI = nullptr;
+public:
+  static inline void insertPACInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned dstReg,
+                                    unsigned modReg, const MCInstrDesc &InstrDesc);
 };
 
 }
