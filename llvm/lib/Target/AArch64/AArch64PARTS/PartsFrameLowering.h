@@ -17,7 +17,7 @@
 namespace llvm {
 namespace PartsFrameLowering {
 
-constexpr const unsigned modReg = AArch64::X23;
+constexpr const unsigned modReg = AArch64::X16;
 
 void instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI, MachineBasicBlock &MBB);
 void instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
