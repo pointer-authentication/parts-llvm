@@ -9,6 +9,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "PartsFrameLowering.h"
+#include "AArch64PartsPassCommon.h"
 #include "AArch64InstrInfo.h"
 #include "AArch64MachineFunctionInfo.h"
 #include "AArch64RegisterInfo.h"
@@ -64,16 +65,11 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
   if (!doInstrument(*MBB.getParent()))
     return;
 
-  auto partsUtils = PartsUtils::get(TRI, TII);
   auto modReg = PARTS::getModifierReg();
   auto loc = MBB.getFirstTerminator();
 
-  DebugLoc DL;
-  if (loc != MBB.end())
-    DL = loc->getDebugLoc();
-
   createBeCfiModifier(TII, MBB, &*loc, modReg, DebugLoc());
-  partsUtils->insertPAInstr(MBB, &*loc, AArch64::LR, modReg, TII->get(AArch64::AUTIB), DL);
+  AArch64PartsPassCommon::insertPACInstr(MBB, &*loc, AArch64::LR, modReg, TII->get(AArch64::AUTIB));
 }
 
 void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
@@ -82,9 +78,8 @@ void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const Ta
   if (!doInstrument(*MBB.getParent()))
     return;
 
-  auto partsUtils = PartsUtils::get(TRI, TII);
   auto modReg = PARTS::getModifierReg();
 
   createBeCfiModifier(TII, MBB, &*MBBI, modReg, DebugLoc());
-  partsUtils->insertPAInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::PACIB), DebugLoc());
+  AArch64PartsPassCommon::insertPACInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::PACIB));
 }
