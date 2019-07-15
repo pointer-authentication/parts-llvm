@@ -79,7 +79,7 @@ inline void AArch64PartsPassCommon::insertPACInstr(MachineBasicBlock &MBB,
                                                    unsigned dstReg,
                                                    unsigned modReg,
                                                    const MCInstrDesc &InstrDesc) {
-  BuildMI(MBB, MI, MI->getDebugLoc(), InstrDesc, dstReg)
+  BuildMI(MBB, MI, (MI != nullptr ? MI->getDebugLoc() : DebugLoc()), InstrDesc, dstReg)
       .addUse(modReg);
 }
 
