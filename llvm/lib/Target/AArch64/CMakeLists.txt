@@ -66,7 +66,6 @@ add_llvm_target(AArch64CodeGen
   AArch64PARTS/AArch64EarlyPartsDpiPass.cpp
   AArch64PARTS/AArch64PartsDpiPass.cpp
   AArch64PARTS/AArch64PartsIntrPass.cpp
-  AArch64PARTS/PartsFastISel.cpp
   AArch64PARTS/PartsFrameLowering.cpp
   AArch64PARTS/PartsUtils.cpp
   AArch64PARTS/AArch64PartsSpillPass.cpp
