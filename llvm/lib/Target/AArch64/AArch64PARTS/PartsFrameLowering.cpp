@@ -13,7 +13,6 @@
 #include "AArch64InstrInfo.h"
 #include "AArch64MachineFunctionInfo.h"
 #include "AArch64RegisterInfo.h"
-#include "PartsUtils.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/PARTS/Parts.h"
 #include <sstream>
@@ -65,7 +64,6 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
   if (!doInstrument(*MBB.getParent()))
     return;
 
-  auto modReg = PARTS::getModifierReg();
   auto loc = MBB.getFirstTerminator();
 
   createBeCfiModifier(TII, MBB, &*loc, modReg, DebugLoc());
@@ -77,8 +75,6 @@ void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const Ta
                                             const DebugLoc &DL) {
   if (!doInstrument(*MBB.getParent()))
     return;
-
-  auto modReg = PARTS::getModifierReg();
 
   createBeCfiModifier(TII, MBB, &*MBBI, modReg, DebugLoc());
   AArch64PartsPassCommon::insertPACInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::PACIB));
