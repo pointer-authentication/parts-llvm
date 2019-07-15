@@ -32,7 +32,8 @@ static bool doInstrument(const MachineFunction &MF) {
   return false;
 }
 
-static void createBeCfiModifier(const TargetInstrInfo *TII, MachineBasicBlock &MBB, MachineInstr *MIi, unsigned modReg, const DebugLoc &DL) {
+static void createBeCfiModifier(const TargetInstrInfo *TII, MachineBasicBlock &MBB, MachineInstr *MIi,
+                                unsigned modReg, const DebugLoc &DL) {
   auto &F = MBB.getParent()->getFunction();
 
   assert(F.hasFnAttribute("parts-function_id")  && "missing parts-function_id attribute");
@@ -64,10 +65,11 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
   if (!doInstrument(*MBB.getParent()))
     return;
 
-  auto loc = MBB.getFirstTerminator();
+  const auto loc = MBB.getFirstTerminator();
+  auto *MI = (loc != MBB.end() ? &*loc : nullptr);
 
-  createBeCfiModifier(TII, MBB, &*loc, modReg, DebugLoc());
-  AArch64PartsPassCommon::insertPACInstr(MBB, &*loc, AArch64::LR, modReg, TII->get(AArch64::AUTIB));
+  createBeCfiModifier(TII, MBB, MI, modReg, DebugLoc());
+  AArch64PartsPassCommon::insertPACInstr(MBB, MI, AArch64::LR, modReg, TII->get(AArch64::AUTIB));
 }
 
 void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
