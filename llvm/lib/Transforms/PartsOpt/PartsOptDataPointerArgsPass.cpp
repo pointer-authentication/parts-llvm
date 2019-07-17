@@ -84,7 +84,7 @@ inline bool PartsOptDataPointerArgsPass::handleInstruction(Function &F, Instruct
       break;
     case Instruction::Call:
       if (isPartsIntrinsic(I)) break;
-      // Fall through
+      LLVM_FALLTHROUGH;
     case Instruction::Select:
     case Instruction::PHI:
     case Instruction::BitCast:
