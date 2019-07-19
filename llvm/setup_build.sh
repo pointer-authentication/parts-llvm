@@ -121,7 +121,7 @@ use_linker=${llvm_dir}/bin/ld.lld
 build_type="Debug"
 
 # Modify this to change target platforms
-BUILD_TARGETS="AArch64;X86"
+BUILD_TARGETS="AArch64"
 
 # Using shared libs should speed up intermediate development.
 build_shared_libs=On # (default Off)
