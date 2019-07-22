@@ -60,6 +60,27 @@ static void createBeCfiModifier(const TargetInstrInfo *TII, MachineBasicBlock &M
   }
 }
 
+static void createFastBeCfiModifier(const TargetInstrInfo *TII, MachineBasicBlock &MBB, MachineInstr *MIi,
+                                const unsigned modReg, const DebugLoc &DL) {
+  const auto &F = MBB.getParent()->getFunction();
+
+  if (MIi == nullptr) {
+    BuildMI(&MBB, DL, TII->get(AArch64::ADR), modReg)
+        .addGlobalAddress(&F);
+    BuildMI(&MBB, DL, TII->get(AArch64::BFMXri), modReg)
+        .addReg(AArch64::FP)
+        .addImm(32)
+        .addImm(31);
+  } else {
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::ADR), modReg)
+        .addGlobalAddress(&F);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::BFMXri), modReg)
+        .addReg(AArch64::FP)
+        .addImm(32)
+        .addImm(31);
+  }
+}
+
 void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                                   MachineBasicBlock &MBB) {
   if (!doInstrument(*MBB.getParent()))
