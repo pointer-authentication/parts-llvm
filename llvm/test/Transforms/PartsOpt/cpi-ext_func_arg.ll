@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
+; RUN: opt -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
 ;
 ; Because the stdlib qsort is uninstrumented it cannot use a signed code pointer
 ; for the compare function. Instead, the instrumentation should realize the it

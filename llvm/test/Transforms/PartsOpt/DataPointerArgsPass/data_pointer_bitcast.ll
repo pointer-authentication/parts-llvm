@@ -6,7 +6,7 @@
 ;
 ; Test reference: ../test/CodeGen/AArch64/arm64-ld-from-st.ll
 ;
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
 
 define i64 @Str64Ldr64(i64* nocapture %P, i64 %v, i64 %n) {
 entry:

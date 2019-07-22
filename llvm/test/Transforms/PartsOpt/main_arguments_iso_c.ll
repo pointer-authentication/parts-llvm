@@ -1,5 +1,5 @@
 ; Check intrinsic is added to handle ISO C compliant main() arguments.
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-mainargs -S < %s | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-mainargs -S < %s | FileCheck %s
 
 ; CHECK-LABEL: @main
 ; CHECK: call void @__pauth_pac_main_args(i32 %argc, i8** %argv)

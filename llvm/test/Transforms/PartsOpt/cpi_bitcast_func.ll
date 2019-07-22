@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
+; RUN: opt -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
 ;
 ; It seems that in some cases the compiler produces weird calls, wherein the
 ; called function is actually bitcast to match the input parameters, not the

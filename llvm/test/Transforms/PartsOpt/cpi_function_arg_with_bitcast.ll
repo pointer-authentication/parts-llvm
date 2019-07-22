@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
+; RUN: opt -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
 ;
 ; Catch a but in code where a bitcast is used to convert direct function
 ; argument into a void pointer. E.g:

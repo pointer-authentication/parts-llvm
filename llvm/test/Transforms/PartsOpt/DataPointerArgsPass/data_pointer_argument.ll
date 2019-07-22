@@ -7,7 +7,7 @@
 ; ------------------------------------------------------------------------
 ; Test placement of the part.data.pointer.argument intrinsic
 ;
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
 ;
 
 define void @test_no_args() {

@@ -1,5 +1,5 @@
 ; Check that we insert the needed functionality to authenticate a global array of data pointers
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
 
 @global_data = global i8 127, align 1
 @global_array_data = global [4 x i8*] [i8* @global_data, i8* @global_data, i8* null, i8* @global_data], align 8

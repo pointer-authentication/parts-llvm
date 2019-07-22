@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -S < %s | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-dpi -S < %s | FileCheck %s
 ;
 ; based on misc/code/cpi_type_ids
 ;

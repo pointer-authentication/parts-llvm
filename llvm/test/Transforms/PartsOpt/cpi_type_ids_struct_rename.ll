@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
+; RUN: opt -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
 ;
 ; This checks that compatible function signatures produce compatible type_ids, even
 ; when the compiler internally renames struct names (presumably due to extern definitions).

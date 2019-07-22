@@ -1,5 +1,5 @@
 ; Check that we insert the needed functionality to authenticate a global nested struct with data pointers
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
 
 %struct.extra_data = type { %struct.data, i32 }
 %struct.data = type { %struct.data*, i32 }

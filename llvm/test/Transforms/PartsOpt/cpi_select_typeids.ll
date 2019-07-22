@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
+; RUN: opt -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
 ;
 ; Make sure that select is handled correctly.
 ;

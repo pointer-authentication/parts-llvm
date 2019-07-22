@@ -1,5 +1,5 @@
 ; Check that we insert the needed functionality to authenticate a global array of data pointers
-; RUN: opt -load PartsOpt.so -parts-fecfi -parts-opt-globals -S < %s  | FileCheck %s
+; RUN: opt -parts-fecfi -parts-opt-globals -S < %s  | FileCheck %s
 
 @global_array_func = global [4 x void ()*] [ void ()* null, void ()* null, void ()* @func, void ()* null], align 8
 ; CHECK: @llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 0, void ()* @__pauth_pac_globals, i8* null }]

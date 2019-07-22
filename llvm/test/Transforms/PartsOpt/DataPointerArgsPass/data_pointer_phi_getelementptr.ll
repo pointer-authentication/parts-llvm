@@ -4,7 +4,7 @@
 ; Reference: test/CodeGen/AArch64/ldst-opt.ll
 ;
 ; Check intrinsic for data pointer authentication is added for phi and getelementptr instructions
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
 
 %pre.struct.i32 = type { i32, i32, i32, i32, i32}
 

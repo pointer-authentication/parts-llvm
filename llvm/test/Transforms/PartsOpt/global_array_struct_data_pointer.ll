@@ -1,6 +1,6 @@
 ; Check that we insert the needed functionality to authenticate a global array of a struct
 ; with a data pointer member.
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-globals -S < %s  | FileCheck %s
 
 %struct.data = type { %struct.data*, i32 }
 

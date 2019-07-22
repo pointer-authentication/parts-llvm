@@ -3,7 +3,7 @@
 ; Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
 ;
 ; Check metadata for data pointer authentication is added
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
 
 ; CHECK-LABEL: @simple_pointer
 ; CHECK: alloca

@@ -3,7 +3,7 @@
 ; Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
 ;
 ; Check intrinsic for data pointer authentication is added for select instructions
-; RUN: opt -load PartsOpt.so -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
+; RUN: opt -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
 
 define i8* @test_select_ptr(i1 %tst, i8* %lhs, i8* %rhs) {
 entry:
