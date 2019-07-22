@@ -40,6 +40,8 @@ char PartsOptMainArgsPass::ID = 0;
 static RegisterPass<PartsOptMainArgsPass> X("parts-opt-mainargs",
                                             "PARTS DPI fix for main args");
 
+Pass *llvm::PARTS::createPartsOptMainArgsPass() { return new PartsOptMainArgsPass(); }
+
 Function *PartsOptMainArgsPass::createFixFunction(Module &M)
 {
   assert(PARTS::useDpi());

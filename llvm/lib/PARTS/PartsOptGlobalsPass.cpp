@@ -52,6 +52,8 @@ private:
 char PartsOptGlobalsPass::ID = 0;
 static RegisterPass<PartsOptGlobalsPass> X("parts-opt-globals", "PARTS globals fix, needed for CPI and DPI");
 
+Pass *llvm::PARTS::createPartsOptGlobalsPass() { return new PartsOptGlobalsPass(); }
+
 bool PartsOptGlobalsPass::runOnModule(Module &M) {
   if ( !(PARTS::useFeCfi() || PARTS::useDpi())) // We don't need to do anything unless we use PI
     return false;

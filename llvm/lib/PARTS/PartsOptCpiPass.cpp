@@ -65,6 +65,8 @@ private:
 char PartsOptCpiPass::ID = 0;
 static RegisterPass<PartsOptCpiPass> X("parts-opt-cpi", "PARTS CPI pass");
 
+Pass *llvm::PARTS::createPartsOptCpiPass() { return new PartsOptCpiPass(); }
+
 bool PartsOptCpiPass::runOnFunction(Function &F) {
   if (!PARTS::useFeCfi())
     return false;

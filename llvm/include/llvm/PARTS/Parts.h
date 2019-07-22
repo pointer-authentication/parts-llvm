@@ -25,6 +25,11 @@ bool useAny();
 bool useDummy();
 bool useRuntimeStats();
 
+Pass *createPartsOptCpiPass();
+Pass *createPartsOptDataPointerArgsPass();
+Pass *createPartsOptDpiPass();
+Pass *createPartsOptGlobalsPass();
+Pass *createPartsOptMainArgsPass();
 Pass *createPartsOptRasPass();
 
 } // PARTS

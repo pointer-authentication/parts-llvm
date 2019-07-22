@@ -47,6 +47,8 @@ private:
 char PartsOptDataPointerArgsPass::ID = 0;
 static RegisterPass<PartsOptDataPointerArgsPass> X("parts-opt-dp-args", "PARTS mark data pointer function arguments");
 
+Pass *llvm::PARTS::createPartsOptDataPointerArgsPass() { return new PartsOptDataPointerArgsPass(); }
+
 bool PartsOptDataPointerArgsPass::runOnFunction(Function &F) {
   if (!(PARTS::useDpi()))
     return false;
