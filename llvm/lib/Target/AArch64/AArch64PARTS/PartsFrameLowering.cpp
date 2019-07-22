@@ -33,7 +33,7 @@ static bool doInstrument(const MachineFunction &MF) {
 }
 
 static void createBeCfiModifier(const TargetInstrInfo *TII, MachineBasicBlock &MBB, MachineInstr *MIi,
-                                unsigned modReg, const DebugLoc &DL) {
+                                const unsigned modReg, const DebugLoc &DL) {
   auto &F = MBB.getParent()->getFunction();
 
   assert(F.hasFnAttribute("parts-function_id")  && "missing parts-function_id attribute");
