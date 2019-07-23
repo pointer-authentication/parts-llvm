@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi < %s | FileCheck %s
+; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi==full < %s | FileCheck %s
 ; XFAIL: *
 ;
 ; Make sure that a tailcall works, when the FP+LR has been spilled.
@@ -37,5 +37,5 @@ entry:
   ret void
 }
 
-attributes #0 = { noinline nounwind optnone "parts-function_id"="1" }
-attributes #1 = { nounwind "parts-function_id"="2" }
+attributes #0 = { noinline nounwind optnone }
+attributes #1 = { nounwind }

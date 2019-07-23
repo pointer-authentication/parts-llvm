@@ -17,6 +17,11 @@ namespace llvm {
 
 namespace PARTS {
 
+enum PartsBeCfiType{
+  PartsBeCfiNone,
+  PartsBeCfiFull
+};
+
 bool useBeCfi();
 bool useFeCfi();
 bool useDpi();
@@ -24,6 +29,8 @@ bool isUnionTypePunningSupported(void);
 bool useAny();
 bool useDummy();
 bool useRuntimeStats();
+
+PartsBeCfiType getBeCfiType();
 
 Pass *createPartsOptCpiPass();
 Pass *createPartsOptDataPointerArgsPass();

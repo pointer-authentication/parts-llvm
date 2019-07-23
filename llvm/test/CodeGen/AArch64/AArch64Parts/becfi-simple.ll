@@ -5,7 +5,7 @@
 ; This file is distributed under the University of Illinois Open Source
 ; License. See LICENSE.TXT for details.
 ; ------------------------------------------------------------------------
-; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi < %s | FileCheck %s
+; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi=full < %s | FileCheck %s
 
 target triple = "aarch64"
 
@@ -26,5 +26,5 @@ entry:
     ret void
 }
 
-attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" "parts-function_id"="1" }
-attributes #1 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" "parts-function_id"="2" }
+attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" }
+attributes #1 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" }

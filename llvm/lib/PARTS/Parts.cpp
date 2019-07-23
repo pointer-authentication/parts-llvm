@@ -13,10 +13,14 @@
 #include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
+using namespace PARTS;
 
-static cl::opt<bool> EnablePartsBeCfi("parts-becfi", cl::Hidden,
-                                      cl::desc("PARTS backward-edge CFI"),
-                                      cl::init(false));
+static cl::opt<PARTS::PartsBeCfiType> PartsBeCfi(
+    "parts-becfi", cl::init(PartsBeCfiNone),
+    cl::desc("PARTS backward-edge CFI"),
+    cl::value_desc("mode"),
+    cl::values(clEnumValN(PartsBeCfiNone, "none", "No PARTS backward-edge protection"),
+               clEnumValN(PartsBeCfiFull, "full", "Full backward-edge protection")));
 
 static cl::opt<bool> EnablePartsFeCfi("parts-fecfi", cl::Hidden,
                                       cl::desc("PARTS backward-edge CFI"),
@@ -40,7 +44,7 @@ static cl::opt<bool> EnablePartsRuntimeStats("parts-stats", cl::Hidden,
                                           cl::init(false));
 
 bool llvm::PARTS::useBeCfi() {
-  return EnablePartsBeCfi;
+  return PartsBeCfi != PartsBeCfiNone;
 }
 
 bool llvm::PARTS::useFeCfi() {
@@ -56,7 +60,7 @@ bool llvm::PARTS::isUnionTypePunningSupported(void) {
 }
 
 bool llvm::PARTS::useAny() {
-  return EnablePartsDpi || EnablePartsFeCfi || EnablePartsBeCfi;
+  return EnablePartsDpi || EnablePartsFeCfi || useBeCfi();
 }
 
 bool llvm::PARTS::useDummy() {
@@ -66,3 +70,14 @@ bool llvm::PARTS::useDummy() {
 bool llvm::PARTS::useRuntimeStats() {
   return EnablePartsRuntimeStats;
 }
+
+namespace llvm {
+namespace PARTS {
+
+PartsBeCfiType getBeCfiType() {
+  return PartsBeCfi;
+}
+
+}
+}
+

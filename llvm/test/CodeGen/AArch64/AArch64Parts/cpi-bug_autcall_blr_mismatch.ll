@@ -4,7 +4,7 @@
 ; This test is based on ImageMagick source code.
 ;
 ; ------------------------------------------------------------------------
-; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi -parts-fecfi < %s | FileCheck %s
+; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-becfi=full -parts-fecfi < %s | FileCheck %s
 ;
 ; This triggers a bug with autcall - blr coupling, that causes a compile-time llvm_unreachable
 ; crash in AArchPartsCpiPass.
