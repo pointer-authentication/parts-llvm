@@ -20,7 +20,8 @@ static cl::opt<PARTS::PartsBeCfiType> PartsBeCfi(
     cl::desc("PARTS backward-edge CFI"),
     cl::value_desc("mode"),
     cl::values(clEnumValN(PartsBeCfiNone, "none", "No PARTS backward-edge protection"),
-               clEnumValN(PartsBeCfiFull, "full", "Full backward-edge protection")));
+               clEnumValN(PartsBeCfiFull, "full", "Full backward-edge protection"),
+               clEnumValN(PartsBeCfiNgFull, "ng-full", "Full optimized backward-edge protection")));
 
 static cl::opt<bool> EnablePartsFeCfi("parts-fecfi", cl::Hidden,
                                       cl::desc("PARTS backward-edge CFI"),

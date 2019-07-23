@@ -19,7 +19,8 @@ namespace PARTS {
 
 enum PartsBeCfiType{
   PartsBeCfiNone,
-  PartsBeCfiFull
+  PartsBeCfiFull,
+  PartsBeCfiNgFull
 };
 
 bool useBeCfi();
