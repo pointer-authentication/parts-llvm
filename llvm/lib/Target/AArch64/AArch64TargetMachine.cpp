@@ -152,10 +152,6 @@ static cl::opt<bool>
                         cl::desc("Enable the AAcrh64 branch target pass"),
                         cl::init(true));
 
-static cl::opt<bool> EnablePartsFull("parts", cl::Hidden,
-                                     cl::desc("-part=<option>, currently supports only becfi"),
-                                     cl::init(false));
-
 extern "C" void LLVMInitializeAArch64Target() {
   // Register the target.
   RegisterTargetMachine<AArch64leTargetMachine> X(getTheAArch64leTarget());
@@ -445,7 +441,7 @@ void AArch64PassConfig::addIRPasses() {
     addPass(createLICMPass());
   }
 
-  if (EnablePartsFull) {
+  if (PARTS::getBeCfiType() == PARTS::PartsBeCfiFull) {
     addPass(PARTS::createPartsOptRasPass());
   }
 }
