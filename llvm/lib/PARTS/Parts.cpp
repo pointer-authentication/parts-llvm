@@ -70,3 +70,14 @@ bool llvm::PARTS::useDummy() {
 bool llvm::PARTS::useRuntimeStats() {
   return EnablePartsRuntimeStats;
 }
+
+namespace llvm {
+namespace PARTS {
+
+PartsBeCfiType getBeCfiType() {
+  return PartsBeCfi;
+}
+
+}
+}
+

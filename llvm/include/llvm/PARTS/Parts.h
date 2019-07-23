@@ -30,6 +30,8 @@ bool useAny();
 bool useDummy();
 bool useRuntimeStats();
 
+PartsBeCfiType getBeCfiType();
+
 Pass *createPartsOptCpiPass();
 Pass *createPartsOptDataPointerArgsPass();
 Pass *createPartsOptDpiPass();
