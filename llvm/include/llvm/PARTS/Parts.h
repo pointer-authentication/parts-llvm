@@ -17,6 +17,11 @@ namespace llvm {
 
 namespace PARTS {
 
+enum PartsBeCfiType{
+  PartsBeCfiNone,
+  PartsBeCfiFull
+};
+
 bool useBeCfi();
 bool useFeCfi();
 bool useDpi();
