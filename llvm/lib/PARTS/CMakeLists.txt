@@ -12,6 +12,11 @@ add_llvm_library(Parts
   Parts.cpp
   PartsOptPass.cpp
   PartsOptRasPass.cpp
+  PartsOptCpiPass.cpp
+  PartsOptDataPointerArgsPass.cpp
+  PartsOptDpiPass.cpp
+  PartsOptGlobalsPass.cpp
+  PartsOptMainArgsPass.cpp
   PartsLog.cpp
   PartsLogStream.cpp
   PartsTypeMetadata.cpp
@@ -24,19 +29,19 @@ add_llvm_library(Parts
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/IR
 
   DEPENDS
-  #intrinsics_gen
+  intrinsics_gen
   LLVMCore
   LLVMSupport
+  LLVMTransformUtils
   LLVMCodeGen
   PARTSsha3
-  #LLVMObject
 
   LINK_LIBS
   LLVMCore
   LLVMSupport
+  LLVMTransformUtils
   LLVMCodeGen
   PARTSsha3
-  #LLVMObject
   )
 
 set_property(TARGET Parts PROPERTY LLVM_SYSTEM_LIBS)
