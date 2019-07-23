@@ -27,5 +27,5 @@ entry:
     ret void
 }
 
-attributes #0 = { noinline nounwind optnone "parts-function_id"="1" }
-attributes #1 = { noinline nounwind optnone "parts-function_id"="2" }
+attributes #0 = { noinline nounwind optnone }
+attributes #1 = { noinline nounwind optnone }

@@ -31,5 +31,5 @@ entry:
   ret void
 }
 
-attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" "parts-function_id"="1" }
-attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" "parts-function_id"="2" }
+attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" }
+attributes #0 = { noinline nounwind optnone "no-frame-pointer-elim-non-leaf" }
