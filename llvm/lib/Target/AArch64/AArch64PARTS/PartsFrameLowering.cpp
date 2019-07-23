@@ -21,8 +21,16 @@ using namespace llvm;
 using namespace llvm::PARTS;
 
 static bool doInstrument(const MachineFunction &MF) {
+  static const auto becfi = PARTS::getBeCfiType();
+
+  // Just skip if we're not even using backward-edge CFI
+  if (becfi == PartsBeCfiNone) return false;
+
   const Function &F = MF.getFunction();
-  if (F.hasFnAttribute("no-parts") || !F.hasFnAttribute("parts-function_id")) return false;
+  // Ignore function with the no-parts attribute
+  if (F.hasFnAttribute("no-parts")) return false;
+  // Ignore function without function-id (if we need it)
+  if (becfi == PartsBeCfiFull && !F.hasFnAttribute("parts-function_id")) return false;
 
   // Skip if we don't spill LR
   for (const auto &Info : MF.getFrameInfo().getCalleeSavedInfo())
@@ -60,6 +68,32 @@ static void createBeCfiModifier(const TargetInstrInfo *TII, MachineBasicBlock &M
   }
 }
 
+static void createFastBeCfiModifier(const TargetInstrInfo *TII, MachineBasicBlock &MBB, MachineInstr *MIi,
+                                const unsigned modReg, const DebugLoc &DL) {
+  assert(PARTS::getBeCfiType() == PartsBeCfiNgFull);
+  const auto &F = MBB.getParent()->getFunction();
+
+  if (MIi == nullptr) {
+    BuildMI(&MBB, DL, TII->get(AArch64::ADR), modReg)
+        .addGlobalAddress(&F);
+    BuildMI(&MBB, DL, TII->get(AArch64::BFMXri))
+        .addDef(modReg)
+        .addUse(modReg)
+        .addReg(AArch64::FP)
+        .addImm(32)
+        .addImm(31);
+  } else {
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::ADR), modReg)
+        .addGlobalAddress(&F);
+    BuildMI(MBB, MIi, DL, TII->get(AArch64::BFMXri))
+        .addDef(modReg)
+        .addUse(modReg)
+        .addReg(AArch64::FP)
+        .addImm(32)
+        .addImm(31);
+  }
+}
+
 void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const TargetRegisterInfo *TRI,
                                   MachineBasicBlock &MBB) {
   if (!doInstrument(*MBB.getParent()))
@@ -68,7 +102,11 @@ void PartsFrameLowering::instrumentEpilogue(const TargetInstrInfo *TII, const Ta
   const auto loc = MBB.getFirstTerminator();
   auto *MI = (loc != MBB.end() ? &*loc : nullptr);
 
-  createBeCfiModifier(TII, MBB, MI, modReg, DebugLoc());
+  if (PARTS::getBeCfiType() == PartsBeCfiFull)
+    createBeCfiModifier(TII, MBB, MI, modReg, DebugLoc());
+  else
+    createFastBeCfiModifier(TII, MBB, MI, modReg, DebugLoc());
+
   AArch64PartsPassCommon::insertPACInstr(MBB, MI, AArch64::LR, modReg, TII->get(AArch64::AUTIB));
 }
 
@@ -78,6 +116,10 @@ void PartsFrameLowering::instrumentPrologue(const TargetInstrInfo *TII, const Ta
   if (!doInstrument(*MBB.getParent()))
     return;
 
-  createBeCfiModifier(TII, MBB, &*MBBI, modReg, DebugLoc());
+  if (PARTS::getBeCfiType() == PartsBeCfiFull)
+    createBeCfiModifier(TII, MBB, &*MBBI, modReg, DebugLoc());
+  else
+    createFastBeCfiModifier(TII, MBB, &*MBBI, modReg, DebugLoc());
+
   AArch64PartsPassCommon::insertPACInstr(MBB, &*MBBI, AArch64::LR, modReg, TII->get(AArch64::PACIB));
 }
