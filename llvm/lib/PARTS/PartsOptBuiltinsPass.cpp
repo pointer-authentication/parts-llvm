@@ -31,6 +31,8 @@ struct PartsOptBuiltinsPass: public FunctionPass {
 
   PartsOptBuiltinsPass() : FunctionPass(ID) {}
   bool runOnFunction(Function &F) override;
+private:
+  bool isPartsBuiltin(Instruction &I);
 };
 
 } // anonyous namespace
@@ -41,5 +43,22 @@ static RegisterPass<PartsOptBuiltinsPass> X("parts-opt-builtins", "PARTS mark da
 Pass *llvm::PARTS::createPartsOptBuiltinsPass() { return new PartsOptBuiltinsPass(); }
 
 bool PartsOptBuiltinsPass::runOnFunction(Function &F) {
-  return false;
+  bool modified = false;
+
+  for (auto &BB:F)
+    for (auto &I: BB)
+      if (isPartsBuiltin(I))
+            errs() << "I have found pa_modifier builtin \n";
+
+  return modified;
+}
+
+inline bool PartsOptBuiltinsPass::isPartsBuiltin(Instruction &I) {
+  if (I.getOpcode() != Instruction::Call)
+    return false;
+
+  CallInst *CI = dyn_cast<CallInst>(&I);
+  Function *CalledFunc = CI->getCalledFunction();
+
+  return CalledFunc && (CalledFunc->getIntrinsicID() == Intrinsic::pa_modifier);
 }
