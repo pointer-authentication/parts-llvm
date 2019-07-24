@@ -17,3 +17,6 @@ def int_pa_autcall : Intrinsic<[llvm_anyptr_ty], [LLVMMatchType<0>, llvm_i64_ty]
 
 // Spill handling
 def int_parts_data_pointer_argument: Intrinsic<[], [llvm_anyptr_ty]>;
+
+// Public PARTS intrinsic
+def int_pa_modifier : Intrinsic<[llvm_i64_ty], [llvm_anyptr_ty], [IntrNoMem]>;
