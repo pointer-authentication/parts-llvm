@@ -12,6 +12,7 @@
 define i64 @parts_modifier(i64* %value) {
 entry:
   %mod = call i64 @llvm.pa.modifier.p0i64(i64* %value)
+; CHECK-NOT:  %mod = call i64 @llvm.pa.modifier.p0i64(i64* %value)
 ; CHECK:  ret i64 {{[-][0-9]+}}
   ret i64 %mod
 }
