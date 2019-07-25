@@ -41,9 +41,12 @@ private:
 } // anonyous namespace
 
 char PartsOptBuiltinsPass::ID = 0;
-static RegisterPass<PartsOptBuiltinsPass> X("parts-opt-builtins", "PARTS mark data pointer function arguments");
+static RegisterPass<PartsOptBuiltinsPass> X("parts-opt-builtins",
+                                  "PARTS mark data pointer function arguments");
 
-Pass *llvm::PARTS::createPartsOptBuiltinsPass() { return new PartsOptBuiltinsPass(); }
+Pass *llvm::PARTS::createPartsOptBuiltinsPass() {
+  return new PartsOptBuiltinsPass();
+}
 
 bool PartsOptBuiltinsPass::runOnFunction(Function &F) {
   SmallPtrSet<Instruction *, 4> ForRemoval;
