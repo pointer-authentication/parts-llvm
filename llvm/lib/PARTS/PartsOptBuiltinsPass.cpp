@@ -8,7 +8,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/IR/IRBuilder.h>
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
