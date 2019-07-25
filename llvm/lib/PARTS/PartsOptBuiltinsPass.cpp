@@ -20,6 +20,7 @@
 #include "llvm/PARTS/PartsOptPass.h"
 
 using namespace llvm;
+using namespace llvm::PARTS;
 using namespace llvm::PARTS::PartsOptPass;
 
 #define DEBUG_TYPE "PartsOptBuiltinsPass"
@@ -33,6 +34,7 @@ struct PartsOptBuiltinsPass: public FunctionPass {
   bool runOnFunction(Function &F) override;
 private:
   bool isPartsBuiltin(Instruction &I);
+  void insertTypeID(Function &F, Instruction &I);
 };
 
 } // anonyous namespace
@@ -48,7 +50,7 @@ bool PartsOptBuiltinsPass::runOnFunction(Function &F) {
   for (auto &BB:F)
     for (auto &I: BB)
       if (isPartsBuiltin(I))
-            errs() << "I have found pa_modifier builtin \n";
+        insertTypeID(F, I);
 
   return modified;
 }
@@ -61,4 +63,12 @@ inline bool PartsOptBuiltinsPass::isPartsBuiltin(Instruction &I) {
   Function *CalledFunc = CI->getCalledFunction();
 
   return CalledFunc && (CalledFunc->getIntrinsicID() == Intrinsic::pa_modifier);
+}
+
+void PartsOptBuiltinsPass::insertTypeID(Function &F, Instruction &I)
+{
+  const auto MO = I.getOperand(1);
+  auto Type = MO->getType();
+  auto TypeIDConstant = getTypeIDConstantFrom(*Type, F.getContext());
+  I.replaceAllUsesWith(TypeIDConstant);
 }
