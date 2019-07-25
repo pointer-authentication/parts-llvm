@@ -32,6 +32,9 @@ struct PartsOptBuiltinsPass: public FunctionPass {
   bool runOnFunction(Function &F) override;
 private:
   bool isPartsBuiltin(Instruction &I);
+  void replaceBuiltin(Function &F,
+                      Instruction &I,
+                      SmallPtrSet<Instruction *, 4> *ForRemoval);
   void insertTypeID(Function &F, Instruction &I);
 };
 
@@ -47,10 +50,8 @@ bool PartsOptBuiltinsPass::runOnFunction(Function &F) {
 
   for (auto &BB:F)
     for (auto &I: BB)
-      if (isPartsBuiltin(I)) {
-        insertTypeID(F, I);
-        ForRemoval.insert(&I);
-      }
+      if (isPartsBuiltin(I))
+        replaceBuiltin(F, I, &ForRemoval);
 
   for (auto I: ForRemoval)
     I->eraseFromParent();
@@ -66,6 +67,13 @@ inline bool PartsOptBuiltinsPass::isPartsBuiltin(Instruction &I) {
   Function *CalledFunc = CI->getCalledFunction();
 
   return CalledFunc && (CalledFunc->getIntrinsicID() == Intrinsic::pa_modifier);
+}
+
+void PartsOptBuiltinsPass::replaceBuiltin(Function &F, Instruction &I,
+                                      SmallPtrSet<Instruction *, 4> *ForRemoval)
+{
+  insertTypeID(F, I);
+  ForRemoval->insert(&I);
 }
 
 void PartsOptBuiltinsPass::insertTypeID(Function &F, Instruction &I)
