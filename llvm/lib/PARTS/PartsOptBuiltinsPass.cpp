@@ -18,11 +18,9 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsOptPass.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;
-using namespace llvm::PARTS::PartsOptPass;
 
 #define DEBUG_TYPE "PartsOptBuiltinsPass"
 
