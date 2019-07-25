@@ -9,6 +9,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <llvm/IR/IRBuilder.h>
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Intrinsics.h"
@@ -46,11 +47,18 @@ Pass *llvm::PARTS::createPartsOptBuiltinsPass() { return new PartsOptBuiltinsPas
 
 bool PartsOptBuiltinsPass::runOnFunction(Function &F) {
   bool modified = false;
+  SmallPtrSet<Instruction *, 4> ForRemoval;
 
   for (auto &BB:F)
     for (auto &I: BB)
-      if (isPartsBuiltin(I))
+      if (isPartsBuiltin(I)) {
         insertTypeID(F, I);
+        ForRemoval.insert(&I);
+        modified = true;
+      }
+
+  for (auto I: ForRemoval)
+    I->eraseFromParent();
 
   return modified;
 }
