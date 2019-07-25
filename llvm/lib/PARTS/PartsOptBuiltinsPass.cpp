@@ -43,7 +43,6 @@ static RegisterPass<PartsOptBuiltinsPass> X("parts-opt-builtins", "PARTS mark da
 Pass *llvm::PARTS::createPartsOptBuiltinsPass() { return new PartsOptBuiltinsPass(); }
 
 bool PartsOptBuiltinsPass::runOnFunction(Function &F) {
-  bool modified = false;
   SmallPtrSet<Instruction *, 4> ForRemoval;
 
   for (auto &BB:F)
@@ -51,13 +50,12 @@ bool PartsOptBuiltinsPass::runOnFunction(Function &F) {
       if (isPartsBuiltin(I)) {
         insertTypeID(F, I);
         ForRemoval.insert(&I);
-        modified = true;
       }
 
   for (auto I: ForRemoval)
     I->eraseFromParent();
 
-  return modified;
+  return !ForRemoval.empty();
 }
 
 inline bool PartsOptBuiltinsPass::isPartsBuiltin(Instruction &I) {
