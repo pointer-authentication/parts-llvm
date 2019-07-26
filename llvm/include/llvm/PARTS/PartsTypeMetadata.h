@@ -11,18 +11,16 @@
 #ifndef LLVM_IR_PARTSTYPEMETADATA_H
 #define LLVM_IR_PARTSTYPEMETADATA_H
 
-#include "llvm/CodeGen/MachineInstr.h"
-#include "llvm/IR/Metadata.h"
+#include "llvm/IR/Constant.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Type.h"
 
 namespace llvm {
-
 namespace PARTS {
 
-//typedef uint64_t type_id_t; // TODO I suggest to change to conform more LLVM convention?
 Constant *getTypeIDConstantFrom(const Type &T, LLVMContext &C);
 
 }
+}
 
-} // namespace llvm
-
-#endif // LLVM_IR_PARTSTYPEMETADATA_H
+#endif

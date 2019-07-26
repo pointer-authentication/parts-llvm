@@ -11,6 +11,8 @@
 
 #include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/Parts.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Type.h"
 #include <regex>
 #include <map>
 
