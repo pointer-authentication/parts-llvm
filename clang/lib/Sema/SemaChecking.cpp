@@ -1847,6 +1847,20 @@ bool Sema::CheckAArch64BuiltinPartsModifier(unsigned BuiltinID, CallExpr *TheCal
   if (checkArgCount(*this, TheCall, 1))
     return true;
 
+  DeclRefExpr *DRE = cast<DeclRefExpr>(TheCall->getCallee()->IgnoreParenCasts());
+  Expr *PointerArg = TheCall->getArg(0);
+  ExprResult PointerArgRes = DefaultFunctionArrayLvalueConversion(PointerArg);
+  if (PointerArgRes.isInvalid())
+    return true;
+  PointerArg = PointerArgRes.get();
+
+  const PointerType *pointerType = PointerArg->getType()->getAs<PointerType>();
+  if (!pointerType) {
+    Diag(DRE->getBeginLoc(), diag::err_builtin_must_be_pointer)
+        << PointerArg->getType() << PointerArg->getSourceRange();
+    return true;
+  }
+
   return false;
 }
 

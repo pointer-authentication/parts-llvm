@@ -6,5 +6,7 @@ uint64_t get_pa_modifier(uint64_t *value) {
   res = __builtin_arm_parts_modifier(value);
   res |= __builtin_arm_parts_modifier(); // expected-error {{too few arguments to function call}}
   res |= __builtin_arm_parts_modifier(value, value); // expected-error {{too many arguments to function call}}
+  res |= __builtin_arm_parts_modifier(*value); // expected-error {{address argument to builtin must be a pointer}}
+  res |= __builtin_arm_parts_modifier(&value);
   return res;
 }
