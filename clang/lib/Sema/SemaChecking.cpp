@@ -1844,6 +1844,9 @@ bool Sema::CheckAArch64BuiltinFunctionCall(unsigned BuiltinID,
 
 bool Sema::CheckAArch64BuiltinPartsModifier(unsigned BuiltinID, CallExpr *TheCall)
 {
+  if (checkArgCount(*this, TheCall, 1))
+    return true;
+
   return false;
 }
 
