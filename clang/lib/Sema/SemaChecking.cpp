@@ -1744,6 +1744,7 @@ bool Sema::CheckARMBuiltinFunctionCall(unsigned BuiltinID, CallExpr *TheCall) {
     return CheckARMBuiltinExclusiveCall(BuiltinID, TheCall, 64);
   }
 
+
   if (BuiltinID == ARM::BI__builtin_arm_prefetch) {
     return SemaBuiltinConstantArgRange(TheCall, 1, 0, 1) ||
       SemaBuiltinConstantArgRange(TheCall, 2, 0, 1);
@@ -1795,6 +1796,9 @@ bool Sema::CheckAArch64BuiltinFunctionCall(unsigned BuiltinID,
     return CheckARMBuiltinExclusiveCall(BuiltinID, TheCall, 128);
   }
 
+  if (BuiltinID == AArch64::BI__builtin_arm_parts_modifier)
+    return CheckAArch64BuiltinPartsModifier(BuiltinID, TheCall);
+
   if (BuiltinID == AArch64::BI__builtin_arm_prefetch) {
     return SemaBuiltinConstantArgRange(TheCall, 1, 0, 1) ||
       SemaBuiltinConstantArgRange(TheCall, 2, 0, 2) ||
@@ -1836,6 +1840,11 @@ bool Sema::CheckAArch64BuiltinFunctionCall(unsigned BuiltinID,
   }
 
   return SemaBuiltinConstantArgRange(TheCall, i, l, u + l);
+}
+
+bool Sema::CheckAArch64BuiltinPartsModifier(unsigned BuiltinID, CallExpr *TheCall)
+{
+  return false;
 }
 
 bool Sema::CheckHexagonBuiltinCpu(unsigned BuiltinID, CallExpr *TheCall) {

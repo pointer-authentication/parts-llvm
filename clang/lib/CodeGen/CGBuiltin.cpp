@@ -6849,6 +6849,15 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
     return EmitNounwindRuntimeCall(CGM.CreateRuntimeFunction(FTy, Name), Ops);
   }
 
+
+  if ((BuiltinID == AArch64::BI__builtin_arm_parts_modifier)) {
+    Value *Ptr = EmitScalarExpr(E->getArg(0));
+    QualType Ty = E->getArg(0)->getType();
+    llvm::Type *PtrTy = ConvertType(Ty);
+    Function *F = CGM.getIntrinsic(Intrinsic::pa_modifier, PtrTy);
+    return Builder.CreateCall(F, Ptr);
+  }
+
   if ((BuiltinID == AArch64::BI__builtin_arm_ldrex ||
       BuiltinID == AArch64::BI__builtin_arm_ldaex) &&
       getContext().getTypeSize(E->getType()) == 128) {

@@ -31,6 +31,9 @@ BUILTIN(__builtin_arm_strex, "i.", "t")
 BUILTIN(__builtin_arm_stlex, "i.", "t")
 BUILTIN(__builtin_arm_clrex, "v", "")
 
+// PARTS expose pointer authentication modifier
+BUILTIN(__builtin_arm_parts_modifier, "ULi.", "t")
+
 // Bit manipulation
 BUILTIN(__builtin_arm_rbit, "UiUi", "nc")
 BUILTIN(__builtin_arm_rbit64, "WUiWUi", "nc")
