@@ -14,7 +14,6 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Type.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 
 namespace llvm {
 namespace PARTS {

@@ -1,6 +1,7 @@
 #include "llvm/PARTS/PartsOptPass.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Operator.h"
+#include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;
