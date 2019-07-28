@@ -37,12 +37,7 @@ class AArch64PartsIntrPass : public MachineFunctionPass {
 public:
   static char ID;
 
-  AArch64PartsIntrPass() :
-      MachineFunctionPass(ID),
-      log(PARTS::PartsLog::getLogger(DEBUG_TYPE))
-  {
-    DEBUG_PA(log->enable());
-  }
+  AArch64PartsIntrPass() : MachineFunctionPass(ID) {}
 
   StringRef getPassName() const override { return "parts-intrinsics"; }
 
@@ -50,8 +45,6 @@ public:
   bool runOnMachineFunction(MachineFunction &) override;
 
 private:
-
-  PartsLog_ptr log;
 
   //const TargetMachine *TM = nullptr;
   const AArch64Subtarget *STI = nullptr;
@@ -91,8 +84,6 @@ bool AArch64PartsIntrPass::runOnMachineFunction(MachineFunction &MF) {
 
   for (auto &MBB : MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      DEBUG_PA(log->debug(MF.getName()) << MF.getName() << "->" << MBB.getName() << "->" << MIi);
-
       const auto MIOpcode = MIi->getOpcode();
 
       switch(MIOpcode) {
