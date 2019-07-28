@@ -16,7 +16,6 @@
 #include "AArch64.h"
 #include "AArch64RegisterInfo.h"
 #include "AArch64InstrInfo.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/PartsLog.h"
 
 namespace llvm {

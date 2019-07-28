@@ -9,7 +9,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Type.h"
 #include "llvm/Support/CommandLine.h"

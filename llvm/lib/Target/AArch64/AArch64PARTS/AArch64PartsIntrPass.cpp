@@ -24,7 +24,6 @@
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/PartsEventCount.h"
 #include "PartsUtils.h"
 

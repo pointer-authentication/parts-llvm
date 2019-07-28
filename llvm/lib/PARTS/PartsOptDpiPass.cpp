@@ -13,13 +13,10 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/Constants.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/Pass.h"
 #include "llvm/PARTS/Parts.h"
-#include <llvm/PARTS/PartsIntr.h>
 #include <llvm/PARTS/PartsOptPass.h>
-#include "llvm/PARTS/PartsTypeMetadata.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;

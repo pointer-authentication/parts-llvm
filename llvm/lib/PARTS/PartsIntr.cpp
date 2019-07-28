@@ -8,12 +8,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/PARTS/PartsIntr.h>
-
+#include "llvm/PARTS/PartsIntr.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/PARTS/PartsIntr.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
+#include "llvm/PARTS/Parts.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;
