@@ -10,7 +10,6 @@
 
 #include "PartsUtils.h"
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include <iomanip>
@@ -19,12 +18,9 @@ using namespace llvm;
 using namespace llvm::PARTS;
 
 PartsUtils::PartsUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII) :
-    log(PartsLog::getLogger("PartsUtils")),
     TII(TII),
     TRI(TRI)
-{
-  DEBUG_PA(log->enable());
-}
+{}
 
 bool PartsUtils::isLoadOrStore(const MachineInstr &MI) {
   const auto opCode = MI.getOpcode();

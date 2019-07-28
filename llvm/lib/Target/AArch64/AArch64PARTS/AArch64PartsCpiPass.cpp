@@ -27,7 +27,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/CodeGen/RegisterScavenging.h"
 // PARTS includes
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "llvm/PARTS/PartsEventCount.h"
 #include "llvm/PARTS/Parts.h"
 #include "PartsUtils.h"

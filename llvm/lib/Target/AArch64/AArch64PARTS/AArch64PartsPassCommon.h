@@ -14,7 +14,7 @@
 #include "AArch64InstrInfo.h"
 #include "AArch64Subtarget.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
+#include "llvm/PARTS/Parts.h"
 
 using namespace llvm;
 using namespace llvm::PARTS;

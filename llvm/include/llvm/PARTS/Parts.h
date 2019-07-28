@@ -11,6 +11,8 @@
 #ifndef LLVM_PARTS_H
 #define LLVM_PARTS_H
 
+#include "llvm/IR/Constant.h"
+#include "llvm/IR/Type.h"
 #include "llvm/Pass.h"
 
 namespace llvm {
@@ -23,6 +25,12 @@ enum PartsBeCfiType{
   PartsBeCfiNgFull
 };
 
+enum PartsFeCfiType {
+  PartsFeCfiNone,
+  PartsFeCfiFull,
+  PartsFeCfiFullNoType
+};
+
 bool useBeCfi();
 bool useFeCfi();
 bool useDpi();
@@ -31,6 +39,7 @@ bool useAny();
 bool useDummy();
 bool useRuntimeStats();
 
+Constant *getTypeIDConstantFrom(const Type &T, LLVMContext &C);
 PartsBeCfiType getBeCfiType();
 
 Pass *createPartsOptCpiPass();

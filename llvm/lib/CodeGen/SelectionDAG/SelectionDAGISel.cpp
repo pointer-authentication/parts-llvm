@@ -100,7 +100,6 @@
 #include <utility>
 #include <vector>
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
 

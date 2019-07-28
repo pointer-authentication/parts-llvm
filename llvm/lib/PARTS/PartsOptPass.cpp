@@ -1,6 +1,10 @@
+#include "llvm/PARTS/PartsOptPass.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Operator.h"
-#include "llvm/PARTS/PartsOptPass.h"
+#include "llvm/PARTS/Parts.h"
+
+using namespace llvm;
+using namespace llvm::PARTS;
 
 CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
                                           Instruction &I,

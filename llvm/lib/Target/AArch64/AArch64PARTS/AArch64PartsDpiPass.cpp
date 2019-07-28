@@ -28,7 +28,6 @@
 // PARTS includes
 #include "llvm/PARTS/Parts.h"
 #include "llvm/PARTS/PartsEventCount.h"
-#include "llvm/PARTS/PartsTypeMetadata.h"
 #include "AArch64PartsPassCommon.h"
 #include "PartsUtils.h"
 
