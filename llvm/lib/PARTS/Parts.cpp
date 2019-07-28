@@ -55,7 +55,7 @@ bool llvm::PARTS::useDpi() {
   return EnablePartsDpi;
 }
 
-bool llvm::PARTS::isUnionTypePunningSupported(void) {
+bool llvm::PARTS::isUnionTypePunningSupported() {
   return EnablePartsDpiUnionTypePunning;
 }
 
@@ -71,13 +71,6 @@ bool llvm::PARTS::useRuntimeStats() {
   return EnablePartsRuntimeStats;
 }
 
-namespace llvm {
-namespace PARTS {
-
-PartsBeCfiType getBeCfiType() {
+PartsBeCfiType PARTS::getBeCfiType() {
   return PartsBeCfi;
 }
-
-}
-}
-
