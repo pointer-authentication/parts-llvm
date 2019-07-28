@@ -20,11 +20,11 @@ namespace llvm {
 namespace PARTS {
 namespace PartsOptPass {
 
-  CallInst *createPartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
-  CallInst *createPartsIntrinsicNoTypeID(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
-  bool isUnionMemberLoad(LoadInst *load);
-  static inline bool isCodePointer(const Type *const type);
-  static inline bool isDataPointer(const Type *const type);
+CallInst *createPartsIntrinsic(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
+CallInst *createPartsIntrinsicNoTypeID(Function &F, Instruction &I, Value *calledValue, Intrinsic::ID intrinsicID);
+bool isUnionMemberLoad(LoadInst *load);
+static inline bool isCodePointer(const Type *type);
+static inline bool isDataPointer(const Type *type);
 
 static inline bool isCodePointer(const Type *const type) {
   return type->isPointerTy() && type->getPointerElementType()->isFunctionTy();
