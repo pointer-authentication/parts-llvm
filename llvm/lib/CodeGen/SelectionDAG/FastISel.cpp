@@ -110,7 +110,6 @@
 #include <iterator>
 #include <utility>
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
 
 using namespace llvm;
 using namespace PatternMatch;
