@@ -16,7 +16,6 @@
 #include "llvm/Support/RandomNumberGenerator.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/PARTS/Parts.h"
-#include "llvm/PARTS/PartsLog.h"
 #include <iterator>
 #include <set>
 
@@ -30,14 +29,7 @@ namespace {
 struct PartsOptRasPass: public ModulePass {
   static char ID;
 
-  PartsLog_ptr log;
-
-  PartsOptRasPass() :
-      ModulePass(ID),
-      log(PartsLog::getLogger(DEBUG_TYPE))
-  {
-    DEBUG_PA(log->enable());
-  }
+  PartsOptRasPass() : ModulePass(ID) {}
 
   bool runOnModule(Module &M) override;
 };
