@@ -8,8 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/PARTS/Parts.h>
-#include <llvm/Support/raw_ostream.h>
+#include "llvm/PARTS/Parts.h"
 #include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
