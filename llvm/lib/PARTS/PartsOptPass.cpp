@@ -2,6 +2,9 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Operator.h"
 
+using namespace llvm;
+using namespace llvm::PARTS;
+
 CallInst *PartsOptPass::createPartsIntrinsic(Function &F,
                                           Instruction &I,
                                           Value *calledValue,
