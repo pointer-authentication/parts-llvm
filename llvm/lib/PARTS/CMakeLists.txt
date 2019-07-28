@@ -17,8 +17,6 @@ add_llvm_library(Parts
   PartsOptDpiPass.cpp
   PartsOptGlobalsPass.cpp
   PartsOptMainArgsPass.cpp
-  PartsLog.cpp
-  PartsLogStream.cpp
   PartsEventCount.cpp
   PartsIntr.cpp
 
