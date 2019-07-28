@@ -25,6 +25,12 @@ enum PartsBeCfiType{
   PartsBeCfiNgFull
 };
 
+enum PartsFeCfiType {
+  PartsFeCfiNone,
+  PartsFeCfiFull,
+  PartsFeCfiFullNoType
+};
+
 bool useBeCfi();
 bool useFeCfi();
 bool useDpi();

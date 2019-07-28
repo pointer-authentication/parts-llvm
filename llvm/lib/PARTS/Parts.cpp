@@ -32,6 +32,17 @@ static cl::opt<PARTS::PartsBeCfiType> PartsBeCfi(
                clEnumValN(PartsBeCfiFull, "full", "Full backward-edge protection"),
                clEnumValN(PartsBeCfiNgFull, "ng-full", "Full optimized backward-edge protection")));
 
+static cl::opt<PARTS::PartsFeCfiType> PartsFeCfi(
+    "parts-cpi", cl::init(PartsFeCfiNone),
+    cl::desc("PARTS code-pointer protection"),
+    cl::value_desc("mode"),
+    cl::values(clEnumValN(PartsFeCfiNone, "none",
+                          "No PARTS code-pointer protection"),
+               clEnumValN(PartsFeCfiFull, "full",
+                          "PARTS code-pointer protection using type-id"),
+               clEnumValN(PartsFeCfiFullNoType, "notype",
+                          "Backward-edge protection with 0x0 PA-modifier")));
+
 static cl::opt<bool> EnablePartsFeCfi("parts-fecfi", cl::Hidden,
                                       cl::desc("PARTS backward-edge CFI"),
                                       cl::init(false));
@@ -58,7 +69,7 @@ bool llvm::PARTS::useBeCfi() {
 }
 
 bool llvm::PARTS::useFeCfi() {
-  return EnablePartsFeCfi;
+  return EnablePartsFeCfi || (PartsFeCfi != PartsFeCfiNone);
 }
 
 bool llvm::PARTS::useDpi() {
@@ -70,7 +81,7 @@ bool llvm::PARTS::isUnionTypePunningSupported() {
 }
 
 bool llvm::PARTS::useAny() {
-  return EnablePartsDpi || EnablePartsFeCfi || useBeCfi();
+  return EnablePartsDpi || useFeCfi() || useBeCfi();
 }
 
 bool llvm::PARTS::useDummy() {
@@ -161,9 +172,19 @@ uint64_t getTypeIDFor(const Type *T) {
   return theTypeID;
 }
 
+static inline bool isCodePointer(const Type *const type) {
+  return type->isPointerTy() && type->getPointerElementType()->isFunctionTy();
+}
+
 } // namespace
 
 Constant *PARTS::getTypeIDConstantFrom(const Type &T, LLVMContext &C) {
-  auto typeID = getTypeIDFor(&T);
-  return Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64, typeID));
+  if (PartsFeCfi == PartsFeCfiFullNoType && isCodePointer(&T)) {
+    static auto *zero =  Constant::getIntegerValue(Type::getInt64Ty(C),
+                                                   APInt(64, 0));
+    return zero;
+  }
+
+  return Constant::getIntegerValue(Type::getInt64Ty(C),
+                                   APInt(64, getTypeIDFor(&T)));
 }
