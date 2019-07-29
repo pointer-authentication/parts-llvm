@@ -115,6 +115,9 @@ bool PartsOptMainArgsPass::runOnModule(Module &M) {
 
   auto *F = M.getFunction("main");
 
+  if (F == nullptr)
+    return false;
+
   auto AI = F->arg_begin();
   if (AI == F->arg_end())
     return false;
