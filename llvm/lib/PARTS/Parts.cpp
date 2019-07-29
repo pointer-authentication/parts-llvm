@@ -75,6 +75,11 @@ static cl::opt<bool> EnablePartsRuntimeStats("parts-stats", cl::Hidden,
                                           cl::desc("Invoke stat counting functions to count various events"),
                                           cl::init(false));
 
+
+void llvm::PARTS::setPartsDpiUnionTypePunning(bool value) {
+  EnablePartsDpiUnionTypePunning = value;
+}
+
 bool llvm::PARTS::useBeCfi() {
   return PartsBeCfi != PartsBeCfiNone;
 }

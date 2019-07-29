@@ -45,6 +45,8 @@ bool useAny();
 bool useDummy();
 bool useRuntimeStats();
 
+void setPartsDpiUnionTypePunning(bool value);
+
 Constant *getTypeIDConstantFrom(const Type &T, LLVMContext &C);
 PartsBeCfiType getBeCfiType();
 PartsFeCfiType getFeCfiType();
