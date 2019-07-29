@@ -441,6 +441,12 @@ void AArch64PassConfig::addIRPasses() {
     addPass(createLICMPass());
   }
 
+  const auto PartsFeCfi = PARTS::getFeCfiType();
+  if (PartsFeCfi == PARTS::PartsFeCfiFull || PartsFeCfi == PARTS::PartsFeCfiFullNoType) {
+    addPass(PARTS::createPartsOptGlobalsPass());
+    addPass(PARTS::createPartsOptCpiPass());
+  }
+
   if (PARTS::getBeCfiType() == PARTS::PartsBeCfiFull) {
     addPass(PARTS::createPartsOptRasPass());
   }

@@ -1,5 +1,4 @@
 ; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-cpi=full < %s | FileCheck %s
-; XFAIL: *
 
 @func1 = global void ()* @printer1
 @func2 = global void ()* @printer2
