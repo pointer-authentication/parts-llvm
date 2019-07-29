@@ -200,12 +200,22 @@ static inline bool isCodePointer(const Type *const type) {
   return type->isPointerTy() && type->getPointerElementType()->isFunctionTy();
 }
 
+static inline bool isDataPointer(const Type *const type) {
+  return type->isPointerTy() && !type->getPointerElementType()->isFunctionTy();
+}
+
 } // namespace
 
 Constant *PARTS::getTypeIDConstantFrom(const Type &T, LLVMContext &C) {
   if (PartsFeCfi == PartsFeCfiFullNoType && isCodePointer(&T)) {
     static auto *zero =  Constant::getIntegerValue(Type::getInt64Ty(C),
                                                    APInt(64, 0));
+    return zero;
+  }
+
+  if (PartsDpi == PartsDpiFullNoType && isDataPointer(&T)) {
+    static auto *zero = Constant::getIntegerValue(Type::getInt64Ty(C),
+                                                  APInt(64, 0));
     return zero;
   }
 

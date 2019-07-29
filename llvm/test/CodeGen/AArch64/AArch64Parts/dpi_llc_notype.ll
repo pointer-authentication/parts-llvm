@@ -1,5 +1,4 @@
 ; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-dpp=notype < %s | FileCheck %s
-; XFAIL: *
 
 @data = common global i32* null
 
