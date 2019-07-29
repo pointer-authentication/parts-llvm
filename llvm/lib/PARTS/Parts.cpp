@@ -96,6 +96,10 @@ PartsBeCfiType PARTS::getBeCfiType() {
   return PartsBeCfi;
 }
 
+PartsFeCfiType PARTS::getFeCfiType() {
+  return PartsFeCfi;
+}
+
 namespace {
 
 std::map<const Type *, uint64_t> TypeIDCache;

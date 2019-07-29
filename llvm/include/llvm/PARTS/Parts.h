@@ -41,6 +41,7 @@ bool useRuntimeStats();
 
 Constant *getTypeIDConstantFrom(const Type &T, LLVMContext &C);
 PartsBeCfiType getBeCfiType();
+PartsFeCfiType getFeCfiType();
 
 Pass *createPartsOptCpiPass();
 Pass *createPartsOptDataPointerArgsPass();
