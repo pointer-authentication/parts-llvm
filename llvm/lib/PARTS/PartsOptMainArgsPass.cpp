@@ -59,6 +59,9 @@ Function *PartsOptMainArgsPass::createFixFunction(Module &M)
   Function *funcFixMain = Function::Create(signature, Function::InternalLinkage,
                                  "__pauth_pac_main_args", &M);
 
+  // Make sure we don't double PAC this function
+  funcFixMain->addFnAttr("no-parts", "true");
+
   // Get the function arguments
   auto argsI = funcFixMain->arg_begin();
   Value &argc = *argsI++;
