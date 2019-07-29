@@ -50,6 +50,7 @@ static RegisterPass<PartsOptDataPointerArgsPass> X("parts-opt-dp-args", "PARTS m
 Pass *llvm::PARTS::createPartsOptDataPointerArgsPass() { return new PartsOptDataPointerArgsPass(); }
 
 bool PartsOptDataPointerArgsPass::runOnFunction(Function &F) {
+  if (F.hasFnAttribute("no-parts")) return false;
   if (!(PARTS::useDpi()))
     return false;
 

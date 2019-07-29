@@ -74,6 +74,7 @@ bool AArch64PartsSpillPass::doInitialization(Module &M) {
 }
 
 bool AArch64PartsSpillPass::runOnMachineFunction(MachineFunction &MF) {
+  if (MF.getFunction().hasFnAttribute("no-parts")) return false;
   bool modified = false;
 
   TII = MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
