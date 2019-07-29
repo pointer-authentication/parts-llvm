@@ -441,9 +441,23 @@ void AArch64PassConfig::addIRPasses() {
     addPass(createLICMPass());
   }
 
-  if (PARTS::getBeCfiType() == PARTS::PartsBeCfiFull) {
-    addPass(PARTS::createPartsOptRasPass());
+  const auto PartsFeCfi = PARTS::getFeCfiType();
+  const auto PartsDpi = PARTS::getDpiType();
+  if (!(PartsFeCfi == PARTS::PartsFeCfiNone && PartsDpi == PARTS::PartsDpiNone))
+    addPass(PARTS::createPartsOptGlobalsPass());
+
+  if (PartsFeCfi != PARTS::PartsFeCfiNone)
+    addPass(PARTS::createPartsOptCpiPass());
+
+  if (PartsDpi != PARTS::PartsDpiNone) {
+    PARTS::setPartsDpiUnionTypePunning(true);
+    addPass(PARTS::createPartsOptMainArgsPass());
+    addPass(PARTS::createPartsOptDpiPass());
+    addPass(PARTS::createPartsOptDataPointerArgsPass());
   }
+
+  if (PARTS::getBeCfiType() == PARTS::PartsBeCfiFull)
+    addPass(PARTS::createPartsOptRasPass());
 }
 
 // Pass Pipeline Configuration

@@ -101,6 +101,7 @@ FunctionPass *llvm::createAArch64PartsDpiForCSR() {
 }
 
 bool AArch64PartsDpiForCSR::runOnMachineFunction(MachineFunction &MF) {
+  if (MF.getFunction().hasFnAttribute("no-parts")) return false;
   bool modified = false;
 
   const auto &MDT = getAnalysis<MachineDominatorTree>();

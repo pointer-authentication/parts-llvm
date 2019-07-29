@@ -50,6 +50,7 @@ static RegisterPass<PartsOptDpiPass> X("parts-opt-dpi", "PARTS DPI pass");
 Pass *llvm::PARTS::createPartsOptDpiPass() { return new PartsOptDpiPass(); }
 
 bool PartsOptDpiPass::runOnFunction(Function &F) {
+  if (F.hasFnAttribute("no-parts")) return false;
   if (!PARTS::useDpi())
     return false;
 

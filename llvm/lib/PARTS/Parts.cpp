@@ -41,7 +41,18 @@ static cl::opt<PARTS::PartsFeCfiType> PartsFeCfi(
                clEnumValN(PartsFeCfiFull, "full",
                           "PARTS code-pointer protection using type-id"),
                clEnumValN(PartsFeCfiFullNoType, "notype",
-                          "Backward-edge protection with 0x0 PA-modifier")));
+                          "Code-pointer protection with 0x0 modifier")));
+
+static cl::opt<PARTS::PartsDpiType> PartsDpi(
+    "parts-dpp", cl::init(PartsDpiNone),
+    cl::desc("PARTS data-pointer protection"),
+    cl::value_desc("mode"),
+    cl::values(clEnumValN(PartsDpiNone, "none",
+                          "No PARTS data-pointer protection"),
+               clEnumValN(PartsDpiFull, "full",
+                          "PARTS data-pointer protection using type-id"),
+               clEnumValN(PartsDpiFullNoType, "notype",
+                          "Data-pointer protection with 0x0 modifier")));
 
 static cl::opt<bool> EnablePartsFeCfi("parts-fecfi", cl::Hidden,
                                       cl::desc("PARTS backward-edge CFI"),
@@ -64,6 +75,11 @@ static cl::opt<bool> EnablePartsRuntimeStats("parts-stats", cl::Hidden,
                                           cl::desc("Invoke stat counting functions to count various events"),
                                           cl::init(false));
 
+
+void llvm::PARTS::setPartsDpiUnionTypePunning(bool value) {
+  EnablePartsDpiUnionTypePunning = value;
+}
+
 bool llvm::PARTS::useBeCfi() {
   return PartsBeCfi != PartsBeCfiNone;
 }
@@ -73,7 +89,7 @@ bool llvm::PARTS::useFeCfi() {
 }
 
 bool llvm::PARTS::useDpi() {
-  return EnablePartsDpi;
+  return EnablePartsDpi || (PartsDpi != PartsDpiNone);
 }
 
 bool llvm::PARTS::isUnionTypePunningSupported() {
@@ -81,7 +97,7 @@ bool llvm::PARTS::isUnionTypePunningSupported() {
 }
 
 bool llvm::PARTS::useAny() {
-  return EnablePartsDpi || useFeCfi() || useBeCfi();
+  return useDpi() || useFeCfi() || useBeCfi();
 }
 
 bool llvm::PARTS::useDummy() {
@@ -94,6 +110,14 @@ bool llvm::PARTS::useRuntimeStats() {
 
 PartsBeCfiType PARTS::getBeCfiType() {
   return PartsBeCfi;
+}
+
+PartsFeCfiType PARTS::getFeCfiType() {
+  return PartsFeCfi;
+}
+
+PartsDpiType PARTS::getDpiType() {
+  return PartsDpi;
 }
 
 namespace {
@@ -176,12 +200,22 @@ static inline bool isCodePointer(const Type *const type) {
   return type->isPointerTy() && type->getPointerElementType()->isFunctionTy();
 }
 
+static inline bool isDataPointer(const Type *const type) {
+  return type->isPointerTy() && !type->getPointerElementType()->isFunctionTy();
+}
+
 } // namespace
 
 Constant *PARTS::getTypeIDConstantFrom(const Type &T, LLVMContext &C) {
   if (PartsFeCfi == PartsFeCfiFullNoType && isCodePointer(&T)) {
     static auto *zero =  Constant::getIntegerValue(Type::getInt64Ty(C),
                                                    APInt(64, 0));
+    return zero;
+  }
+
+  if (PartsDpi == PartsDpiFullNoType && isDataPointer(&T)) {
+    static auto *zero = Constant::getIntegerValue(Type::getInt64Ty(C),
+                                                  APInt(64, 0));
     return zero;
   }
 
