@@ -41,7 +41,18 @@ static cl::opt<PARTS::PartsFeCfiType> PartsFeCfi(
                clEnumValN(PartsFeCfiFull, "full",
                           "PARTS code-pointer protection using type-id"),
                clEnumValN(PartsFeCfiFullNoType, "notype",
-                          "Backward-edge protection with 0x0 PA-modifier")));
+                          "Code-pointer protection with 0x0 modifier")));
+
+static cl::opt<PARTS::PartsDpiType> PartsDpi(
+    "parts-dpp", cl::init(PartsDpiNone),
+    cl::desc("PARTS data-pointer protection"),
+    cl::value_desc("mode"),
+    cl::values(clEnumValN(PartsDpiNone, "none",
+                          "No PARTS data-pointer protection"),
+               clEnumValN(PartsDpiFull, "full",
+                          "PARTS data-pointer protection using type-id"),
+               clEnumValN(PartsDpiFullNoType, "notype",
+                          "Data-pointer protection with 0x0 modifier")));
 
 static cl::opt<bool> EnablePartsFeCfi("parts-fecfi", cl::Hidden,
                                       cl::desc("PARTS backward-edge CFI"),
@@ -73,7 +84,7 @@ bool llvm::PARTS::useFeCfi() {
 }
 
 bool llvm::PARTS::useDpi() {
-  return EnablePartsDpi;
+  return EnablePartsDpi || (PartsDpi != PartsDpiNone);
 }
 
 bool llvm::PARTS::isUnionTypePunningSupported() {
@@ -81,7 +92,7 @@ bool llvm::PARTS::isUnionTypePunningSupported() {
 }
 
 bool llvm::PARTS::useAny() {
-  return EnablePartsDpi || useFeCfi() || useBeCfi();
+  return useDpi() || useFeCfi() || useBeCfi();
 }
 
 bool llvm::PARTS::useDummy() {
@@ -98,6 +109,10 @@ PartsBeCfiType PARTS::getBeCfiType() {
 
 PartsFeCfiType PARTS::getFeCfiType() {
   return PartsFeCfi;
+}
+
+PartsDpiType PARTS::getDpiType() {
+  return PartsDpi;
 }
 
 namespace {

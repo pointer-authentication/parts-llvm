@@ -31,6 +31,12 @@ enum PartsFeCfiType {
   PartsFeCfiFullNoType
 };
 
+enum PartsDpiType {
+  PartsDpiNone,
+  PartsDpiFull,
+  PartsDpiFullNoType
+};
+
 bool useBeCfi();
 bool useFeCfi();
 bool useDpi();
@@ -42,6 +48,7 @@ bool useRuntimeStats();
 Constant *getTypeIDConstantFrom(const Type &T, LLVMContext &C);
 PartsBeCfiType getBeCfiType();
 PartsFeCfiType getFeCfiType();
+PartsDpiType getDpiType();
 
 Pass *createPartsOptCpiPass();
 Pass *createPartsOptDataPointerArgsPass();
