@@ -6850,7 +6850,7 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
   }
 
 
-  if ((BuiltinID == AArch64::BI__builtin_arm_parts_modifier)) {
+  if (BuiltinID == AArch64::BI__builtin_arm_parts_modifier) {
     Value *Ptr = EmitScalarExpr(E->getArg(0));
     QualType Ty = E->getArg(0)->getType();
     llvm::Type *PtrTy = ConvertType(Ty);
