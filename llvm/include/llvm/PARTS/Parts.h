@@ -52,6 +52,7 @@ PartsBeCfiType getBeCfiType();
 PartsFeCfiType getFeCfiType();
 PartsDpiType getDpiType();
 
+Pass *createPartsOptBuiltinsPass();
 Pass *createPartsOptCpiPass();
 Pass *createPartsOptDataPointerArgsPass();
 Pass *createPartsOptDpiPass();

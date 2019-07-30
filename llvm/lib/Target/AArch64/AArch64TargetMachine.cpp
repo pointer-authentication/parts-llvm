@@ -402,7 +402,7 @@ void AArch64PassConfig::addIRPasses() {
   // Always expand atomic operations, we don't deal with atomicrmw or cmpxchg
   // ourselves.
   addPass(createAtomicExpandPass());
-
+  addPass(PARTS::createPartsOptBuiltinsPass());
   // Cmpxchg instructions are often used with a subsequent comparison to
   // determine whether it succeeded. We can exploit existing control-flow in
   // ldrex/strex loops to simplify this, but it needs tidying up.

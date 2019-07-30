@@ -12,6 +12,7 @@ add_llvm_library(Parts
   Parts.cpp
   PartsOptPass.cpp
   PartsOptRasPass.cpp
+  PartsOptBuiltinsPass.cpp
   PartsOptCpiPass.cpp
   PartsOptDataPointerArgsPass.cpp
   PartsOptDpiPass.cpp
