@@ -1,7 +1,8 @@
 //===----------------------------------------------------------------------===//
 //
 // Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com>
-// Copyright (C) 2019 Huawei Finland Oy
+//         Hans Liljestrand <hans.liljestrand@pm.me>
+// Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
 //
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
