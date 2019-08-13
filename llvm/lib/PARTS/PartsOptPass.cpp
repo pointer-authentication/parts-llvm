@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 //
 // Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com>
-//         Hans Liljestrand <hans.liljestrand@pm.me>
+//         Hans Liljestrand <hans@liljestrand.dev>
 //         Gilang Mentari Hamidy <gilang.hamidy@gmail.com>
 // Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
 // Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>

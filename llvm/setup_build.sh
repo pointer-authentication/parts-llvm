@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Author: Hans Liljestrand <hans.liljestrand@pm.me>
+# Author: Hans Liljestrand <hans@liljestrand.dev>
 # Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
 #
 # This code is released under Apache 2.0 license

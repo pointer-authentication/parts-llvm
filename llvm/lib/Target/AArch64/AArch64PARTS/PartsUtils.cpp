@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-// Author: Hans Liljestrand <hans.liljestrand@pm.me>
+// Author: Hans Liljestrand <hans@liljestrand.dev>
 //         Carlos Chinea <carlos.chinea.perez@huawei.com>
 //         Zaheer Ahmed Gauhar <zaheer.gauhar@aalto.fi>
 //         Gilang Mentari Hamidy <gilang.hamidy@gmail.com>

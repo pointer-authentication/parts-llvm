@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-// Author: Hans Liljestrand <hans.liljestrand@pm.me>
+// Author: Hans Liljestrand <hans@liljestrand.dev>
 //         Zaheer Ahmed Gauhar <zaheer.gauhar@aalto.fi>
 // Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
 //
