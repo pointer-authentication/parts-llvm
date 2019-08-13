@@ -1,7 +1,3 @@
-;
-; Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com>
-; Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
-;
 ; Check intrinsic for data pointer authentication is added for bitcast instructions
 ;
 ; Test reference: ../test/CodeGen/AArch64/arm64-ld-from-st.ll

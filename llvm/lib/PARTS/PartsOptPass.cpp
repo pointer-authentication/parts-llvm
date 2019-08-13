@@ -1,3 +1,16 @@
+//===----------------------------------------------------------------------===//
+//
+// Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com>
+//         Hans Liljestrand <hans@liljestrand.dev>
+//         Gilang Mentari Hamidy <gilang.hamidy@gmail.com>
+// Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
+// Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+
 #include "llvm/PARTS/PartsOptPass.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Operator.h"

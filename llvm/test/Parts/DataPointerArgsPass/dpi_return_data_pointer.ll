@@ -1,7 +1,3 @@
-;
-; Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com>
-; Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
-;
 ; Check metadata for data pointer authentication is added
 ; RUN: opt -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s
 

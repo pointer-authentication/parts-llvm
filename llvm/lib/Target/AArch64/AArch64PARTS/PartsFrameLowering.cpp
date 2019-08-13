@@ -1,7 +1,10 @@
 //===----------------------------------------------------------------------===//
 //
-// Author: Hans Liljestrand <hans.liljestrand@pm.me>
+// Author: Hans Liljestrand <hans@liljestrand.dev>
+//         Zaheer Ahmed Gauhar <zaheer.gauhar@aalto.fi>
+//         Gilang Mentari Hamidy <gilang.hamidy@gmail.com>
 // Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
+// Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
 //
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
