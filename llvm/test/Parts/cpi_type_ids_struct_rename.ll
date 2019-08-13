@@ -1,10 +1,3 @@
-; ------------------------------------------------------------------------
-; Author: Hans Liljestrand <hans.liljestrand@pm.me>
-; Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
-;
-; This file is distributed under the University of Illinois Open Source
-; License. See LICENSE.TXT for details.
-; ------------------------------------------------------------------------
 ; RUN: opt -parts-fecfi -parts-opt-cpi -S < %s | FileCheck %s
 ;
 ; This checks that compatible function signatures produce compatible type_ids, even

@@ -1,10 +1,3 @@
-; ------------------------------------------------------------------------
-; Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com> 
-; Copyright (C) 2019 Huawei Finland Oy
-;
-; This file is distributed under the University of Illinois Open Source
-; License. See LICENSE.TXT for details.
-; ------------------------------------------------------------------------
 ; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-dpi -parts-fecfi -verify-machineinstrs < %s | FileCheck %s
 ; XFAIL: *
 ;

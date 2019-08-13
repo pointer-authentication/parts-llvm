@@ -1,10 +1,3 @@
-; ------------------------------------------------------------------------
-; Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com> 
-; Copyright (C) 2019 Huawei
-;
-; This file is distributed under the University of Illinois Open Source
-; License. See LICENSE.TXT for details.
-; ------------------------------------------------------------------------
 ; Test placement of the part.data.pointer.argument intrinsic
 ;
 ; RUN: opt -parts-dpi -parts-opt-dpi -parts-opt-dp-args -S < %s | FileCheck %s

@@ -1,10 +1,3 @@
-; ------------------------------------------------------------------------
-; Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com>
-; Copyright (C) 2019 Huawei Finland Oy
-;
-; This file is distributed under the University of Illinois Open Source
-; License. See LICENSE.TXT for details.
-; ------------------------------------------------------------------------
 ; Test that we insert our spill/reload pseudo instruction for data pointer arguments
 ;
 ; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-dpi -verify-machineinstrs --verify-regalloc --stop-after=greedy < %s | FileCheck %s

@@ -1,10 +1,3 @@
-; ------------------------------------------------------------------------
-; Author: Hans Liljestrand <hans.liljestrand@pm.me>
-; Copyright (C) 2018 Secure Systems Group, Aalto University <ssg.aalto.fi>
-;
-; This file is distributed under the University of Illinois Open Source
-; License. See LICENSE.TXT for details.
-; ------------------------------------------------------------------------
 ; Test that we only sign/auth the data pointer argument passed in a registers and
 ; that we do not sign the data pointer arguments passed on the stack. The latter one
 ; should have already be sign and need no instrumentation by our spill pass.

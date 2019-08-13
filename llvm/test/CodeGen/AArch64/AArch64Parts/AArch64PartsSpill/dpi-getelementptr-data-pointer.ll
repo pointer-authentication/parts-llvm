@@ -1,14 +1,5 @@
-; ------------------------------------------------------------------------
-; Author: Carlos Chinea Perez <carlos.chinea.perez@huawei.com>
-; Author: Hans Liljestrand <hans.liljestrand@pm.me>
-; Copyright (C) 2019 Huawei Technologies Oy (Finland) Co. Ltd
-; Copyright (C) 2019 Secure Systems Group, Aalto University <ssg.aalto.fi>
-;
 ; Reference test: test/CodeGen/AArch64/ldst-opt.ll
 ;
-; This file is distributed under the University of Illinois Open Source
-; License. See LICENSE.TXT for details.
-; ------------------------------------------------------------------------
 ; RUN: llc -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -parts-dpi < %s | FileCheck %s
 ;
 
